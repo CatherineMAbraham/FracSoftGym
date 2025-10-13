@@ -38,7 +38,7 @@ class fracturesurgery_env(gym.Env):
         self.horizon = horizon
         self.success_threshold = 0.6
         self.episodes_done = 0
-        self.output_force = 0
+        self.output_force = np.float32(0)
         if self.render_mode == 'human':
             p.connect(p.GUI, options="--background_color_red=0.9686--background_color_blue=0.79216--background_color_green=0.7882")
         else:
@@ -409,6 +409,7 @@ class fracturesurgery_env(gym.Env):
             p.stepSimulation()
             #time.sleep(1./500)  # Remove for speed
         force = visualize_contact_forces(self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
+        print(f"Force: {force}, Output Force: {self.output_force}")
         if force > self.output_force:
             self.output_force = force
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]
@@ -491,7 +492,7 @@ class fracturesurgery_env(gym.Env):
         info = {'is_success': done, 'current_step': self.current_step}
         reward = self.compute_reward(achieved_goal, desired_goal, info)
         if done or truncated:
-            wandb.log({'pos_distance': self.pos_distance, 'angle': self.angle, 'max_force': self.output_force})
+            wandb.log({'pos_distance': self.pos_distance, 'angle': self.angle, 'max_force': self.output_force, 'Holding': self.isHolding})
         # if done: 
         #     print(f'Angle: {self.angle} Threshold: {self.distance_threshold_ori}, Holding: {self.isHolding}')
         # if done or truncated:
