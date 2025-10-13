@@ -38,7 +38,7 @@ class fracturesurgery_env(gym.Env):
         self.horizon = horizon
         self.success_threshold = 0.6
         self.episodes_done = 0
-
+        self.output_force = 0
         if self.render_mode == 'human':
             p.connect(p.GUI, options="--background_color_red=0.9686--background_color_blue=0.79216--background_color_green=0.7882")
         else:
@@ -215,7 +215,7 @@ class fracturesurgery_env(gym.Env):
 
     def reset(self, seed=None, options=None):
         self.n += 1
-        self.output_force = []
+        #self.output_force = []
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD)
         self.current_step = 0
         make_scene(self)
@@ -409,7 +409,8 @@ class fracturesurgery_env(gym.Env):
             p.stepSimulation()
             #time.sleep(1./500)  # Remove for speed
         force = visualize_contact_forces(self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
-        self.output_force.append(force)
+        if force > self.output_force:
+            self.output_force = force
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]
         actualNewOrientation = p.getLinkState(self.pandaUid, 11)[1]
         actualNewVelocity = p.getLinkState(self.pandaUid, 11, 1)[6]
@@ -484,14 +485,13 @@ class fracturesurgery_env(gym.Env):
         #       f'Position Distance: {self.pos_distance}, Angle: {self.angle}, '
         #       f'Is Holding: {self.isHolding}, Current Step: {self.current_step}')
         done = check_done(self)
-        if done:
-            max_force = np.max(np.array(self.output_force), axis=0)
-            wandb.log({'pos_distance': self.pos_distance, 'angle': self.angle, 'max_force': max_force})
+        
         #print(f'Achieved Goal: {achieved_goal}, Desired Goal: {desired_goal}')
         truncated = self.current_step >= self.max_steps and not done
         info = {'is_success': done, 'current_step': self.current_step}
         reward = self.compute_reward(achieved_goal, desired_goal, info)
-        
+        if done or truncated:
+            wandb.log({'pos_distance': self.pos_distance, 'angle': self.angle, 'max_force': self.output_force})
         # if done: 
         #     print(f'Angle: {self.angle} Threshold: {self.distance_threshold_ori}, Holding: {self.isHolding}')
         # if done or truncated:

@@ -400,4 +400,5 @@ def visualize_contact_forces(bodyA, bodyB, scale=0.01, lifeTime=0.05, lineWidth=
         #                    (np.array(contact_pos) + f_total * scale).tolist(),
         #                    lineColorRGB=[1, 1, 0], lifeTime=lifeTime, lineWidth=lineWidth+1)
         f_total = np.linalg.norm(f_total)
+        f_total = np.float32(f_total)
         return f_total
