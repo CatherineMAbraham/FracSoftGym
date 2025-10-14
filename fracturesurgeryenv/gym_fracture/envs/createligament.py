@@ -1,6 +1,6 @@
 import numpy as np
 import pybullet as p
-
+import os
 
 def world_from_local(body, local_point, link=-1):
     pos, orn = p.getBasePositionAndOrientation(body) if link==-1 else p.getLinkState(body, link)[:2]
@@ -16,8 +16,9 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     scale = scale
     name = name
     mid = 0.5 * (pC + pD)
-    
-    name = p.loadSoftBody("/home/catherine/FractureGym/fracturesurgeryenv/gym_fracture/envs/Assets/241206/ligament2.obj",
+    currentDir = os.path.dirname(os.path.abspath(__file__))
+    lig_path = os.path.join(currentDir, "Assets/241206/ligament2.obj")
+    name = p.loadSoftBody(lig_path,
         basePosition=mid,
         baseOrientation=orientation,
         scale=scale,
