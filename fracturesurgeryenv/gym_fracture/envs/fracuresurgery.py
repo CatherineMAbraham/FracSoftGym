@@ -492,13 +492,14 @@ class fracturesurgery_env(gym.Env):
         #       f'Position Distance: {self.pos_distance}, Angle: {self.angle}, '
         #       f'Is Holding: {self.isHolding}, Current Step: {self.current_step}')
         done = check_done(self)
+        info = {'is_success': done, 'current_step': self.current_step, 'pos_distance': self.pos_distance, 'angle': self.angle, 'max_force': self.output_force, 'Holding': self.isHolding}
         #print(self.isHolding)
         #print(f'Achieved Goal: {achieved_goal}, Desired Goal: {desired_goal}')
         truncated = self.current_step >= self.max_steps and not done
-        info = {'is_success': done, 'current_step': self.current_step}
+        #info = {'is_success': done, 'current_step': self.current_step}
         reward = self.compute_reward(achieved_goal, desired_goal, info)
-        if done or truncated:
-            wandb.log({'pos_distance': self.pos_distance, 'angle': self.angle, 'max_force': self.output_force, 'Holding': self.isHolding})
+        #if done or truncated:
+        
         # if done: 
         #     print(f'Angle: {self.angle} Threshold: {self.distance_threshold_ori}, Holding: {self.isHolding}')
         # if done or truncated:
