@@ -410,13 +410,19 @@ class fracturesurgery_env(gym.Env):
             #time.sleep(1./500)  # Remove for speed
         force = visualize_contact_forces(self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
         print(f"Force: {force}, Output Force: {self.output_force}")
-        if force > self.output_force:
+        if (force is not None) and force > self.output_force:
             self.output_force = force
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]
         actualNewOrientation = p.getLinkState(self.pandaUid, 11)[1]
         actualNewVelocity = p.getLinkState(self.pandaUid, 11, 1)[6]
-        holdObject = len(p.getContactPoints(self.pandaUid, self.objectUid))
-        self.isHolding = 1 if holdObject > 0 else 0
+        left_contact = p.getContactPoints(self.pandaUid, self.objectUid, linkIndexA=9)
+        right_contact = p.getContactPoints(self.pandaUid, self.objectUid, linkIndexA=10)
+        # print(f"Left Contact: {left_contact}")
+        #holdObject = len(p.getContactPoints(self.pandaUid, self.objectUid))
+        # if left_contact and right_contact:
+        #     print("Holding Object")
+        # #print(f"Hold Object: {p.getContactPoints(self.pandaUid, self.objectUid)}")
+        self.isHolding = 1 if left_contact and right_contact else 0
         joint_states = [p.getJointState(self.pandaUid, i) for i in range(9)]
         jointPoses = np.array([js[0] for js in joint_states])        # positions
         jointVelocities = np.array([js[1] for js in joint_states])   # velocities
@@ -486,7 +492,7 @@ class fracturesurgery_env(gym.Env):
         #       f'Position Distance: {self.pos_distance}, Angle: {self.angle}, '
         #       f'Is Holding: {self.isHolding}, Current Step: {self.current_step}')
         done = check_done(self)
-        
+        #print(self.isHolding)
         #print(f'Achieved Goal: {achieved_goal}, Desired Goal: {desired_goal}')
         truncated = self.current_step >= self.max_steps and not done
         info = {'is_success': done, 'current_step': self.current_step}
