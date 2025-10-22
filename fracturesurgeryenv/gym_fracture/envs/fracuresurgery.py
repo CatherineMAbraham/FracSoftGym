@@ -305,7 +305,7 @@ class fracturesurgery_env(gym.Env):
         #scale_factor = 10.0
         reference_point = [0, 0, 0] 
         #scale_simulation(scale_factor, reference=reference_point)
-        p.addUserDebugText("O", [0.7255182114189597, -0.03479869975518854, 0.057873902317526996], textColorRGB=[1, 0, 0], textSize=1)
+        #p.addUserDebugText("O", [0.7255182114189597, -0.03479869975518854, 0.057873902317526996], textColorRGB=[1, 0, 0], textSize=1)
         time.sleep(1)  # Allow some time for the simulation to stabilize
         [p.enableJointForceTorqueSensor(self.pandaUid, joint, enableSensor=True) for joint in range(p.getNumJoints(self.pandaUid))]
         initialpos = p.getLinkState(self.pandaUid, 11)[0]
@@ -409,7 +409,7 @@ class fracturesurgery_env(gym.Env):
             p.stepSimulation()
             #time.sleep(1./500)  # Remove for speed
         force = visualize_contact_forces(self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
-        print(f"Force: {force}, Output Force: {self.output_force}")
+        #print(f"Force: {force}, Output Force: {self.output_force}")
         if (force is not None) and force > self.output_force:
             self.output_force = force
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]
@@ -496,12 +496,12 @@ class fracturesurgery_env(gym.Env):
         #print(self.isHolding)
         #print(f'Achieved Goal: {achieved_goal}, Desired Goal: {desired_goal}')
         truncated = self.current_step >= self.max_steps and not done
-        #info = {'is_success': done, 'current_step': self.current_step}
+        #info = {': done, 'current_step': self.current_step}
         reward = self.compute_reward(achieved_goal, desired_goal, info)
         #if done or truncated:
         
         # if done: 
-        #     print(f'Angle: {self.angle} Threshold: {self.distance_threshold_ori}, Holding: {self.isHolding}')
+        #      print(f'Threshold: {self.pos_distance}, Holding: {self.isHolding}')
         # if done or truncated:
         #     print(self.pos_distance, self.angle,self.isHolding,reward, done)
         return self.state, reward, done, truncated, info

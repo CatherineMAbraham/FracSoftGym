@@ -17,7 +17,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     name = name
     mid = 0.5 * (pC + pD)
     currentDir = os.path.dirname(os.path.abspath(__file__))
-    lig_path = os.path.join(currentDir, "Assets/241206/ligament2.obj")
+    lig_path = os.path.join(currentDir, "Assets/241206/ligament6.obj")
     name = p.loadSoftBody(lig_path,
         basePosition=mid,
         baseOrientation=orientation,
@@ -26,7 +26,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
         useNeoHookean=0,
         useMassSpring=1,
         useBendingSprings=1,
-        springElasticStiffness=40,      # stiffer -> springier/shape-preserving
+        springElasticStiffness=70,      # stiffer -> springier/shape-preserving
         springDampingStiffness=1,    # moderate damping -> oscillation allowed
         #springDampingAllDirections=1,
         springBendingStiffness=1,       # preserve rod shape
@@ -35,7 +35,10 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
         frictionCoeff=0.6,
         useFaceContact=0
     )
-### These parameters work 
+    colour = [250/255,11/255,58/255,1]
+    #print(colour)
+    p.changeVisualShape(name, -1, rgbaColor=colour)
+### These parameters work
 #  clothId = p.loadSoftBody("/home/catherine/FractureGym/fracturesurgeryenv/gym_fracture/envs/Assets/241206/ligament2.obj",
 #         basePosition=mid,
 #         baseOrientation=p.getQuaternionFromEuler([0, 0, 90/180*np.pi]),
@@ -70,7 +73,8 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     #     useFaceContact=1)
     # print(p.getAABB(clothId))
     #p.setTimeStep(1.0/100.0)
-    p.setPhysicsEngineParameter(numSolverIterations=10, erp=0.1, contactERP=0.1, numSubSteps=3)
+    p.setPhysicsEngineParameter(numSolverIterations=10, erp=0.15, contactERP=0.1, numSubSteps=3)
+    #p.setPhysicsEngineParameter(fixedTimeStep=1/120.0)
 
     p.stepSimulation()
 
