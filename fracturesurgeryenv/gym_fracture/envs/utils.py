@@ -402,3 +402,11 @@ def visualize_contact_forces(bodyA, bodyB, scale=0.01, lifeTime=0.05, lineWidth=
         f_total = np.linalg.norm(f_total)
         f_total = np.float32(f_total)
         return f_total
+    
+def fingertip_distance(body_id, left_idx, right_idx, physicsClientId=0):
+    # getLinkState(...)[0] is world position of link frame
+    left_pos = p.getLinkState(body_id, left_idx, physicsClientId=physicsClientId)[0]
+    right_pos = p.getLinkState(body_id, right_idx, physicsClientId=physicsClientId)[0]
+    left_pos = np.array(left_pos)
+    right_pos = np.array(right_pos)
+    return np.linalg.norm(left_pos - right_pos)
