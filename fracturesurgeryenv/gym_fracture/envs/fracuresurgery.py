@@ -8,7 +8,7 @@ import pybullet as p
 import pybullet_data
 import numpy as np
 import time
-from gym_fracture.envs.utils import calculate_distances, make_scene, getStarts, getGoal, check_done, get_new_pose, unpack_action,draw_local_axes,scale_simulation, visualize_contact_forces
+from gym_fracture.envs.utils import calculate_distances, make_scene, getStarts, getGoal, check_done, get_new_pose, unpack_action,fingertip_distance, visualize_contact_forces
 from scipy.spatial.transform import Rotation as R
 import wandb
 from gym_fracture.envs.spring_damper import SpringDamper
@@ -46,34 +46,17 @@ class fracturesurgery_env(gym.Env):
         self.connected = True
         p.configureDebugVisualizer(p.COV_ENABLE_GUI,1)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
-        p.resetDebugVisualizerCamera(cameraDistance=1.4, cameraYaw=45, cameraPitch=-30, cameraTargetPosition=[0, 0, 0])
-        # top_view = p.addUserDebugWindow(width=300, height=300, position=[10, 10])
-        # side_view = p.addUserDebugWindow(width=300, height=300, position=[320, 10])
-
-    #     p.setUserDebugWindowCamera(
-    #     top_view,
-    #     cameraDistance=2.0,
-    #     cameraYaw=0,
-    #     cameraPitch=-89,
-    #     cameraTargetPosition=[0, 0, 0]
-    # )
-    #     p.setUserDebugWindowCamera(
-    #         side_view,
-    #         cameraDistance=2.0,
-    #         cameraYaw=90,
-    #         cameraPitch=-30,
-    #         cameraTargetPosition=[0, 0, 0]
-    #     )
-        # Observation space
+        p.resetDebugVisualizerCamera(cameraDistance=1.1, cameraYaw=85, cameraPitch=-10, cameraTargetPosition=[0, 0, 0])
+        #p.getCameraImage(1000, 800)
         
         if self.action_type == 'ori_only':
-            obs_shape = 30  # Reduced from 31
+            obs_shape = 33  # Reduced from 31
             goal_shape = 5
         elif self.action_type == "pos_only":
-            obs_shape = 30  # Reduced from 31
+            obs_shape = 33  # Reduced from 31
             goal_shape = 4
         else:
-            obs_shape = 31
+            obs_shape = 35
             goal_shape = 8
         if self.obs_type == 'dict':
             self.observation_space = spaces.Dict({
@@ -217,6 +200,8 @@ class fracturesurgery_env(gym.Env):
         self.n += 1
         #self.output_force = []
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD)
+        #while p.isConnected():
+        
         self.current_step = 0
         make_scene(self)
         fracturestart, fractureorientationDeg, legstartpos = getStarts(self)
@@ -311,7 +296,13 @@ class fracturesurgery_env(gym.Env):
         initialpos = p.getLinkState(self.pandaUid, 11)[0]
         initialor = p.getLinkState(self.pandaUid, 11)[1]
         initialholdObject = len(p.getContactPoints(self.pandaUid, self.objectUid))
-        initialisHolding = 1 if initialholdObject > 0 else 0
+        dist = fingertip_distance(self.pandaUid, 9, 10)
+        left_contact = int(bool(p.getContactPoints(self.pandaUid, self.objectUid, linkIndexA=9)))
+        right_contact = int(bool(p.getContactPoints(self.pandaUid, self.objectUid, linkIndexA=10)))
+        # convert contact lists to boolean/int flags so observations are numeric-friendly
+        # left_contact = 1 if left_contact else 0
+        # right_contact = 1 if right_contact else 0
+        initialisHolding = 1 if (left_contact and right_contact and dist > 0.02) else 0
         initialvel = p.getLinkState(self.pandaUid, 11, 1)[6]
         initialJointPoses = [p.getJointState(self.pandaUid, i)[0] for i in range(9)]
         initialJointVelocities = [p.getJointState(self.pandaUid, i)[1] for i in range(9)]
@@ -326,6 +317,9 @@ class fracturesurgery_env(gym.Env):
             np.array(initialJointPoses),
             np.array(initialJointVelocities),
             np.array([self.angle]),
+            np.array([left_contact]),
+            np.array([right_contact]),
+            np.array([dist]),
             np.array([initialisHolding])
         ])  # Total: 31 elements
         elif self.action_type=='pos_only':
@@ -336,6 +330,9 @@ class fracturesurgery_env(gym.Env):
             np.array(initialJointPoses),
             np.array(initialJointVelocities),
             np.array([self.pos_distance]),
+            np.array([left_contact]),
+            np.array([right_contact]),
+            np.array([dist]),
             np.array([initialisHolding])
         ])
         else: 
@@ -347,6 +344,9 @@ class fracturesurgery_env(gym.Env):
                 np.array(initialJointVelocities),
                 np.array([self.pos_distance]),
                 np.array([self.angle]),
+                np.array([left_contact]),
+                np.array([right_contact]),
+                np.array([dist]),
                 np.array([initialisHolding])
             ])
         self.isHolding = initialisHolding
@@ -415,14 +415,18 @@ class fracturesurgery_env(gym.Env):
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]
         actualNewOrientation = p.getLinkState(self.pandaUid, 11)[1]
         actualNewVelocity = p.getLinkState(self.pandaUid, 11, 1)[6]
-        left_contact = p.getContactPoints(self.pandaUid, self.objectUid, linkIndexA=9)
-        right_contact = p.getContactPoints(self.pandaUid, self.objectUid, linkIndexA=10)
+        left_contact = int(bool(p.getContactPoints(self.pandaUid, self.objectUid, linkIndexA=9)))
+        right_contact = int(bool(p.getContactPoints(self.pandaUid, self.objectUid, linkIndexA=10)))
         # print(f"Left Contact: {left_contact}")
         #holdObject = len(p.getContactPoints(self.pandaUid, self.objectUid))
         # if left_contact and right_contact:
         #     print("Holding Object")
         # #print(f"Hold Object: {p.getContactPoints(self.pandaUid, self.objectUid)}")
-        self.isHolding = 1 if left_contact and right_contact else 0
+        dist = fingertip_distance(self.pandaUid, 9, 10)
+        
+        #print(f"Fingertip Distance: {dist}")
+        self.isHolding = 1 if left_contact and right_contact and dist > 0.02 else 0
+        #print(f"Left Contact: {left_contact}, Right Contact: {right_contact}, Fingertip Distance: {dist}, Is Holding: {self.isHolding}")
         joint_states = [p.getJointState(self.pandaUid, i) for i in range(9)]
         jointPoses = np.array([js[0] for js in joint_states])        # positions
         jointVelocities = np.array([js[1] for js in joint_states])   # velocities
@@ -439,7 +443,10 @@ class fracturesurgery_env(gym.Env):
                 np.array(actualNewVelocity),     # 3 elements
                 np.array(jointPoses),            # 9 elements
                 np.array(jointVelocities),       # 9 elements
-                np.array([self.pos_distance]),   # 1 element
+                np.array([self.pos_distance]),
+                np.array([left_contact]),         # 1 element
+                np.array([right_contact]),        # 1 element
+                np.array([dist]),   # 1 element
                 np.array([self.isHolding])       # 1 element
             ])  # Total: 30 elements instead of 31
         elif self.action_type == 'ori_only':
@@ -449,7 +456,10 @@ class fracturesurgery_env(gym.Env):
                 np.array(actualNewVelocity),     # 3 elements
                 np.array(jointPoses),            # 9 elements
                 np.array(jointVelocities),       # 9 elements
-                np.array([self.angle]),          # 1 element
+                np.array([self.angle]),
+                np.array([left_contact]),         # 1 element
+                np.array([right_contact]),        # 1 element
+                np.array([dist]),                  # 1 element
                 np.array([self.isHolding])       # 1 element
             ])  # Total: 27 elements
         else:
@@ -462,6 +472,9 @@ class fracturesurgery_env(gym.Env):
                 np.array(jointVelocities),
                 np.array([self.pos_distance]),
                 np.array([self.angle]),
+                np.array([left_contact]),
+                np.array([right_contact]),
+                np.array([dist]),
                 np.array([self.isHolding])
             ])
         if self.action_type == 'ori_only':
