@@ -8,7 +8,7 @@ import pybullet as p
 import pybullet_data
 import numpy as np
 import time
-from gym_fracture.envs.utils import calculate_distances, make_scene, getStarts, getGoal, check_done, get_new_pose, unpack_action,fingertip_distance, visualize_contact_forces
+from gym_fracture.envs.utils import calculate_distances, make_scene, getStarts, getGoal, check_done, get_new_pose, unpack_action,fingertip_distance, visualize_contact_forces, world_to_local
 from scipy.spatial.transform import Rotation as R
 import wandb
 from gym_fracture.envs.spring_damper import SpringDamper
@@ -224,14 +224,15 @@ class fracturesurgery_env(gym.Env):
         
         self.objectUid = p.loadURDF(foot_path, basePosition=fracturestart, 
                                     baseOrientation=footorientation,
-                                     globalScaling=1)
-        p.changeDynamics(self.objectUid, -1, mass=1.2, lateralFriction=0.5)
+                                     globalScaling=1.0)
+        p.changeDynamics(self.objectUid, -1, mass=1.4, lateralFriction=0.5)
         legorientation = p.getQuaternionFromEuler([-90/180*np.pi, 0, 0])
         self.leg = p.loadURDF(leg_path,
                         basePosition =legstartpos,
                         baseOrientation = legorientation,
-                        globalScaling = 1,
+                        globalScaling = 1.0,
                         useFixedBase = 1)
+        p.changeDynamics(self.leg, 1, mass = 1, lateralFriction=0.5)
         # print("Leg loaded at position:", legstartpos)
         # print(p.getLinkState(self.leg,0)[0])
         # print(p.getJointInfo(self.leg,0))
@@ -264,12 +265,44 @@ class fracturesurgery_env(gym.Env):
             p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
             p.stepSimulation()
             # time.sleep(1./500.)  # Remove for speed
-
+        rob_pos = p.getLinkState(self.pandaUid, 11)[2]
+        #ob_pos = p.getLinkState(self.objectUid, -1)[2]
+        ob_pos = np.array(rob_pos) - np.array(p.getBasePositionAndOrientation(self.objectUid)[0])
+        parent_local = world_to_local(self.pandaUid, 11, rob_pos)
+        child_frame_pos = world_to_local(self.objectUid, -1, rob_pos)
+        #p.resetBasePositionAndOrientation(objectUid, ee_pos, ee_ori)
+        ee_ori = p.getLinkState(self.pandaUid, 11)[1]
+        # Compute local attachment frames (optional but recommended)
+        parent_local_pos, parent_local_ori = p.invertTransform(rob_pos, ee_ori)  # for link 11, often just [0,0,0], [0,0,0,1]
+        child_local_pos, child_local_ori = [0,0,0], [0,0,0,1]  # since object now perfectly aligned
+        p.addUserDebugLine(rob_pos, p.getBasePositionAndOrientation(self.objectUid)[0], lineColorRGB=[1,0,0], lineWidth=2, lifeTime=0)
+        p.addUserDebugText('A', rob_pos, textColorRGB=[0, 1, 0], textSize=1)
+        p.addUserDebugText('B', parent_local_pos, textColorRGB=[0, 0, 1], textSize=1)
+        p.addUserDebugText('C', child_frame_pos, textColorRGB=[1, 0, 0], textSize=1)
+        p.addUserDebugText('D', child_local_pos, textColorRGB=[1, 1, 0], textSize=1)
         p.setGravity(0, 0, -9.8)
         for _ in range(10):
             p.stepSimulation()
             # time.sleep(0.002)  # Remove for speed
 
+        #time.sleep(5)
+       # p.setTimeStep(1/5000)
+    #     cid= p.createConstraint(self.pandaUid, 
+    #                        11,
+    #                        self.objectUid,
+    #                        -1,
+    #                        p.JOINT_FIXED,
+    #                        [0,0,0],
+    #                        parentFramePosition=parent_local,
+    #                        childFramePosition=child_frame_pos,
+    #                         parentFrameOrientation=[0,0,0],#parent_local_ori,
+    #                        childFrameOrientation=child_local_ori
+    #                        )
+    #     p.changeConstraint(
+    #     cid,
+    #     maxForce=50,  # limit force
+    #     erp=0.1,      # smaller ERP -> more softness
+    # )
         self.target_position = np.concatenate((self.goal_pos, self.goal_ori))
         
         # Dummy visual shape for goal marker
@@ -293,6 +326,7 @@ class fracturesurgery_env(gym.Env):
         #p.addUserDebugText("O", [0.7255182114189597, -0.03479869975518854, 0.057873902317526996], textColorRGB=[1, 0, 0], textSize=1)
         time.sleep(1)  # Allow some time for the simulation to stabilize
         [p.enableJointForceTorqueSensor(self.pandaUid, joint, enableSensor=True) for joint in range(p.getNumJoints(self.pandaUid))]
+        #print(p.getJointInfo(self.pandaUid,8))
         initialpos = p.getLinkState(self.pandaUid, 11)[0]
         initialor = p.getLinkState(self.pandaUid, 11)[1]
         initialholdObject = len(p.getContactPoints(self.pandaUid, self.objectUid))
@@ -401,7 +435,7 @@ class fracturesurgery_env(gym.Env):
             if np.any(np.isnan(jointPoses)) or np.any(np.abs(jointPoses) > 10):
                 print("IK failure, skipping step")
                 # fallback or skip this step
-
+        #p.changeDynamics(self.pandaUid, 8, linearDamping=0, angularDamping=0, jointLimitForce=50)
         p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL, list(jointPoses))
         #p.setJointMotorControl2(self.pandaUid, 8, p.POSITION_CONTROL,jointPoses[8], force=50)
         #self.spring.step()
@@ -410,8 +444,8 @@ class fracturesurgery_env(gym.Env):
             #time.sleep(1./500)  # Remove for speed
         force = visualize_contact_forces(self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
         #print(f"Force: {force}, Output Force: {self.output_force}")
-        if (force is not None) and force > self.output_force:
-            self.output_force = force
+        # if (force is not None) and force > self.output_force:
+        #     self.output_force = force
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]
         actualNewOrientation = p.getLinkState(self.pandaUid, 11)[1]
         actualNewVelocity = p.getLinkState(self.pandaUid, 11, 1)[6]
@@ -431,7 +465,9 @@ class fracturesurgery_env(gym.Env):
         jointPoses = np.array([js[0] for js in joint_states])        # positions
         jointVelocities = np.array([js[1] for js in joint_states])   # velocities
         self.pos_distance, self.angle = calculate_distances(self, actualNewPosition, actualNewOrientation, self.goal_pos, self.goal_ori)
-        # force = [p.getJointState(self.pandaUid, joint)[3] for joint in range(9)]
+        #force = [p.getJointState(self.pandaUid, joint)[2] for joint in range(9)]
+        force_finger = p.getJointState(self.pandaUid, 9)[3]
+        print(f'hand: {force_finger}')
         # contact_force = p.getContactPoints(self.pandaUid, self.objectUid)
         # print("Contact Force:", [contact_force[i][9] for i in range(len(contact_force))])
         # #p.addUserDebugText(f"{force}", [0.5, 0.5, 0.5], textColorRGB=[0, 1, 0], textSize=1)
@@ -505,7 +541,7 @@ class fracturesurgery_env(gym.Env):
         #       f'Position Distance: {self.pos_distance}, Angle: {self.angle}, '
         #       f'Is Holding: {self.isHolding}, Current Step: {self.current_step}')
         done = check_done(self)
-        info = {'is_success': done, 'current_step': self.current_step, 'pos_distance': self.pos_distance, 'angle': self.angle, 'max_force': self.output_force, 'Holding': self.isHolding}
+        info = {'is_success': done, 'current_step': self.current_step, 'pos_distance': self.pos_distance, 'angle': self.angle, 'max_force': self.output_force,'force' : force, 'Holding': self.isHolding}
         #print(self.isHolding)
         #print(f'Achieved Goal: {achieved_goal}, Desired Goal: {desired_goal}')
         truncated = self.current_step >= self.max_steps and not done

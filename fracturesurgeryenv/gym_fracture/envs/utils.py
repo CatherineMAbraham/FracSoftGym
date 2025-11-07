@@ -25,13 +25,13 @@ def make_scene(self):
                   # 🔹 Create the base surgical table (static)
        table_collision = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.05, 0.1, 0.002])
        table_visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.05, 0.1, 0.002], rgbaColor=[0.3, 0.3, 0.3, 1])
-       table_body = p.createMultiBody(
-            baseMass=0,
-            baseCollisionShapeIndex=table_collision,
-            baseVisualShapeIndex=table_visual,
-            basePosition=[0.65, 0.05, 0.005],
-        )
-       p.changeDynamics(table_body, -1, lateralFriction=0.1, restitution=0.0)
+    #    table_body = p.createMultiBody(
+    #         baseMass=0,
+    #         baseCollisionShapeIndex=table_collision,
+    #         baseVisualShapeIndex=table_visual,
+    #         basePosition=[0.65, 0.05, 0.005],
+    #     )
+    #    p.changeDynamics(table_body, -1, lateralFriction=0.1, restitution=0.0)
 
     #     # 🔹 Create a soft pad (a smaller box resting on the table)
     #    pad_collision = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.15, 0.1, 0.02])
@@ -94,6 +94,7 @@ def getStarts(self):
     fractureorientaionRad =p.getEulerFromQuaternion(p.getLinkState(self.pandaUid, 11)[1])
     fractureorientaionDeg = np.degrees(np.array(fractureorientaionRad)) 
     pin = [0.004462 ,-0.002332 , 0.046608  ]
+    #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
     fracturestart = fracturestart - pin
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
@@ -374,12 +375,13 @@ def visualize_contact_forces(bodyA, bodyB, scale=0.01, lifeTime=0.05, lineWidth=
         tan2_mag = float(c[12])
         tan2_dir = np.array(c[13], dtype=float)
 
+        #print(normal_mag, tan1_mag, tan2_mag)
         # compute vector contributions (force on object B)
         f_normal = normal_mag * normal_dir
         f_t1 = tan1_mag * tan1_dir
         f_t2 = tan2_mag * tan2_dir
         f_total = f_normal + f_t1 + f_t2
-
+        print(f_normal, f_t1, f_t2, f_total)
         # p.addUserDebugLine(contact_pos,
         #                    (np.array(contact_pos) + normal_dir * normal_mag * scale).tolist(),
         #                    lineColorRGB=[1, 0, 0], lifeTime=lifeTime, lineWidth=lineWidth)  # red
@@ -410,3 +412,12 @@ def fingertip_distance(body_id, left_idx, right_idx, physicsClientId=0):
     left_pos = np.array(left_pos)
     right_pos = np.array(right_pos)
     return np.linalg.norm(left_pos - right_pos)
+
+def world_to_local(body_id, link_index, world_pos):
+    if link_index == -1:
+        body_pos, body_ori = p.getBasePositionAndOrientation(body_id)
+    else:
+        body_pos, body_ori = p.getLinkState(body_id, link_index)[:2]
+    inv_pos, inv_ori = p.invertTransform(body_pos, body_ori)
+    local_pos, _ = p.multiplyTransforms(inv_pos, inv_ori, world_pos, [0, 0, 0, 1])
+    return local_pos
