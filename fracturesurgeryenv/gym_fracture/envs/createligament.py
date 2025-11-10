@@ -1,7 +1,7 @@
 import numpy as np
 import pybullet as p
 import os
-
+import time
 def world_from_local(body, local_point, link=-1):
     pos, orn = p.getBasePositionAndOrientation(body) if link==-1 else p.getLinkState(body, link)[:2]
     world, _ = p.multiplyTransforms(pos, orn, local_point, [0,0,0,1])
@@ -10,7 +10,7 @@ def world_from_local(body, local_point, link=-1):
 def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     a = a
     b=b
-    pC = world_from_local(foot, a, -1)
+    pC = world_from_local(foot, a, 0)
     pD = world_from_local(leg, b, 0)
     orientation = orientation
     scale = scale
@@ -77,7 +77,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     #p.setPhysicsEngineParameter(fixedTimeStep=1/120.0)
 
     p.stepSimulation()
-
+    #time.sleep(5)
     auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=pC, worldB=pD, axis=0, num_anchors=10)
 
 def findClosestVertex(contactPos, vertices):

@@ -7,7 +7,7 @@ from scipy.spatial.transform import Rotation as R
 import wandb
 def make_scene(self):
     #Start Positions: Worked out previously
-       startposition = np.array([0.03, 0.2, 0, -1.802, -2.89, 2.8, 0.61, 0.04, 0.04])
+       startposition = np.array([0.03, 0.2, 0, -1.805, -2.89, 2.8, 0.61, 0.04, 0.04]) #-1.802
 
        #load scene
        #Make Plane, Table, Cube       
@@ -23,8 +23,8 @@ def make_scene(self):
        #Set up robot with calculated start positions
        urdfRootPath=pybullet_data.getDataPath()
                   # 🔹 Create the base surgical table (static)
-       table_collision = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.05, 0.1, 0.002])
-       table_visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.05, 0.1, 0.002], rgbaColor=[0.3, 0.3, 0.3, 1])
+    #    table_collision = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.05, 0.1, 0.002])
+    #    table_visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.05, 0.1, 0.002], rgbaColor=[0.3, 0.3, 0.3, 1])
     #    table_body = p.createMultiBody(
     #         baseMass=0,
     #         baseCollisionShapeIndex=table_collision,
@@ -48,8 +48,8 @@ def make_scene(self):
                                   basePosition=[0,-0.06,-0.33],#[-0.5,0,-0.65],
                                   useFixedBase=True, globalScaling = 1)
        
-       p.changeDynamics(self.pandaUid,9, lateralFriction= 1,spinningFriction= 0.001)
-       p.changeDynamics(self.pandaUid,10, lateralFriction= 1,spinningFriction= 0.001)
+       p.changeDynamics(self.pandaUid,9, lateralFriction= 5,spinningFriction= 0.001,jointLowerLimit=0.00, jointUpperLimit=0.01)
+       p.changeDynamics(self.pandaUid,10, lateralFriction= 5,spinningFriction= 0.001,jointLowerLimit=0.00, jointUpperLimit=0.01)
        p.resetJointState(self.pandaUid,9, 0.01)
        p.resetJointState(self.pandaUid,10, 0.01) 
 
@@ -154,9 +154,9 @@ def get_new_pose(self, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
                 newPosition = currentPosition + np.array([dx, dy, dz])
             #newPosition = np.clip(newPosition, self.goal_range_low, self.goal_range_high)
             newOrientation = np.array(p.multiplyTransforms([0, 0, 0], currentOrientation, [0, 0, 0], deltaor)[1])
-            euler = p.getEulerFromQuaternion(newOrientation)
-            newOrientationE = np.clip(euler, self.goal_ori_low, self.goal_ori_high)
-            newOrientation = p.getQuaternionFromEuler(newOrientationE)
+            #euler = p.getEulerFromQuaternion(newOrientation)
+            #newOrientationE = np.clip(euler, self.goal_ori_low, self.goal_ori_high)
+            #newOrientation = p.getQuaternionFromEuler(newOrientationE)
             return newPosition, newOrientation
 
         elif mode == 'quat':
@@ -178,7 +178,7 @@ def get_new_pose(self, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
             newPosition = currentPosition + np.array([qx, qy, qz])
             newOrientation = currentOrientation
             #newPosition[2] = np.clip(newPosition[2], self.goal_range_low[2], self.goal_range_high[2])
-            newPosition = np.clip(newPosition, (self.goal_range_low), (self.goal_range_high))
+            #newPosition = np.clip(newPosition, (self.goal_range_low), (self.goal_range_high))
             return newPosition, newOrientation
 
         elif mode == 'joint':
