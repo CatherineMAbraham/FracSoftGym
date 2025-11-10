@@ -8,7 +8,7 @@ import pybullet as p
 import pybullet_data
 import numpy as np
 import time
-from gym_fracture.envs.utils import calculate_distances, make_scene, getStarts, getGoal, check_done, get_new_pose, unpack_action,fingertip_distance, visualize_contact_forces
+from gym_fracture.envs.utils import calculate_distances, make_scene, getStarts, getGoal, check_done, get_new_pose, unpack_action,fingertip_distance, visualize_contact_forces, world_to_local
 from scipy.spatial.transform import Rotation as R
 import wandb
 from gym_fracture.envs.spring_damper import SpringDamper
@@ -232,8 +232,9 @@ class fracturesurgery_env(gym.Env):
         self.leg = p.loadURDF(leg_path,
                         basePosition =legstartpos,
                         baseOrientation = legorientation,
-                        globalScaling = 1,
+                        globalScaling = 1.0,
                         useFixedBase = 1)
+        p.changeDynamics(self.leg, 1, mass = 1, lateralFriction=0.5)
         # print("Leg loaded at position:", legstartpos)
         # print(p.getLinkState(self.leg,0)[0])
         # print(p.getJointInfo(self.leg,0))
@@ -312,6 +313,7 @@ class fracturesurgery_env(gym.Env):
         #p.addUserDebugText("O", [0.7255182114189597, -0.03479869975518854, 0.057873902317526996], textColorRGB=[1, 0, 0], textSize=1)
          # Allow some time for the simulation to stabilize
         [p.enableJointForceTorqueSensor(self.pandaUid, joint, enableSensor=True) for joint in range(p.getNumJoints(self.pandaUid))]
+        #print(p.getJointInfo(self.pandaUid,8))
         initialpos = p.getLinkState(self.pandaUid, 11)[0]
         initialor = p.getLinkState(self.pandaUid, 11)[1]
         initialholdObject = len(p.getContactPoints(self.pandaUid, self.objectUid))
@@ -421,7 +423,7 @@ class fracturesurgery_env(gym.Env):
             if np.any(np.isnan(jointPoses)) or np.any(np.abs(jointPoses) > 10):
                 print("IK failure, skipping step")
                 # fallback or skip this step
-
+        #p.changeDynamics(self.pandaUid, 8, linearDamping=0, angularDamping=0, jointLimitForce=50)
         p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL, list(jointPoses))
         #p.setJointMotorControl2(self.pandaUid, 8, p.POSITION_CONTROL,jointPoses[8], force=50)
         #self.spring.step()
@@ -431,8 +433,8 @@ class fracturesurgery_env(gym.Env):
         force = visualize_contact_forces(self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
         #print(f"Max Force this step: {force}")
         #print(f"Force: {force}, Output Force: {self.output_force}")
-        if (force is not None) and force > self.output_force:
-            self.output_force = force
+        # if (force is not None) and force > self.output_force:
+        #     self.output_force = force
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]
         actualNewOrientation = p.getLinkState(self.pandaUid, 11)[1]
         actualNewVelocity = p.getLinkState(self.pandaUid, 11, 1)[6]
@@ -452,7 +454,9 @@ class fracturesurgery_env(gym.Env):
         jointPoses = np.array([js[0] for js in joint_states])        # positions
         jointVelocities = np.array([js[1] for js in joint_states])   # velocities
         self.pos_distance, self.angle = calculate_distances(self, actualNewPosition, actualNewOrientation, self.goal_pos, self.goal_ori)
-        # force = [p.getJointState(self.pandaUid, joint)[3] for joint in range(9)]
+        #force = [p.getJointState(self.pandaUid, joint)[2] for joint in range(9)]
+        force_finger = p.getJointState(self.pandaUid, 9)[3]
+        print(f'hand: {force_finger}')
         # contact_force = p.getContactPoints(self.pandaUid, self.objectUid)
         # print("Contact Force:", [contact_force[i][9] for i in range(len(contact_force))])
         # #p.addUserDebugText(f"{force}", [0.5, 0.5, 0.5], textColorRGB=[0, 1, 0], textSize=1)
