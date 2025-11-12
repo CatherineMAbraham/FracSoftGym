@@ -245,10 +245,10 @@ class fracturesurgery_env(gym.Env):
         # get current world transforms
         parent_pos, parent_orn = p.getLinkState(self.pandaUid, 9)[0:2]
         child_pos, child_orn = p.getBasePositionAndOrientation(self.objectUid)
-        print("Parent Position:", parent_pos)   
-        print("Child Position:", child_pos)
-        print("Parent Orientation:", parent_orn)
-        print("Child Orientation:", child_orn)
+        # print("Parent Position:", parent_pos)   
+        # print("Child Position:", child_pos)
+        # print("Parent Orientation:", parent_orn)
+        # print("Child Orientation:", child_orn)
         # compute child transform in parent coordinates
         parent_inv_pos, parent_inv_orn = p.invertTransform(parent_pos, parent_orn)
         child_in_parent_pos, child_in_parent_orn = p.multiplyTransforms(
@@ -278,7 +278,7 @@ class fracturesurgery_env(gym.Env):
         target_positions = np.array([0.00, 0.00])
         forces = [50, 50]
         for _ in range(1):
-            print('here')
+            #print('here')
             p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=target_positions[0], force=forces[0])
             p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
             p.stepSimulation()
@@ -329,8 +329,6 @@ class fracturesurgery_env(gym.Env):
         initialJointVelocities = [p.getJointState(self.pandaUid, i)[1] for i in range(9)]
         self.pos_distance, self.angle = calculate_distances(self, initialpos, initialor, self.goal_pos, self.goal_ori)
         initialisHolding = int(initialisHolding)
-        print(p.getJointState(self.pandaUid, 9)[3])
-        print(p.getJointState(self.pandaUid, 10)[3])
         if self.action_type == 'ori_only':
             observation = np.concatenate([
             np.array(initialpos),
@@ -433,8 +431,8 @@ class fracturesurgery_env(gym.Env):
         force = visualize_contact_forces(self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
         #print(f"Max Force this step: {force}")
         #print(f"Force: {force}, Output Force: {self.output_force}")
-        # if (force is not None) and force > self.output_force:
-        #     self.output_force = force
+        if (force is not None) and force > self.output_force:
+            self.output_force = force
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]
         actualNewOrientation = p.getLinkState(self.pandaUid, 11)[1]
         actualNewVelocity = p.getLinkState(self.pandaUid, 11, 1)[6]
@@ -455,8 +453,8 @@ class fracturesurgery_env(gym.Env):
         jointVelocities = np.array([js[1] for js in joint_states])   # velocities
         self.pos_distance, self.angle = calculate_distances(self, actualNewPosition, actualNewOrientation, self.goal_pos, self.goal_ori)
         #force = [p.getJointState(self.pandaUid, joint)[2] for joint in range(9)]
-        force_finger = p.getJointState(self.pandaUid, 9)[3]
-        print(f'hand: {force_finger}')
+        # force_finger = p.getJointState(self.pandaUid, 9)[3]
+        # print(f'hand: {force_finger}')
         # contact_force = p.getContactPoints(self.pandaUid, self.objectUid)
         # print("Contact Force:", [contact_force[i][9] for i in range(len(contact_force))])
         # #p.addUserDebugText(f"{force}", [0.5, 0.5, 0.5], textColorRGB=[0, 1, 0], textSize=1)
@@ -530,7 +528,7 @@ class fracturesurgery_env(gym.Env):
         #       f'Position Distance: {self.pos_distance}, Angle: {self.angle}, '
         #       f'Is Holding: {self.isHolding}, Current Step: {self.current_step}')
         done = check_done(self)
-        print(self.output_force)
+        #print(self.output_force)
         info = {'is_success': done, 'current_step': self.current_step, 'pos_distance': self.pos_distance, 'angle': self.angle, 'max_force': self.output_force, 'Holding': self.isHolding}
         #print(self.isHolding)
         #print(f'Achieved Goal: {achieved_goal}, Desired Goal: {desired_goal}')
