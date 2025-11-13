@@ -17,7 +17,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     name = name
     mid = 0.5 * (pC + pD)
     currentDir = os.path.dirname(os.path.abspath(__file__))
-    lig_path = os.path.join(currentDir, "Assets/241206/ligament6.obj")
+    lig_path = os.path.join(currentDir, "Assets/ligament6.obj")
     name = p.loadSoftBody(lig_path,
         basePosition=mid,
         baseOrientation=orientation,
