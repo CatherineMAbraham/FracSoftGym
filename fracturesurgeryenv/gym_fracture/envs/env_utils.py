@@ -10,7 +10,7 @@ def set_observation_space(self):
         obs_shape = 34  # Reduced from 31
         goal_shape = 4
     else:
-        obs_shape = 36
+        obs_shape = 35
         goal_shape = 8
     if self.obs_type == 'dict':
         self.observation_space = spaces.Dict({
