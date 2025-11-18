@@ -7,8 +7,8 @@ from scipy.spatial.transform import Rotation as R
 import wandb
 def make_scene(self):
     #Start Positions: Worked out previously
-       startposition = np.array([0.03, 0.2, 0, -1.805, -2.89, 2.8, 0.61, 0.04, 0.04]) #-1.802
-
+       startposition = np.array([0.03, 0.2, 0, -1.6, 0, -3, 0.8, -0.04, 0.04]) #-1.802, -2.89
+    #([0.03, 0.2, 0, -1.805, 0, 2, 0.61, -0.04, 0.04])
        #load scene
        #Make Plane, Table, Cube       
        plane_collision_shape = p.createCollisionShape(shapeType=p.GEOM_BOX,halfExtents=np.array([30.0, 30.0, 0.01]))
@@ -16,7 +16,7 @@ def make_scene(self):
        plane_id = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=plane_collision_shape, 
                              baseVisualShapeIndex=plane_visual_shape,basePosition=[0, 0, -0.33])
        
-       self.table =p.loadURDF("table/table.urdf", basePosition =[0.8,-0.32,-0.29], globalScaling =0.5);#[0.8, 0.4, -0.33]
+       #self.table =p.loadURDF("table/table.urdf", basePosition =[0.8,-0.32,-0.29], globalScaling =0.5);#[0.8, 0.4, -0.33]
 
        self.visual_shape = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[0.01,0.01,0.01], rgbaColor=[0.835, 0.7216, 1, 1])  # Purple Goal box - no collision properties
 
@@ -48,41 +48,45 @@ def make_scene(self):
                                   basePosition=[0,-0.06,-0.33],#[-0.5,0,-0.65],
                                   useFixedBase=True, globalScaling = 1)
        
-       #p.changeDynamics(self.pandaUid,9, lateralFriction= 5,spinningFriction= 0.001,jointLowerLimit=0.00, jointUpperLimit=0.01)
-       #p.changeDynamics(self.pandaUid,10, lateralFriction= 5,spinningFriction= 0.001,jointLowerLimit=0.00, jointUpperLimit=0.01)
-       p.resetJointState(self.pandaUid,9, 0.005)
-       p.resetJointState(self.pandaUid,10, 0.005) 
+       p.changeDynamics(self.pandaUid,9, lateralFriction= 5,spinningFriction= 0.001)#,jointLowerLimit=0.00, jointUpperLimit=0.01)
+       p.changeDynamics(self.pandaUid,10, lateralFriction= 5,spinningFriction= 0.001)#,jointLowerLimit=0.00, jointUpperLimit=0.01)
+       p.resetJointState(self.pandaUid,9, 0.04)
+       p.resetJointState(self.pandaUid,10, 0.04) 
 
        for i in range(8):
            p.resetJointState(self.pandaUid,i, startposition[i])
         
-       for _ in range(10):
+       for _ in range(100):
            p.stepSimulation()
            time.sleep(0.002)
-
+        
+      # time.sleep(10)
            
 
        return self.pandaUid
 
 def getGoal(self, fracturestart, fractureorientaionDeg):
-    self.goal_range_low = fracturestart- [0.0125,0.01,0.003]
-    self.goal_range_high = fracturestart+[0.0125,0.02,0.003]
+    fracturestart = np.array(p.getLinkState(self.pandaUid, 11)[0] )
+    p.addUserDebugText('FS', fracturestart, textColorRGB=[1, 0, 0], textSize=1)
+    #print('Fracture Start:', fracturestart)
+    self.goal_range_low = fracturestart-[0.0125,0.01,0.003] #[0.0125,0.01,0.003]
+    self.goal_range_high = fracturestart+ [0.0125,0.02,0.003]
     self.goal_ori_low= np.radians(fractureorientaionDeg - [15,5,15])
     self.goal_ori_high=np.radians(fractureorientaionDeg + [15,5,15])
     #print(self.curriculum_phase)
     # if self.curriculum_phase ==1:
     #     self.goal_pos = fracturestart.copy()
     # else:
-    goal_pos = np.array(self.np_random.uniform(self.goal_range_low, self.goal_range_high,))
-    
+    self.goal_pos = np.array(self.np_random.uniform(self.goal_range_low, self.goal_range_high,))
+    #print('Goal Position:', self.goal_pos)
     if self.action_type == 'fiveactions' or self.action_type== 'fouractions':
-        goal_pos[2] = fracturestart[2]
+        self.goal_pos[2] = fracturestart[2]
    
     if self.action_type == 'fouractions':
         self.goal_ori_low[1] =np.radians(fractureorientaionDeg[1] - 0)
         self.goal_ori_high[1] =np.radians(fractureorientaionDeg[1]+0)    
     
-    self.goal_pos = np.round(goal_pos,3)
+    #self.goal_pos = np.round(goal_pos,3)
     ori = np.array(self.np_random.uniform(self.goal_ori_low, self.goal_ori_high))
     goal_ori = np.array(p.getQuaternionFromEuler(ori))
     #goal_ori = R.from_euler('xyz', ori).as_quat()
@@ -99,7 +103,7 @@ def getStarts(self):
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]
-    difference = [0,0.002,0]
+    difference = [0,0.006,0]
     difference =np.array(difference)
     #legstart=[]
     # for i in range(len(difference)):
@@ -164,9 +168,12 @@ def get_new_pose(self, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
 
         elif mode == 'pos_only':
             newPosition = currentPosition + np.array([qx, qy, qz])
+            #print(newPosition)
+            #p.addUserDebugText('NP', newPosition, textColorRGB=[0, 0, 1], textSize=1, lifeTime=0.5)
             newOrientation = currentOrientation
             #newPosition[2] = np.clip(newPosition[2], self.goal_range_low[2], self.goal_range_high[2])
-            newPosition = np.clip(newPosition, (self.goal_range_low), (self.goal_range_high))
+            #newPosition = np.clip(newPosition, (self.goal_range_low), (self.goal_range_high))
+            p.addUserDebugText('NP', newPosition, textColorRGB=[0, 1, 0], textSize=1, lifeTime=0.5)
             return newPosition, newOrientation
 
         elif mode == 'joint':
@@ -226,7 +233,7 @@ def constrain_quat(self, q):
     return q # Apply scaled rotation back  
 
 
-def visualize_contact_forces(bodyA, bodyB, scale=0.01, lifeTime=0.05, lineWidth=2):
+def visualize_contact_forces(self,bodyA, bodyB, scale=0.01, lifeTime=0.05, lineWidth=2):
     """
     Draw contact normal, friction vectors and total force for every contact between bodyA and bodyB.
     - bodyA: robot (or the contacting body)
@@ -234,12 +241,17 @@ def visualize_contact_forces(bodyA, bodyB, scale=0.01, lifeTime=0.05, lineWidth=
     - scale: visual scaling factor (1 meter per 1 N would be huge; use ~0.001-0.05)
     """
     contacts = p.getContactPoints(bodyA=bodyA, bodyB=bodyB, linkIndexB=-1)
+    #print(contacts)
     for c in contacts:
         # contact point in world frame (use the reported contact position)
+        #print('Contact Info:', c)
+        linkIndex = c[3]  # link index on body A (robot)
+        #print('Contact Link Index:', linkIndex)
         contact_pos = c[6]  # commonly used in examples; point on body B
         # normal on body B (unit vector), points away from B toward A
         normal_dir = np.array(c[7], dtype=float)
         normal_mag = float(c[9])    # normal force magnitude (N)
+        #print('Normal Mag:', normal_mag)
         tan1_mag = float(c[10])
         tan1_dir = np.array(c[11], dtype=float)
         tan2_mag = float(c[12])
@@ -251,28 +263,45 @@ def visualize_contact_forces(bodyA, bodyB, scale=0.01, lifeTime=0.05, lineWidth=
         f_t1 = tan1_mag * tan1_dir
         f_t2 = tan2_mag * tan2_dir
         f_total = f_normal + f_t1 + f_t2
-        print(f_total)
-        # p.addUserDebugLine(contact_pos,
-        #                    (np.array(contact_pos) + normal_dir * normal_mag * scale).tolist(),
-        #                    lineColorRGB=[1, 0, 0], lifeTime=lifeTime, lineWidth=lineWidth)  # red
+        #print(f_normal, f_t1, f_t2, f_total)
+#        p.addUserDebugLine(normal_dir,)
+        forces = [p.getJointState(self.pandaUid, i)[3] for i in range(9)]
+        q_list = [p.getJointState(self.pandaUid, j)[0] for j in range(9)]
+        v_list = [p.getJointState(self.pandaUid, j)[1] for j in range(9)]
+        tau = np.array(forces)
+        # linkIndex = index of end-effector link
+        link_state = p.getLinkState(self.pandaUid, linkIndex, computeForwardKinematics=True)
+        link_world_pos = np.array(link_state[0])
+        link_world_orn = np.array(link_state[1])  # quaternion (x,y,z,w)
 
-        # # friction vectors (may be zero)
-        # if np.linalg.norm(tan1_dir) > 0 and abs(tan1_mag) > 1e-9:
-        #     p.addUserDebugLine(contact_pos,
-        #                        (np.array(contact_pos) + tan1_dir * tan1_mag * scale).tolist(),
-        #                        lineColorRGB=[0, 0, 1], lifeTime=lifeTime, lineWidth=lineWidth)  # blue
+        # convert contact world position to link local coordinates
+        # build rotation matrix from quaternion
+        rot_mat = np.array(p.getMatrixFromQuaternion(link_world_orn)).reshape(3,3)
+        local_pos = rot_mat.T.dot(contact_pos - link_world_pos)  # local coords in link frame
 
-        # if np.linalg.norm(tan2_dir) > 0 and abs(tan2_mag) > 1e-9:
-        #     p.addUserDebugLine(contact_pos,
-        #                        (np.array(contact_pos) + tan2_dir * tan2_mag * scale).tolist(),
-        #                        lineColorRGB=[0, 1, 0], lifeTime=lifeTime, lineWidth=lineWidth)  # green
+        # calculate Jacobian at that local position
+        lin_jac, ang_jac = p.calculateJacobian(self.pandaUid, linkIndex,
+                                            localPosition=list(local_pos),
+                                            objPositions=q_list,
+                                            objVelocities=v_list,
+                                            objAccelerations=[0.0]*len(q_list))
+        J_lin = np.array(lin_jac)   # shape (3, n)
+        J_ang = np.array(ang_jac)   # shape (3, n)
 
-        # # total contact force (yellow)
-        # p.addUserDebugLine(contact_pos,
-        #                    (np.array(contact_pos) + f_total * scale).tolist(),
-        #                    lineColorRGB=[1, 1, 0], lifeTime=lifeTime, lineWidth=lineWidth+1)
+        # predicted joint torques from force only (tau = J^T * F)
+        tau_pred_from_force = J_lin.T.dot(f_total)   # (n,) vector, Nm
+
+        #print("contact f_total world (N):", f_total, "||mag||:", np.linalg.norm(f_total))
+        #print("predicted tau from linear force (Nm):", tau_pred_from_force)
+
+        # optionally also include any contact moment (if you have it) via angular jacobian
+        # compare to measured joint torques:
+        measured_taus = np.array([p.getJointState(self.pandaUid, j)[3] for j in range(9)])
+        #print("measured joint torques (Nm):", measured_taus)
+        #print("difference (meas - predicted):", measured_taus - tau_pred_from_force)
         f_total = np.linalg.norm(f_total)
         f_total = np.float32(f_total)
+        #print('Total Contact Force:', f_total)
         return f_total
     
 def fingertip_distance(body_id, left_idx, right_idx, physicsClientId=0):

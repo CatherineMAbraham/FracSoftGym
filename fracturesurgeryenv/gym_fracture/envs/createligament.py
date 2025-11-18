@@ -22,7 +22,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
         basePosition=mid,
         baseOrientation=orientation,
         scale=scale,
-        mass=0.1,
+        mass=0.05,
         useNeoHookean=0,
         useMassSpring=1,
         useBendingSprings=1,

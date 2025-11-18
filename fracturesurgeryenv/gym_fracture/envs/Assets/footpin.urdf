@@ -3,25 +3,33 @@
 
   <!-- Fixed base link -->
   <link name="base_link">
+    <contact>
+      <lateral_friction value="5.0"/>
+      <rolling_friction value="0.01"/>
+      <contact_cfm value="0.0"/>
+      <contact_erp value="1.0"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0.0"/>
+       <mass value="1.0"/>
+       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
     <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.0"/>
       <geometry>
-        <mesh filename="./pin.obj" scale="1 1 1" />
+				<mesh filename="pin4.obj" scale="1 1 1"/>
       </geometry>
-      <material name="gray">
-        <color rgba="0.5 0.5 0.5 1.0"/>
+       <material name="white">
+        <color rgba="1 1 1 1"/>
       </material>
     </visual>
     <collision>
-      <origin rpy="0.0 0.0 0.0" xyz="0 0 0" />
-			<geometry>
-				<mesh filename="./pin.obj" scale="1 1 1" />
-			</geometry>
-		</collision>
-		<inertial>
-			<mass value="1" />
-			<inertia ixx="0.001" ixy="0.001" ixz="0.001" iyy="0.001" iyz="0.001" izz="0.001" />
-		</inertial>
-	</link>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+	 	<mesh filename="./pin4.obj" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
 
   <!-- First joint: yaw -->
   <joint name="yaw_joint" type="fixed">

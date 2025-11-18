@@ -29,7 +29,7 @@
     <child link="moving_link"/>
     <origin xyz="-0.0067299 0 0" rpy="-1.57 -1.57 3.14"/>
     <axis xyz="0 1 0"/>
-    <limit lower="-3.14" upper="3.14" effort="1.0" velocity="2.0"/>
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0"/>
   </joint>
 
  
