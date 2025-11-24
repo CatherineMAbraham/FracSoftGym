@@ -8,6 +8,9 @@ import wandb
 def make_scene(self):
     #Start Positions: Worked out previously
        startposition = np.array([0.03, 0.2, 0, -1.6, 0, -3, 0.8, -0.04, 0.04]) #-1.802, -2.89
+       #startposition = np.array([0.03, 0.2, 0, -1.6, 0, 1.571, 0.8, -0.04, 0.04])
+       startposition = np.array([0,-0.785,0,-2.356,0,1.571,0.785,0.04,0.04]) #-1.802, -2.89  ##home position of franka 
+       #startposition = np.array([0,-0.785,0,-2.356,0,-3,0.785,0.04,0.04])
     #([0.03, 0.2, 0, -1.805, 0, 2, 0.61, -0.04, 0.04])
        #load scene
        #Make Plane, Table, Cube       
@@ -16,7 +19,7 @@ def make_scene(self):
        plane_id = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=plane_collision_shape, 
                              baseVisualShapeIndex=plane_visual_shape,basePosition=[0, 0, -0.33])
        
-       #self.table =p.loadURDF("table/table.urdf", basePosition =[0.8,-0.32,-0.29], globalScaling =0.5);#[0.8, 0.4, -0.33]
+       self.table =p.loadURDF("table/table.urdf", basePosition =[0.5,-0.35,-0.23] ,globalScaling =0.5);#[0.8, 0.4, -0.33]
 
        self.visual_shape = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[0.01,0.01,0.01], rgbaColor=[0.835, 0.7216, 1, 1])  # Purple Goal box - no collision properties
 
@@ -56,7 +59,7 @@ def make_scene(self):
        for i in range(8):
            p.resetJointState(self.pandaUid,i, startposition[i])
         
-       for _ in range(100):
+       for _ in range(10):
            p.stepSimulation()
            time.sleep(0.002)
         
@@ -73,6 +76,27 @@ def getGoal(self, fracturestart, fractureorientaionDeg):
     self.goal_range_high = fracturestart+ [0.0125,0.02,0.003]
     self.goal_ori_low= np.radians(fractureorientaionDeg - [15,5,15])
     self.goal_ori_high=np.radians(fractureorientaionDeg + [15,5,15])
+    #print('Goal Pos Range Low:', self.goal_range_low, 'High:', self.goal_range_high,'Goal Ori Low:', self.goal_ori_low, 'High:', self.goal_ori_high)
+    a = fracturestart - [0.0125,0.01,-0.003] 
+    b = fracturestart + [-0.0125,0.02,0.003]
+    c = fracturestart + [0.0125,-0.01,0.003]
+    d = fracturestart + [0.0125,0.02,0.003]
+    e = fracturestart - [0.0125,0.01,0.003] 
+    f = fracturestart + [-0.0125,0.02,-0.003]
+    g = fracturestart + [0.0125,-0.01,-0.003]
+    h = fracturestart + [0.0125,0.02,-0.003]
+    p.addUserDebugLine(a, b, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(a, c, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(b, d, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(d, c, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(e, f, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(e, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(f, h, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(h, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(a, e, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(b, f, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(c, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(d, h, lineColorRGB=[0, 1, 0], lineWidth=3)
     #print(self.curriculum_phase)
     # if self.curriculum_phase ==1:
     #     self.goal_pos = fracturestart.copy()
@@ -98,12 +122,13 @@ def getStarts(self):
     fractureorientaionRad =p.getEulerFromQuaternion(p.getLinkState(self.pandaUid, 11)[1])
     fractureorientaionDeg = np.degrees(np.array(fractureorientaionRad)) 
     pin = [0.004462 ,-0.002332 , 0.046608  ]
+   # pin = [0.004462 ,-0.002332 , 0.049608  ]
     #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
     fracturestart = fracturestart - pin
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]
-    difference = [0,0.006,0]
+    difference = [0.0,0.02,0]
     difference =np.array(difference)
     #legstart=[]
     # for i in range(len(difference)):
@@ -301,7 +326,7 @@ def visualize_contact_forces(self,bodyA, bodyB, scale=0.01, lifeTime=0.05, lineW
         #print("difference (meas - predicted):", measured_taus - tau_pred_from_force)
         f_total = np.linalg.norm(f_total)
         f_total = np.float32(f_total)
-        #print('Total Contact Force:', f_total)
+        print('Total Contact Force:', f_total)
         return f_total
     
 def fingertip_distance(body_id, left_idx, right_idx, physicsClientId=0):

@@ -93,9 +93,10 @@ class fracturesurgery_env(gym.Env):
         self.n += 1
         self.output_force = np.float32(0)
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD)
+        #p.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME,1)
         
 
-        p.setTimeStep(1./5000.)
+        #p.setTimeStep(1./5000.)
         #while p.isConnected():
         
         self.current_step = 0
@@ -115,40 +116,62 @@ class fracturesurgery_env(gym.Env):
         leg_path = os.path.join(currentDir, "Assets/legankle.urdf")
         foot_path = os.path.join(currentDir, "Assets/footpin.urdf")
         footorientation = p.getQuaternionFromEuler([0, 0, 90/180*np.pi])
-        for _i in range(100):
-            p.stepSimulation()
+        # for _i in range(100):
+        #     p.stepSimulation()
         legorientation = p.getQuaternionFromEuler([-90/180*np.pi, 0, 0])
+        
+        self.objectUid = p.loadURDF(foot_path, basePosition=fracturestart, 
+                                    baseOrientation=footorientation, useFixedBase=0,
+                                     globalScaling=1)
+        p.changeDynamics(self.objectUid, -1, mass=0.6, lateralFriction=5)
+        #p.changeDynamics(self.objectUid, 0, mass=0.1, lateralFriction=0.5)
+        #print(p.getAABB(self.objectUid,-1))       
+        p.addUserDebugText('b', p.getAABB(self.objectUid,-1)[0], textColorRGB=[1, 0, 0], textSize=1) 
+        
+        # p.setPhysicsEngineParameter(contactBreakingThreshold=0.001)
+        # p.setPhysicsEngineParameter(erp=0.05)
+        # p.setPhysicsEngineParameter(contactERP=0.02)
+        p.setPhysicsEngineParameter(contactSlop=0.001)
+        #p.stepSimulation()
+        target_positions = np.array([0.0, 0.0])
+        forces = [10,10]
+        for _ in range(1000):
+            # p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=target_positions[0], force=forces[0])
+            # p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
+            p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=5)
+            p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=5)
+
+            p.stepSimulation()
+            time.sleep(1./500)  # Remove for speed
+        pos_9 = p.getJointState(self.pandaUid, 9)[0]
+        pos_10 = p.getJointState(self.pandaUid, 10)[0]
+        # print(f'Finger 9 position before reset: {pos_9}')
+        # print(f'Finger 10 position before reset: {pos_10}')
+        # print(p.getJointState(self.pandaUid, 10))
+        p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=0, force=1)
+        p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=0, force=1)
+        p.stepSimulation()
+        #p.resetJointState(self.pandaUid, 9, target_positions[0])
+        #p.resetJointState(self.pandaUid, 10, target_positions[1])
+            #time.sleep(1.)  # Remove for speed
+        # for _ in range(500):
+        #     p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=target_positions[0], force=forces[0])
+        #     p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
+        #     p.stepSimulation()
+        
+        # for _ in range(500):
+        #     p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=target_positions[0], force=forces[0])
+        #     p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
+        #     p.stepSimulation()
+        #time.sleep(10)
         self.leg = p.loadURDF(leg_path,
                         basePosition =legstartpos,
                         baseOrientation = legorientation,
                         globalScaling = 1.0,
                         useFixedBase = 1)
         p.changeDynamics(self.leg, 1, mass = 0.5, lateralFriction=0.1)
-        self.objectUid = p.loadURDF(foot_path, basePosition=fracturestart, 
-                                    baseOrientation=footorientation, useFixedBase=1,
-                                     globalScaling=1)
-        p.changeDynamics(self.objectUid, -1, mass=0.1, lateralFriction=5)
-        p.changeDynamics(self.objectUid, 0, mass=0.1, lateralFriction=0.5)
-        #print(p.getAABB(self.objectUid,-1))       
-        p.addUserDebugText('b', p.getAABB(self.objectUid,-1)[0], textColorRGB=[1, 0, 0], textSize=1) 
-        
-        
-        p.stepSimulation()
-        target_positions = np.array([0.0, 0.0])
-        forces = [1, 1]
-        for _ in range(500):
-            p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=target_positions[0], force=forces[0])
-            p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
-            p.stepSimulation()
-            time.sleep(1./500)  # Remove for speed
-        #p.resetJointState(self.pandaUid, 9, target_positions[0])
-        #p.resetJointState(self.pandaUid, 10, target_positions[1])
-            #time.sleep(1.)  # Remove for speed
-        p.changeDynamics(self.pandaUid, 9, lateralFriction=5.0)
-        p.changeDynamics(self.pandaUid, 10, lateralFriction=5.0)
-        #time.sleep(10)
-        child_9in_parent_pos, child_9in_parent_orn = utils.local_coords(self,9)
-        child_10in_parent_pos, child_10in_parent_orn = utils.local_coords(self,10)
+        #child_9in_parent_pos, child_9in_parent_orn = utils.local_coords(self,9)
+        #child_10in_parent_pos, child_10in_parent_orn = utils.local_coords(self,10)
 
         # c9id = p.createConstraint(
         #     parentBodyUniqueId=self.pandaUid,
@@ -179,25 +202,38 @@ class fracturesurgery_env(gym.Env):
             p.stepSimulation()
         p.setGravity(0, 0, -9.8)
         self.target_position = np.concatenate((self.goal_pos, self.goal_ori))
-        
+        p.changeDynamics(self.pandaUid, 9, lateralFriction=5.0, maxJointVelocity=0.2)
+        p.changeDynamics(self.pandaUid, 10, lateralFriction=5.0, maxJointVelocity=0.2)
         # Dummy visual shape for goal marker
         
         
         # goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
         #                   basePosition=self.goal_pos, baseOrientation=self.goal_ori)
 
-        point_a = [0.019166, 0.051439, 0.003369]
-        point_b= [-0.068064,-0.03,-0.007159]
+        point_a = [0.029166, 0.051439, 0.003369]
+        point_b= [-0.048064,-0.012,-0.007159]
         point_c = [ 0.027233,-0.040717,-0.011423]
         point_d = [-0.065358,-0.023195,-0.005576]
         
-        make_ligament(self,"cloth_Id1", self.objectUid, self.leg, point_c, point_d,orientation=p.getQuaternionFromEuler([0, 0, 90/180*np.pi]), scale =0.9)
-        make_ligament(self, "cloth_Id2", self.objectUid, self.leg, point_a, point_b,orientation=p.getQuaternionFromEuler([0, 0, 305/180*np.pi]), scale =0.9)
+        #point_a = [0.019166, 0.051439, 0.003369]
+        #point_b= [-0.068064,-0.03,-0.007159]
+        #point_c = [ 0.027233,-0.040717,-0.011423]
+        #point_d = [-0.065358,-0.023195,-0.005576]
         
         [p.enableJointForceTorqueSensor(self.pandaUid, joint, enableSensor=True) for joint in range(p.getNumJoints(self.pandaUid))]
         p.enableJointForceTorqueSensor(self.objectUid, 0, enableSensor=True)
+        for i in range(p.getNumJoints(self.pandaUid)):
+            joint_info = p.getJointInfo(self.pandaUid, i)
+            #print(f"Joint {i}: {joint_info}")
+        max_vel = [2.1750,2.1750,2.1750,2.1750,2.6100,2.6100,2.6100,0.2,0.2]
+        #[p.changeDynamics(self.pandaUid, joint, maxJointVelocity=max_vel[joint]) for joint in range(6)]
         for _ in range(50):
             p.stepSimulation()
+
+        make_ligament(self,"cloth_Id1", self.objectUid, self.leg, point_c, point_d,orientation=p.getQuaternionFromEuler([0, 0, 90/180*np.pi]), scale =0.9)
+        make_ligament(self, "cloth_Id2", self.objectUid, self.leg, point_a, point_b,orientation=p.getQuaternionFromEuler([0, 0, 298/180*np.pi]), scale =0.75)
+        
+        p.changeDynamics(self.objectUid, -1, mass=0.1, lateralFriction=1)
         #print('On to Stepping')
         initialpos = p.getLinkState(self.pandaUid, 11)[0]
         initialor = p.getLinkState(self.pandaUid, 11)[1]
@@ -206,6 +242,7 @@ class fracturesurgery_env(gym.Env):
         # use helper to get 0/1 contact flags
         left_contact = utils.contact_flag(self, 9)
         right_contact = utils.contact_flag(self, 10)
+
 
         initialisHolding = utils.is_holding(self, left_contact, right_contact, self.dist)
         initialvel = p.getLinkState(self.pandaUid, 11, 1)[6]
@@ -220,7 +257,24 @@ class fracturesurgery_env(gym.Env):
                                                initialJointVelocities, initial_force,left_contact,
                                                self.dist, self.angle, right_contact, 
                                                self.dist, initialisHolding)
-        
+        #print(p.getJointState(self.pandaUid, 9))
+        #print(p.getJointState(self.pandaUid, 10))
+        p.changeDynamics(self.pandaUid, 9, jointLowerLimit=0.00, jointUpperLimit=0.004)
+        p.changeDynamics(self.pandaUid, 10, jointLowerLimit=0.0, jointUpperLimit=0.0042)
+        # link_state = p.getLinkState(self.pandaUid, 11)
+        # ee_pos = link_state[0]
+        # ee_orn = link_state[1]
+
+        # rot_matrix = p.getMatrixFromQuaternion(ee_orn)
+        # x_axis = rot_matrix[0:3]
+        # y_axis = rot_matrix[3:6]
+        # z_axis = rot_matrix[6:9]
+
+        # scale = 1
+        # p.addUserDebugLine(ee_pos, ee_pos + scale * np.array(x_axis), [1, 0, 0], 2)
+        # p.addUserDebugLine(ee_pos, ee_pos + scale * np.array(y_axis), [0, 1, 0], 2)
+        # p.addUserDebugLine(ee_pos, ee_pos + scale * np.array(z_axis), [0, 0, 1], 2)
+
         
         return self.state, {}
 
@@ -248,15 +302,21 @@ class fracturesurgery_env(gym.Env):
         else:
             newPosition, newOrientation = utils.get_new_pose(self,dx, dy, dz, qx, qy, qz, qw, mode)
             if self.action_type == 'pos_only':
-                p.addUserDebugText('NP', newPosition, textColorRGB=[0, 0, 1], textSize=1, lifeTime=0.5)
+                #newPosition = np.array(p.getLinkState(self.pandaUid, 11)[0]) + np.array([0.0,0.1,0.0])
+                p.addUserDebugText('NP', newPosition, textColorRGB=[0, 0, 1], textSize=1)
                 jointPoses = p.calculateInverseKinematics(self.pandaUid, 11, targetPosition=newPosition, maxNumIterations=100, residualThreshold=1e-4)
             else:
+                #newPosition = np.array(action[0:3]) 
+                #newOrientation = np.array(action[3:6])
+                #newOrientation = p.getQuaternionFromEuler(newOrientation)
+                p.addUserDebugText('NP', newPosition, textColorRGB=[0, 0, 1], textSize=1)
                 jointPoses = p.calculateInverseKinematics(self.pandaUid, 11, targetPosition=newPosition, targetOrientation=newOrientation, maxNumIterations=100, residualThreshold=1e-4)
+                #print(jointPoses)
             if np.any(np.isnan(jointPoses)) or np.any(np.abs(jointPoses) > 10):
                 print("IK failure, skipping step")
         max_force = [87,87,87,87,12,12,12,20,20]
         #max_force = [8.7,8.7,8.7,8.7,1.2,1.2,1.2,20,20]
-        #max_vel = [2.1750,2.1750,2.1750,2.1750,2.6100,2.6100,2.6100,0.2,0.2]
+        #
         # for i in range(20):
         #     alpha = (i + 1) / 20.0
         #     jointpose = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
@@ -264,27 +324,29 @@ class fracturesurgery_env(gym.Env):
         p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL, list(jointPoses), forces=max_force)#, maxVelocities=max_vel)
         #     p.setJointMotorControlMultiDofArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL, list(step), forces=max_force, maxVelocities=max_vel)
         #     p.stepSimulation()
-
+        #print(f'Joint Torques Applies: {[p.getJointState(self.pandaUid, joint)[3] for joint in range(9)]}')
         #joint_torques = p.calculateInverseDynamics(self.pandaUid, jointPoses, [0.2]*9, [1.0]*9)
         # print(f'Joint Torques Computed: {joint_torques}')
         # #print(f"Joint Torques: {joint_torques}")
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.VELOCITY_CONTROL, targetVelocities=np.zeros(9), forces=np.zeros(9))
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.TORQUE_CONTROL, forces=joint_torques)
         
-        for i in range(1000):
-            current_joint_positions = [p.getJointState(self.pandaUid, j)[0] for j in range(9)]
-            position_errors = np.array(jointPoses) - np.array(current_joint_positions)
-            #print('Position Errors:', position_errors)
-            position_errors = position_errors[0:7]
-            if position_errors.max() < 0.001:
-                joint_pose = [p.getJointState(self.pandaUid, i)[0] for i in range(9)]
-                #print(f'reached at iteration {i}') if i>0 else None
-                break
+        # for i in range(1000):
+        #     current_joint_positions = [p.getJointState(self.pandaUid, j)[0] for j in range(9)]
+        #     position_errors = np.array(jointPoses) - np.array(current_joint_positions)
+        #     #print('Position Errors:', position_errors)
+        #     position_errors = position_errors[0:7]
+        #     if position_errors.max() < 0.00001:
+        #         joint_pose = [p.getJointState(self.pandaUid, i)[0] for i in range(9)]
+        #         print(f'reached at iteration {i}') if i>0 else None
+        #        # print(utils.calculate_distances(self, p.getLinkState(self.pandaUid, 11)[0], np.array(p.getLinkState(self.pandaUid, 11)[1]), newPosition, newOrientation))
+        #         time.sleep(2)
+        #         break
+        #     p.stepSimulation()
+        #     if i == 999:
+        #         print("Max iterations reached without convergence")
+        for _ in range(20):
             p.stepSimulation()
-            if i == 999:
-                print("Max iterations reached without convergence")
-        #for _ in range(20):
-       # p.stepSimulation()
        # print('Position Errors:', position_errors)
         
             #time.sleep(1./500)  # Remove for speed
@@ -306,7 +368,12 @@ class fracturesurgery_env(gym.Env):
         #print(f'finger 10 {p.getJointState(self.pandaUid, 10)[2]}')  # contact
         # if (force is not None) and force > self.output_force:
         #     self.output_force = force
-        self.output_force+=force 
+        if force != None:
+            self.output_force+=force 
+        else :
+            self.output_force+=0
+        
+        
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]
         actualNewOrientation = p.getLinkState(self.pandaUid, 11)[1]
         actualNewVelocity = p.getLinkState(self.pandaUid, 11, 1)[6]
@@ -320,7 +387,7 @@ class fracturesurgery_env(gym.Env):
         jointPoses = np.array([js[0] for js in joint_states])        # positions
         jointVelocities = np.array([js[1] for js in joint_states])   # velocities
         self.pos_distance, self.angle = utils.calculate_distances(self, actualNewPosition, actualNewOrientation, self.goal_pos, self.goal_ori)
-            
+        
         env_utils.set_observation(self, actualNewPosition, actualNewOrientation, 
                                                actualNewVelocity, jointPoses, 
                                                jointVelocities,force, left_contact, 
@@ -333,7 +400,7 @@ class fracturesurgery_env(gym.Env):
             print('yay')
         
         if done or truncated:
-            self.output_force = self.output_force / self.current_step
+            self.output_force = self.output_force / self.current_step 
         info = {'is_success': done, 'current_step': self.current_step, 'pos_distance': self.pos_distance, 'angle': self.angle, 'avg_force': self.output_force, 'Holding': self.isHolding}
         
         reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)

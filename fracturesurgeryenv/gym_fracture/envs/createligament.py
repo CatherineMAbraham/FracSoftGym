@@ -73,12 +73,15 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     #     useFaceContact=1)
     # print(p.getAABB(clothId))
     #p.setTimeStep(1.0/100.0)
-    p.setPhysicsEngineParameter(numSolverIterations=200, erp=0.15, contactERP=0.1, numSubSteps=3)
+    p.setPhysicsEngineParameter(numSolverIterations=200)#, 
+    #p.setPhysicsEngineParameter(erp=0.15)#, 
+    #p.setPhysicsEngineParameter(contactERP=0.1)#, 
+    p.setPhysicsEngineParameter(numSubSteps=3)
     #p.setPhysicsEngineParameter(fixedTimeStep=1/120.0)
 
     p.stepSimulation()
     #time.sleep(5)
-    auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=pC, worldB=pD, axis=0, num_anchors=10)
+    auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=pC, worldB=pD, axis=0, num_anchors=50)
 
 def findClosestVertex(contactPos, vertices):
     vertices_np = np.array(vertices)
