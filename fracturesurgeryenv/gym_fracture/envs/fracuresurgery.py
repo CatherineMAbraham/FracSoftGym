@@ -325,63 +325,19 @@ class fracturesurgery_env(gym.Env):
                     # As a last-resort fallback, build a safe zero vector
                     jointPoses = [0.0] * 9
         max_force = [87,87,87,87,12,12,12,20,20]
-        #max_force = [8.7,8.7,8.7,8.7,1.2,1.2,1.2,20,20]
-        #
-        # for i in range(20):
-        #     alpha = (i + 1) / 20.0
-        #     jointpose = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
-        #     step = jointpose + alpha * (np.array(jointPoses) - jointpose)
+       
         p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL, list(jointPoses), forces=max_force)#, maxVelocities=max_vel)
-        #     p.setJointMotorControlMultiDofArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL, list(step), forces=max_force, maxVelocities=max_vel)
-        #     p.stepSimulation()
-        #print(f'Joint Torques Applies: {[p.getJointState(self.pandaUid, joint)[3] for joint in range(9)]}')
-        #joint_torques = p.calculateInverseDynamics(self.pandaUid, jointPoses, [0.2]*9, [1.0]*9)
-        # print(f'Joint Torques Computed: {joint_torques}')
-        # #print(f"Joint Torques: {joint_torques}")
-        #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.VELOCITY_CONTROL, targetVelocities=np.zeros(9), forces=np.zeros(9))
-        #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.TORQUE_CONTROL, forces=joint_torques)
         
-        # for i in range(1000):
-        #     current_joint_positions = [p.getJointState(self.pandaUid, j)[0] for j in range(9)]
-        #     position_errors = np.array(jointPoses) - np.array(current_joint_positions)
-        #     #print('Position Errors:', position_errors)
-        #     position_errors = position_errors[0:7]
-        #     if position_errors.max() < 0.00001:
-        #         joint_pose = [p.getJointState(self.pandaUid, i)[0] for i in range(9)]
-        #         print(f'reached at iteration {i}') if i>0 else None
-        #        # print(utils.calculate_distances(self, p.getLinkState(self.pandaUid, 11)[0], np.array(p.getLinkState(self.pandaUid, 11)[1]), newPosition, newOrientation))
-        #         time.sleep(2)
-        #         break
-        #     p.stepSimulation()
-        #     if i == 999:
-        #         print("Max iterations reached without convergence")
         for _ in range(20):
             p.stepSimulation()
-       # print('Position Errors:', position_errors)
-        
-            #time.sleep(1./500)  # Remove for speed
-        # after stepSimulation
-        # current_pos = [p.getJointState(self.pandaUid, i)[0] for i in range(9)]
-        # current_vel = [p.getJointState(self.pandaUid, i)[1] for i in range(9)]
-        # kp = 500
-        # kd = 50
-        # force_limit = max_force
-        # for j in range(9):
-        #     err = jointPoses[j] - current_pos[j]            # per-joint
-        #     cmd_torque = kp * err - kd * current_vel[j]    # what your controller computes (example)
-        #     print(f"j{j}: err={err:.4f}, vel={current_vel[j]:.4f}, cmd_torque={cmd_torque:.1f}, applied_limit={force_limit[j]}")
-        #     is_saturated = abs(cmd_torque) > force_limit[j]
-        #     print(f"    saturated: {is_saturated}")
+      
         force = utils.visualize_contact_forces(self,self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
-        #print(f'object reaction force {p.getJointState(self.objectUid, 0)[2]}')  # contact force on object
-        #print(f'finger 9 {p.getJointState(self.pandaUid, 9)[2]}')  # contact force on left finger
-        #print(f'finger 10 {p.getJointState(self.pandaUid, 10)[2]}')  # contact
-        # if (force is not None) and force > self.output_force:
-        #     self.output_force = force
+       
         if force != None:
             self.output_force+=force 
         else :
             self.output_force+=0
+            force = 0 # without this, force in the obs is nan and then that messes everything up 
         
         
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]

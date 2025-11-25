@@ -326,7 +326,7 @@ def visualize_contact_forces(self,bodyA, bodyB, scale=0.01, lifeTime=0.05, lineW
         #print("difference (meas - predicted):", measured_taus - tau_pred_from_force)
         f_total = np.linalg.norm(f_total)
         f_total = np.float32(f_total)
-        print('Total Contact Force:', f_total)
+        #print('Total Contact Force:', f_total)
         return f_total
     
 def fingertip_distance(body_id, left_idx, right_idx, physicsClientId=0):
