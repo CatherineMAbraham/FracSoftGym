@@ -314,6 +314,16 @@ class fracturesurgery_env(gym.Env):
                 #print(jointPoses)
             if np.any(np.isnan(jointPoses)) or np.any(np.abs(jointPoses) > 10):
                 print("IK failure, skipping step")
+                # Avoid passing NaNs/invalid targets into PyBullet (can segfault)
+                # Fallback: use current joint positions for all 9 joints so
+                # `setJointMotorControlArray` receives valid targets of the
+                # expected length and dtype. Alternatively one could `continue`
+                # or return early here depending on desired behaviour.
+                try:
+                    jointPoses = [p.getJointState(self.pandaUid, i)[0] for i in range(9)]
+                except Exception:
+                    # As a last-resort fallback, build a safe zero vector
+                    jointPoses = [0.0] * 9
         max_force = [87,87,87,87,12,12,12,20,20]
         #max_force = [8.7,8.7,8.7,8.7,1.2,1.2,1.2,20,20]
         #
