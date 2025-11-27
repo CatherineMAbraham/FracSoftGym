@@ -28,6 +28,7 @@ class fracturesurgery_env(gym.Env):
         dv=0.05,
         action_type='rot_vec',
         horizon='variable',
+        softtissue=False,
     ):
         self.render_mode = render_mode
         self.obs_type = obs_type
@@ -37,6 +38,7 @@ class fracturesurgery_env(gym.Env):
         self.max_steps = max_steps
         self.action_type = action_type
         self.horizon = horizon
+        self.softtissue = softtissue
         self.success_threshold = 0.6
         self.episodes_done = 0
         self.output_force = np.float32(0)
@@ -135,14 +137,14 @@ class fracturesurgery_env(gym.Env):
         #p.stepSimulation()
         target_positions = np.array([0.0, 0.0])
         forces = [10,10]
-        for _ in range(1000):
+        for _ in range(100):
             # p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=target_positions[0], force=forces[0])
             # p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
             p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=5)
             p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=5)
 
             p.stepSimulation()
-            time.sleep(1./500)  # Remove for speed
+            #time.sleep(1./500)  # Remove for speed
         pos_9 = p.getJointState(self.pandaUid, 9)[0]
         pos_10 = p.getJointState(self.pandaUid, 10)[0]
         # print(f'Finger 9 position before reset: {pos_9}')
@@ -227,11 +229,11 @@ class fracturesurgery_env(gym.Env):
             #print(f"Joint {i}: {joint_info}")
         max_vel = [2.1750,2.1750,2.1750,2.1750,2.6100,2.6100,2.6100,0.2,0.2]
         #[p.changeDynamics(self.pandaUid, joint, maxJointVelocity=max_vel[joint]) for joint in range(6)]
-        for _ in range(50):
-            p.stepSimulation()
-
-        make_ligament(self,"cloth_Id1", self.objectUid, self.leg, point_c, point_d,orientation=p.getQuaternionFromEuler([0, 0, 90/180*np.pi]), scale =0.9)
-        make_ligament(self, "cloth_Id2", self.objectUid, self.leg, point_a, point_b,orientation=p.getQuaternionFromEuler([0, 0, 298/180*np.pi]), scale =0.75)
+        # for _ in range(10):
+        #     p.stepSimulation()
+        if self.softtissue:
+            make_ligament(self,"cloth_Id1", self.objectUid, self.leg, point_c, point_d,orientation=p.getQuaternionFromEuler([0, 0, 90/180*np.pi]), scale =0.9)
+            make_ligament(self, "cloth_Id2", self.objectUid, self.leg, point_a, point_b,orientation=p.getQuaternionFromEuler([0, 0, 298/180*np.pi]), scale =0.75)
         
         p.changeDynamics(self.objectUid, -1, mass=0.1, lateralFriction=1)
         #print('On to Stepping')
