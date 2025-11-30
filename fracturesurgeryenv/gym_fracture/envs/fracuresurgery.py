@@ -41,6 +41,7 @@ class fracturesurgery_env(gym.Env):
         self.softtissue = softtissue
         self.success_threshold = 0.6
         self.episodes_done = 0
+        self.force = np.float32(0)
         self.output_force = np.float32(0)
         self.goal_range_low = np.zeros(3)
         self.goal_range_high = np.zeros(3)
@@ -125,7 +126,7 @@ class fracturesurgery_env(gym.Env):
         self.objectUid = p.loadURDF(foot_path, basePosition=fracturestart, 
                                     baseOrientation=footorientation, useFixedBase=0,
                                      globalScaling=1)
-        p.changeDynamics(self.objectUid, -1, mass=0.6, lateralFriction=5)
+        p.changeDynamics(self.objectUid, -1, mass=0.276, lateralFriction=5)
         #p.changeDynamics(self.objectUid, 0, mass=0.1, lateralFriction=0.5)
         #print(p.getAABB(self.objectUid,-1))       
         p.addUserDebugText('b', p.getAABB(self.objectUid,-1)[0], textColorRGB=[1, 0, 0], textSize=1) 
@@ -333,13 +334,13 @@ class fracturesurgery_env(gym.Env):
         for _ in range(20):
             p.stepSimulation()
       
-        force = utils.visualize_contact_forces(self,self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
+        self.force = utils.visualize_contact_forces(self,self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
        
-        if force != None:
-            self.output_force+=force 
+        if self.force != None:
+            self.output_force+=self.force 
         else :
             self.output_force+=0
-            force = 0 # without this, force in the obs is nan and then that messes everything up 
+            self.force = 0 # without this, force in the obs is nan and then that messes everything up 
         
         
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]
@@ -358,9 +359,10 @@ class fracturesurgery_env(gym.Env):
         
         env_utils.set_observation(self, actualNewPosition, actualNewOrientation, 
                                                actualNewVelocity, jointPoses, 
-                                               jointVelocities,force, left_contact, 
+                                               jointVelocities,self.force, left_contact, 
                                                dist, self.angle, right_contact, 
                                                dist, self.isHolding)
+        
         
         done = env_utils.check_done(self)
         truncated = self.current_step >= self.max_steps and not done
@@ -370,8 +372,8 @@ class fracturesurgery_env(gym.Env):
         if done or truncated:
             self.output_force = self.output_force / self.current_step 
         info = {'is_success': done, 'current_step': self.current_step, 'pos_distance': self.pos_distance, 'angle': self.angle, 'avg_force': self.output_force, 'Holding': self.isHolding}
-        
         reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
+        print('force: ', self.force, reward)
         
         return self.state, reward, done, truncated, info
 
