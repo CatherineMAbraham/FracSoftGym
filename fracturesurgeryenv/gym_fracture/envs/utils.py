@@ -128,7 +128,7 @@ def getStarts(self):
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]
-    difference = [0.0,0.02,0]
+    difference = [0.0,0.01,0]
     difference =np.array(difference)
     #legstart=[]
     # for i in range(len(difference)):
@@ -326,7 +326,7 @@ def visualize_contact_forces(self,bodyA, bodyB, scale=0.01, lifeTime=0.05, lineW
         #print("difference (meas - predicted):", measured_taus - tau_pred_from_force)
         f_total = np.linalg.norm(f_total)
         f_total = np.float32(f_total)
-        #print('Total Contact Force:', f_total)
+        print('Total Contact Force:', f_total)
         return f_total
     
 def fingertip_distance(body_id, left_idx, right_idx, physicsClientId=0):
@@ -367,3 +367,73 @@ def local_coords(self,link):
         parent_inv_pos, parent_inv_orn, child_pos, child_orn
     )
     return child_in_parent_pos, child_in_parent_orn
+
+
+def compute_target_velocity(desired_pos, current_pos, current_vel, dt,
+                            max_speed, Kd=0.01, desired_vel=None):
+    if desired_vel is None:
+        desired_vel = np.zeros_like(current_vel)
+    
+    # Step 1: base proportional velocity
+    prop_vel = (desired_pos - current_pos) / dt
+    prop_vel_np = np.array(prop_vel, dtype=float)
+    #print('Unclamped Vel:', prop_vel_np)
+    # Step 2: clamp to max speed
+    prop_vel_clamped_np = np.zeros(len(prop_vel_np), dtype=float)
+    for i in range(len(prop_vel_np)):
+        #print('Unclamped Vel:', vel)
+        v = max_speed[i]
+        prop_vel_clamped_np[i] = np.clip(prop_vel_np[i], -v, v)
+        #vels.append(vel)
+    #print('Clamped Vel:', prop_vel_clamped_np)
+    # Step 3: damping correction
+    #print(Kd * (desired_vel - current_vel))
+    damping = np.array(Kd * (desired_vel - current_vel), dtype=float)
+    prop_vel_clamped_np += damping
+
+    return prop_vel_clamped_np
+
+
+def move_panda_smoothly(self,robot_id, joint_indices, target_positions,
+                        max_speeds, Kd=0.01, max_force=20,
+                        dt=0.01, tolerance=1e-3, sleep_time=None):
+    """
+    Smoothly move Panda to target_positions using per-joint velocity control.
+    """
+    target_positions = np.array(target_positions, dtype=float)
+    max_speeds = np.array(max_speeds, dtype=float)
+
+    # Initialize current joint positions and velocities
+    q_current = np.array([p.getJointState(robot_id, j)[0] for j in joint_indices])
+    v_current = np.array([p.getJointState(robot_id, j)[1] for j in joint_indices])
+
+    while np.linalg.norm(target_positions - q_current) > tolerance:
+        # Compute target velocities using per-joint limits
+        target_velocities = compute_target_velocity(
+            desired_pos=target_positions,
+            current_pos=q_current,
+            current_vel=v_current,
+            dt=dt,
+            max_speed=max_speeds,
+            Kd=Kd
+        )
+
+        # Apply velocity control
+        p.setJointMotorControlArray(
+            robot_id,
+            jointIndices=joint_indices,
+            controlMode=p.VELOCITY_CONTROL,
+            targetVelocities=target_velocities.tolist(),
+            forces=max_force
+        )
+
+        # Step simulations
+        #self.band.step()
+        p.stepSimulation()
+        #print('Target Velocities:', target_velocities)
+        if sleep_time:
+            time.sleep(sleep_time)
+
+        # Update current positions and velocities
+        q_current = np.array([p.getJointState(robot_id, j)[0] for j in joint_indices])
+        v_current = np.array([p.getJointState(robot_id, j)[1] for j in joint_indices])

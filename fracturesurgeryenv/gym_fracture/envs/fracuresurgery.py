@@ -8,12 +8,12 @@ import pybullet as p
 import pybullet_data
 import numpy as np
 import time
-from gym_fracture.envs import utils #calculate_distances, make_scene, getStarts, getGoal, check_done, get_new_pose, unpack_action,fingertip_distance, visualize_contact_forces, world_to_local
+from gym_fracture.envs import spring_system, utils #calculate_distances, make_scene, getStarts, getGoal, check_done, get_new_pose, unpack_action,fingertip_distance, visualize_contact_forces, world_to_local
 from gym_fracture.envs import env_utils
 from scipy.spatial.transform import Rotation as R
 import wandb
 #from gym_fracture.envs.spring_damper import SpringDamper
-from gym_fracture.envs.createligament import make_ligament
+from gym_fracture.envs.createligament import make_ligament, make_ligament_rod
 
 class fracturesurgery_env(gym.Env):
     def __init__(
@@ -95,6 +95,7 @@ class fracturesurgery_env(gym.Env):
     def reset(self, seed=None, options=None):
         self.n += 1
         self.output_force = np.float32(0)
+        self.max_force = np.float32(0)
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD)
         #p.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME,1)
         
@@ -116,16 +117,18 @@ class fracturesurgery_env(gym.Env):
             self.goal_ori_high = np.radians(fractureorientationDeg + [15, 5, 15])
 
         currentDir = os.path.dirname(os.path.abspath(__file__))
-        leg_path = os.path.join(currentDir, "Assets/legankle.urdf")
-        foot_path = os.path.join(currentDir, "Assets/footpin.urdf")
+        leg_path = os.path.join(currentDir, "Assets/legankle_orig.urdf")
+        foot_path = os.path.join(currentDir, "Assets/footpin_orig.urdf")
         footorientation = p.getQuaternionFromEuler([0, 0, 90/180*np.pi])
         # for _i in range(100):
         #     p.stepSimulation()
         legorientation = p.getQuaternionFromEuler([-90/180*np.pi, 0, 0])
         
         self.objectUid = p.loadURDF(foot_path, basePosition=fracturestart, 
-                                    baseOrientation=footorientation, useFixedBase=0,
+                                    baseOrientation=footorientation, 
+                                    useFixedBase=0,
                                      globalScaling=1)
+        
         p.changeDynamics(self.objectUid, -1, mass=0.276, lateralFriction=5)
         #p.changeDynamics(self.objectUid, 0, mass=0.1, lateralFriction=0.5)
         #print(p.getAABB(self.objectUid,-1))       
@@ -167,12 +170,13 @@ class fracturesurgery_env(gym.Env):
         #     p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
         #     p.stepSimulation()
         #time.sleep(10)
+        p.addUserDebugText('l',legstartpos, textColorRGB=[0, 1, 0], textSize=1)
         self.leg = p.loadURDF(leg_path,
                         basePosition =legstartpos,
                         baseOrientation = legorientation,
                         globalScaling = 1.0,
                         useFixedBase = 1)
-        p.changeDynamics(self.leg, 1, mass = 0.5, lateralFriction=0.1)
+        #p.changeDynamics(self.leg, -1, mass = 0.5, lateralFriction=0.1)
         #child_9in_parent_pos, child_9in_parent_orn = utils.local_coords(self,9)
         #child_10in_parent_pos, child_10in_parent_orn = utils.local_coords(self,10)
 
@@ -213,10 +217,18 @@ class fracturesurgery_env(gym.Env):
         # goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
         #                   basePosition=self.goal_pos, baseOrientation=self.goal_ori)
 
-        point_a = [0.029166, 0.051439, 0.003369]
-        point_b= [-0.048064,-0.012,-0.007159]
-        point_c = [ 0.027233,-0.040717,-0.011423]
+        #point_a = [0.0035, 0.05, 0.005]
+        #point_b= [-0.035,-0.009,-0.07]
+        point_c = [ 0.027233,-0.470717,-0.011423]
         point_d = [-0.065358,-0.023195,-0.005576]
+        point_a = [0.029166, 0.045439, 0.003369]
+        point_b= [-0.065064,-0.012,-0.007159]
+        # point_c = [ 0.027233,-0.070717,-0.011423]
+        # point_d = [-0.065358,-0.023195,-0.005576]
+        # point_a = [0.029166, 0.051439, 0.003369]
+        # point_b= [-0.048064,-0.012,-0.007159]
+        # point_c = [ 0.027233,-0.040717,-0.011423]
+        # point_d = [-0.065358,-0.023195,-0.005576]
         
         #point_a = [0.019166, 0.051439, 0.003369]
         #point_b= [-0.068064,-0.03,-0.007159]
@@ -232,10 +244,14 @@ class fracturesurgery_env(gym.Env):
         #[p.changeDynamics(self.pandaUid, joint, maxJointVelocity=max_vel[joint]) for joint in range(6)]
         # for _ in range(10):
         #     p.stepSimulation()
+        #point_a = np.array([-0.04,0.12,-0.12])
+        #point_a = np.array([-0.18,0.08,-0.02])
+        #point_b = np.array([0,0,0])
         if self.softtissue:
-            make_ligament(self,"cloth_Id1", self.objectUid, self.leg, point_c, point_d,orientation=p.getQuaternionFromEuler([0, 0, 90/180*np.pi]), scale =0.9)
-            make_ligament(self, "cloth_Id2", self.objectUid, self.leg, point_a, point_b,orientation=p.getQuaternionFromEuler([0, 0, 298/180*np.pi]), scale =0.75)
-        
+            #make_ligament(self,"cloth_Id1", self.objectUid, self.leg, point_c, point_d,orientation=p.getQuaternionFromEuler([0, 90/180*np.pi, 70/180*np.pi]), scale =1)
+            make_ligament(self, "cloth_Id2", self.objectUid, self.leg, point_a, point_b,orientation=p.getQuaternionFromEuler([90/180*np.pi, 90/180*np.pi, 180/180*np.pi]), scale =1) #0.75
+            #make_ligament_rod(self.objectUid, self.leg, point_c, point_d, rod_radius=0.0025, rod_mass=0.01, stiffness=5e4)([0, 90/180*np.pi, 298/180*np.pi]) [90/180*np.pi,-15/180*np.pi,90/180*np.pi]90/180*np.pi,90/180*np.pi,0]
+        #time.sleep(5)
         p.changeDynamics(self.objectUid, -1, mass=0.1, lateralFriction=1)
         #print('On to Stepping')
         initialpos = p.getLinkState(self.pandaUid, 11)[0]
@@ -277,7 +293,14 @@ class fracturesurgery_env(gym.Env):
         # p.addUserDebugLine(ee_pos, ee_pos + scale * np.array(x_axis), [1, 0, 0], 2)
         # p.addUserDebugLine(ee_pos, ee_pos + scale * np.array(y_axis), [0, 1, 0], 2)
         # p.addUserDebugLine(ee_pos, ee_pos + scale * np.array(z_axis), [0, 0, 1], 2)
-
+        self.band = spring_system.ElasticBand(
+                            bodyA=self.objectUid, linkA=0, 
+                            bodyB=self.leg, linkB=0,
+                            young_modulus=1e7,     # Pa
+                            area=5e-6,             # m^2
+                            rest_length=0.1,       # m
+                            damping_ratio=1.0
+                        )
         
         return self.state, {}
 
@@ -328,16 +351,40 @@ class fracturesurgery_env(gym.Env):
                     # As a last-resort fallback, build a safe zero vector
                     jointPoses = [0.0] * 9
         max_force = [87,87,87,87,12,12,12,20,20]
-       
-        p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL, list(jointPoses), forces=max_force)#, maxVelocities=max_vel)
-        
-        for _ in range(20):
-            p.stepSimulation()
+        max_vel = [2.1750,2.1750,2.1750,2.1750,2.6100,2.6100,2.6100,0.2,0.2]
+        desired_pos = np.array(jointPoses)
+        current_pos = np.array([p.getJointState(self.pandaUid,j)[0] for j in list(range(9))])
+        targetVelocities = utils.compute_target_velocity(
+                            desired_pos=desired_pos,
+                            current_pos=current_pos,
+                            current_vel=[p.getJointState(self.pandaUid,j)[1] for j in list(range(9))],
+                            dt=0.05,
+                            max_speed=max_vel,
+                            Kd=0.001
+                        )
+        #print('Target Velocities: ', targetVelocities)  
+        #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,targetVelocities=targetVelocities, forces=max_force)#, maxVelocities=max_vel)
+        utils.move_panda_smoothly(self,robot_id=self.pandaUid,
+    joint_indices=list(range(9)),
+    target_positions=jointPoses,
+    max_speeds=max_vel,
+    Kd=0.01,
+    max_force=max_force,
+    dt=0.01,
+    tolerance=1e-2
+)
+        # for _ in range(20):
+        #     self.band.step()
+        #     p.stepSimulation()
+            #time.sleep(1.)  # Remove for speed
       
         self.force = utils.visualize_contact_forces(self,self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
-       
+        wrench = spring_system.estimate_ee_force(self, self.pandaUid,11,list(range(9)))
         if self.force != None:
             self.output_force+=self.force 
+            if self.force > self.max_force:
+                self.max_force = self.force
+                #print('New max force: ', self.max_force)
         else :
             self.output_force+=0
             self.force = 0 # without this, force in the obs is nan and then that messes everything up 
@@ -373,7 +420,7 @@ class fracturesurgery_env(gym.Env):
             self.output_force = self.output_force / self.current_step 
         info = {'is_success': done, 'current_step': self.current_step, 'pos_distance': self.pos_distance, 'angle': self.angle, 'avg_force': self.output_force, 'Holding': self.isHolding}
         reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
-        print('force: ', self.force, reward)
+        #print('force: ', self.force, reward)
         
         return self.state, reward, done, truncated, info
 
