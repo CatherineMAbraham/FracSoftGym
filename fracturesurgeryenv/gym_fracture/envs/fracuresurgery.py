@@ -176,7 +176,7 @@ class fracturesurgery_env(gym.Env):
                         baseOrientation = legorientation,
                         globalScaling = 1.0,
                         useFixedBase = 1)
-        #p.changeDynamics(self.leg, -1, mass = 0.5, lateralFriction=0.1)
+        p.changeDynamics(self.leg, 0, mass = 0.1, lateralFriction=0.1)
         #child_9in_parent_pos, child_9in_parent_orn = utils.local_coords(self,9)
         #child_10in_parent_pos, child_10in_parent_orn = utils.local_coords(self,10)
 
@@ -296,9 +296,9 @@ class fracturesurgery_env(gym.Env):
         self.band = spring_system.ElasticBand(
                             bodyA=self.objectUid, linkA=0, 
                             bodyB=self.leg, linkB=0,
-                            young_modulus=1e7,     # Pa
+                            young_modulus=1e6,     # Pa
                             area=5e-6,             # m^2
-                            rest_length=0.1,       # m
+                            rest_length=0.2,       # m
                             damping_ratio=1.0
                         )
         
@@ -350,7 +350,8 @@ class fracturesurgery_env(gym.Env):
                 except Exception:
                     # As a last-resort fallback, build a safe zero vector
                     jointPoses = [0.0] * 9
-        max_force = [87,87,87,87,12,12,12,20,20]
+        max_force = [8.7,8.7,8.7,8.7,1.2,1.2,1.2,20,20]
+        #max_force = [1,1,1,1,1,1,1,10,10]
         max_vel = [2.1750,2.1750,2.1750,2.1750,2.6100,2.6100,2.6100,0.2,0.2]
         desired_pos = np.array(jointPoses)
         current_pos = np.array([p.getJointState(self.pandaUid,j)[0] for j in list(range(9))])
@@ -363,19 +364,20 @@ class fracturesurgery_env(gym.Env):
                             Kd=0.001
                         )
         #print('Target Velocities: ', targetVelocities)  
-        #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,targetVelocities=targetVelocities, forces=max_force)#, maxVelocities=max_vel)
-        utils.move_panda_smoothly(self,robot_id=self.pandaUid,
-    joint_indices=list(range(9)),
-    target_positions=jointPoses,
-    max_speeds=max_vel,
-    Kd=0.01,
-    max_force=max_force,
-    dt=0.01,
-    tolerance=1e-2
-)
-        # for _ in range(20):
-        #     self.band.step()
-        #     p.stepSimulation()
+        p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,targetVelocities=targetVelocities, forces=max_force)#, maxVelocities=max_vel)
+#         utils.move_panda_smoothly(self,robot_id=self.pandaUid,
+#     joint_indices=list(range(9)),
+#     target_positions=jointPoses,
+#     max_speeds=max_vel,
+#     Kd=0.01,
+#     max_force=max_force,
+#     dt=0.01,
+#     tolerance=1e-2
+# )
+        p.addUserDebugLine(p.getLinkState(self.leg, 0)[0], p.getLinkState(self.objectUid, 0)[0], [0, 1, 0], 2)
+        for _ in range(20):
+            self.band.step()
+            p.stepSimulation()
             #time.sleep(1.)  # Remove for speed
       
         self.force = utils.visualize_contact_forces(self,self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
@@ -388,8 +390,13 @@ class fracturesurgery_env(gym.Env):
         else :
             self.output_force+=0
             self.force = 0 # without this, force in the obs is nan and then that messes everything up 
-        
-        
+        #p.addUserDebugText('L', p.getLinkState(self.leg, 0)[0], textColorRGB=[1, 0, 0], textSize=1)
+        forces = [p.getJointState(self.objectUid, j)[2] for j in range(p.getNumJoints(self.objectUid))]
+        f = utils.compute_end_effector_force(self.pandaUid, 11, list(range(9)))
+
+        print("EE force:", f[:3])
+        print("EE torque:", f[3:])
+        print('Forces on object joints: ', forces) 
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]
         actualNewOrientation = p.getLinkState(self.pandaUid, 11)[1]
         actualNewVelocity = p.getLinkState(self.pandaUid, 11, 1)[6]

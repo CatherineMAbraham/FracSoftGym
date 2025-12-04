@@ -42,6 +42,8 @@ class ElasticBand:
 
         # === Spring Force ===
         spring_force = self.k * (L - self.L0)
+        if spring_force < 0:
+            spring_force = 0.0 # No compression force
 
         # === Damping Force ===
         mA = p.getDynamicsInfo(self.bodyA, self.linkA)[0]
@@ -101,6 +103,6 @@ def estimate_ee_force(self,robot_id, ee_link_index, joint_indices):
     # (J.T) is (n x 3), so pseudoinverse yields (3 x n)
     Ft = np.linalg.pinv(J.T) @ tau    # shape (3,)
     resultant_force = np.linalg.norm(Ft)
-    #print("Estimated EE force:", resultant_force)
+    print("Estimated EE force:", resultant_force)
     return Ft  # world-frame force vector (approx)
 
