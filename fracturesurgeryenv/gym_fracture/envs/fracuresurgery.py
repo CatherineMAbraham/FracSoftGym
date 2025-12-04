@@ -344,14 +344,14 @@ class fracturesurgery_env(gym.Env):
         
         done = env_utils.check_done(self)
         truncated = self.current_step >= self.max_steps and not done
-        if done:
-            print('yay')
+        # if done:
+        #     print('yay')
         
         if done or truncated:
             self.output_force = self.output_force / self.current_step 
         info = {'is_success': done, 'current_step': self.current_step, 'pos_distance': self.pos_distance, 'angle': self.angle, 'avg_force': self.output_force, 'Holding': self.isHolding}
         reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
-        print('force: ', self.force, reward)
+        #print('force: ', self.force, reward)
         
         return self.state, reward, done, truncated, info
 
