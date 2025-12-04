@@ -84,7 +84,7 @@ class fracturesurgery_env(gym.Env):
                 reward = env_utils.compute_reward_sparse_pos(self, achieved_goal, desired_goal, info)
 
             # Handle general case (position + orientation)
-            elif self.action_type == 'euler':
+            elif self.action_type == 'euler' or 'fouractions':
                 reward = env_utils.compute_reward_sparse_euler(self, achieved_goal, desired_goal, info)
 
         elif self.reward_type != 'sparse':
@@ -172,7 +172,7 @@ class fracturesurgery_env(gym.Env):
                         baseOrientation = legorientation,
                         globalScaling = 1.0,
                         useFixedBase = 1)
-        p.changeDynamics(self.leg, 1, mass = 0.5, lateralFriction=0.1)
+        p.changeDynamics(self.leg, 1, mass = 0.1, lateralFriction=0.1)
         #child_9in_parent_pos, child_9in_parent_orn = utils.local_coords(self,9)
         #child_10in_parent_pos, child_10in_parent_orn = utils.local_coords(self,10)
 
@@ -229,9 +229,6 @@ class fracturesurgery_env(gym.Env):
             joint_info = p.getJointInfo(self.pandaUid, i)
             #print(f"Joint {i}: {joint_info}")
         max_vel = [2.1750,2.1750,2.1750,2.1750,2.6100,2.6100,2.6100,0.2,0.2]
-        #[p.changeDynamics(self.pandaUid, joint, maxJointVelocity=max_vel[joint]) for joint in range(6)]
-        # for _ in range(10):
-        #     p.stepSimulation()
         if self.softtissue:
             make_ligament(self,"cloth_Id1", self.objectUid, self.leg, point_c, point_d,orientation=p.getQuaternionFromEuler([0, 0, 90/180*np.pi]), scale =0.9)
             make_ligament(self, "cloth_Id2", self.objectUid, self.leg, point_a, point_b,orientation=p.getQuaternionFromEuler([0, 0, 298/180*np.pi]), scale =0.75)
@@ -260,23 +257,8 @@ class fracturesurgery_env(gym.Env):
                                                initialJointVelocities, initial_force,left_contact,
                                                self.dist, self.angle, right_contact, 
                                                self.dist, initialisHolding)
-        #print(p.getJointState(self.pandaUid, 9))
-        #print(p.getJointState(self.pandaUid, 10))
         p.changeDynamics(self.pandaUid, 9, jointLowerLimit=0.00, jointUpperLimit=0.004)
         p.changeDynamics(self.pandaUid, 10, jointLowerLimit=0.0, jointUpperLimit=0.0042)
-        # link_state = p.getLinkState(self.pandaUid, 11)
-        # ee_pos = link_state[0]
-        # ee_orn = link_state[1]
-
-        # rot_matrix = p.getMatrixFromQuaternion(ee_orn)
-        # x_axis = rot_matrix[0:3]
-        # y_axis = rot_matrix[3:6]
-        # z_axis = rot_matrix[6:9]
-
-        # scale = 1
-        # p.addUserDebugLine(ee_pos, ee_pos + scale * np.array(x_axis), [1, 0, 0], 2)
-        # p.addUserDebugLine(ee_pos, ee_pos + scale * np.array(y_axis), [0, 1, 0], 2)
-        # p.addUserDebugLine(ee_pos, ee_pos + scale * np.array(z_axis), [0, 0, 1], 2)
 
         
         return self.state, {}
@@ -309,12 +291,8 @@ class fracturesurgery_env(gym.Env):
                 p.addUserDebugText('NP', newPosition, textColorRGB=[0, 0, 1], textSize=1)
                 jointPoses = p.calculateInverseKinematics(self.pandaUid, 11, targetPosition=newPosition, maxNumIterations=100, residualThreshold=1e-4)
             else:
-                #newPosition = np.array(action[0:3]) 
-                #newOrientation = np.array(action[3:6])
-                #newOrientation = p.getQuaternionFromEuler(newOrientation)
                 p.addUserDebugText('NP', newPosition, textColorRGB=[0, 0, 1], textSize=1)
                 jointPoses = p.calculateInverseKinematics(self.pandaUid, 11, targetPosition=newPosition, targetOrientation=newOrientation, maxNumIterations=100, residualThreshold=1e-4)
-                #print(jointPoses)
             if np.any(np.isnan(jointPoses)) or np.any(np.abs(jointPoses) > 10):
                 print("IK failure, skipping step")
                 # Avoid passing NaNs/invalid targets into PyBullet (can segfault)

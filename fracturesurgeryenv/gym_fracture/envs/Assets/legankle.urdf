@@ -24,7 +24,7 @@
 	</link>
 
   <!-- First joint: yaw -->
-  <joint name="yaw_joint" type="fixed">
+  <joint name="yaw_joint" type="spherical">
     <parent link="base_link"/>
     <child link="moving_link"/>
     <origin xyz="-0.0067299 0 0" rpy="-1.57 -1.57 3.14"/>
