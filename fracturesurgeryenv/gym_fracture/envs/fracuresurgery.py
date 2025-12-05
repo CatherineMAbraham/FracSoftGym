@@ -29,6 +29,7 @@ class fracturesurgery_env(gym.Env):
         action_type='rot_vec',
         horizon='variable',
         softtissue=False,
+        start_pos = 'home'
     ):
         self.render_mode = render_mode
         self.obs_type = obs_type
@@ -54,6 +55,7 @@ class fracturesurgery_env(gym.Env):
         self.distance_threshold_ori = distance_threshold_ori
         self.pitch = 0.0
         self.n = 0
+        self.start_pos = start_pos # 'home' or 'extended'
 
         metadata = {"render_modes": ["human", "direct"]}
         if self.render_mode == 'human':
@@ -120,28 +122,22 @@ class fracturesurgery_env(gym.Env):
         leg_path = os.path.join(currentDir, "Assets/legankle.urdf")
         foot_path = os.path.join(currentDir, "Assets/footpin.urdf")
         footorientation = p.getQuaternionFromEuler([0, 0, 90/180*np.pi])
-        # for _i in range(100):
-        #     p.stepSimulation()
+       
         legorientation = p.getQuaternionFromEuler([-90/180*np.pi, 0, 0])
         
         self.objectUid = p.loadURDF(foot_path, basePosition=fracturestart, 
                                     baseOrientation=footorientation, useFixedBase=0,
                                      globalScaling=1)
         p.changeDynamics(self.objectUid, -1, mass=0.276, lateralFriction=5)
-        #p.changeDynamics(self.objectUid, 0, mass=0.1, lateralFriction=0.5)
-        #print(p.getAABB(self.objectUid,-1))       
+            
         p.addUserDebugText('b', p.getAABB(self.objectUid,-1)[0], textColorRGB=[1, 0, 0], textSize=1) 
         
-        # p.setPhysicsEngineParameter(contactBreakingThreshold=0.001)
-        # p.setPhysicsEngineParameter(erp=0.05)
-        # p.setPhysicsEngineParameter(contactERP=0.02)
+        
         p.setPhysicsEngineParameter(contactSlop=0.001)
         #p.stepSimulation()
         target_positions = np.array([0.0, 0.0])
         forces = [10,10]
         for _ in range(100):
-            # p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=target_positions[0], force=forces[0])
-            # p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
             p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=5)
             p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=5)
 
@@ -149,60 +145,19 @@ class fracturesurgery_env(gym.Env):
             #time.sleep(1./500)  # Remove for speed
         pos_9 = p.getJointState(self.pandaUid, 9)[0]
         pos_10 = p.getJointState(self.pandaUid, 10)[0]
-        # print(f'Finger 9 position before reset: {pos_9}')
-        # print(f'Finger 10 position before reset: {pos_10}')
-        # print(p.getJointState(self.pandaUid, 10))
         p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=0, force=1)
         p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=0, force=1)
         p.stepSimulation()
-        #p.resetJointState(self.pandaUid, 9, target_positions[0])
-        #p.resetJointState(self.pandaUid, 10, target_positions[1])
-            #time.sleep(1.)  # Remove for speed
-        # for _ in range(500):
-        #     p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=target_positions[0], force=forces[0])
-        #     p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
-        #     p.stepSimulation()
         
-        # for _ in range(500):
-        #     p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=target_positions[0], force=forces[0])
-        #     p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
-        #     p.stepSimulation()
-        #time.sleep(10)
         self.leg = p.loadURDF(leg_path,
                         basePosition =legstartpos,
                         baseOrientation = legorientation,
                         globalScaling = 1.0,
                         useFixedBase = 1)
         p.changeDynamics(self.leg, 1, mass = 0.1, lateralFriction=0.1)
-        #child_9in_parent_pos, child_9in_parent_orn = utils.local_coords(self,9)
-        #child_10in_parent_pos, child_10in_parent_orn = utils.local_coords(self,10)
+        
 
-        # c9id = p.createConstraint(
-        #     parentBodyUniqueId=self.pandaUid,
-        #     parentLinkIndex=9,
-        #     childBodyUniqueId=self.objectUid,
-        #     childLinkIndex=-1,
-        #     jointType=p.JOINT_FIXED,
-        #     jointAxis=[0, 0, 0],
-        #     parentFramePosition=child_9in_parent_pos,
-        #     parentFrameOrientation=child_9in_parent_orn,
-        #     childFramePosition=[0.0,0.0,0],
-        #     childFrameOrientation=[0.0,0.0,0,1]
-        # )
-        # c10id = p.createConstraint(
-        #     parentBodyUniqueId=self.pandaUid,
-        #     parentLinkIndex=10,
-        #     childBodyUniqueId=self.objectUid,
-        #     childLinkIndex=-1,
-        #     jointType=p.JOINT_FIXED,
-        #     jointAxis=[0, 0, 0],
-        #     parentFramePosition=child_10in_parent_pos,
-        #     parentFrameOrientation=child_10in_parent_orn,
-        #     childFramePosition=[0.0,0.0,0],
-        #     childFrameOrientation=[0.0,0.0,0,1]
-        # )
-
-        for _ in range(10):
+        for _ in range(5):
             p.stepSimulation()
         p.setGravity(0, 0, -9.8)
         self.target_position = np.concatenate((self.goal_pos, self.goal_ori))

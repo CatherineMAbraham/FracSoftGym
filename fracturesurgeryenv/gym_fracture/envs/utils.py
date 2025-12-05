@@ -7,9 +7,13 @@ from scipy.spatial.transform import Rotation as R
 import wandb
 def make_scene(self):
     #Start Positions: Worked out previously
-       startposition = np.array([0.03, 0.2, 0, -1.6, 0, -3, 0.8, -0.04, 0.04]) #-1.802, -2.89
+    
+       if self.start_pos == 'home':
+         startposition = np.array([0,-0.785,0,-2.356,0,1.571,0.785,0.04,0.04])
+       elif self.start_pos == 'extended':
+         startposition = np.array([0.03, 0.2, 0, -1.6, 0, -3, 0.8, -0.04, 0.04]) #-1.802, -2.89
        #startposition = np.array([0.03, 0.2, 0, -1.6, 0, 1.571, 0.8, -0.04, 0.04])
-       startposition = np.array([0,-0.785,0,-2.356,0,1.571,0.785,0.04,0.04]) #-1.802, -2.89  ##home position of franka 
+        #-1.802, -2.89  ##home position of franka 
        #startposition = np.array([0,-0.785,0,-2.356,0,-3,0.785,0.04,0.04])
     #([0.03, 0.2, 0, -1.805, 0, 2, 0.61, -0.04, 0.04])
        #load scene
