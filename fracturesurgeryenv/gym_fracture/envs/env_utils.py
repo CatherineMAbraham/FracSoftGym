@@ -93,7 +93,7 @@ def compute_reward_sparse_ori(self, achieved_goal, desired_goal, info):
             return np.array(reward)
     
 def compute_reward_sparse_euler(self, achieved_goal, desired_goal, info):
-    if achieved_goal.ndim == 1:
+    if achieved_goal.ndim == 1:   
             pos_achieved, angle_achieved = achieved_goal[:3], achieved_goal[3:7]
             pos_desired, angle_desired = desired_goal[:3], desired_goal[3:7]
             self.pos_distance, self.angle = utils.calculate_distances(self, pos_achieved, angle_achieved, pos_desired, angle_desired)

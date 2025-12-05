@@ -114,6 +114,7 @@ class fracturesurgery_env(gym.Env):
             self.goal_range_high = fracturestart + [0.0125, 0.02, 0.003]
             self.goal_ori_low = np.radians(fractureorientationDeg - [15, 5, 15])
             self.goal_ori_high = np.radians(fractureorientationDeg + [15, 5, 15])
+        
 
         currentDir = os.path.dirname(os.path.abspath(__file__))
         leg_path = os.path.join(currentDir, "Assets/legankle.urdf")

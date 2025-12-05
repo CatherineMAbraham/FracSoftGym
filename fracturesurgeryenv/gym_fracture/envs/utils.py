@@ -100,7 +100,7 @@ def getGoal(self, fracturestart, fractureorientaionDeg):
     #print(self.curriculum_phase)
     # if self.curriculum_phase ==1:
     #     self.goal_pos = fracturestart.copy()
-    # else:
+    # else:0
     self.goal_pos = np.array(self.np_random.uniform(self.goal_range_low, self.goal_range_high,))
     #print('Goal Position:', self.goal_pos)
     if self.action_type == 'fiveactions' or self.action_type== 'fouractions':
@@ -223,7 +223,7 @@ def unpack_action(self, action, dv):
     elif self.action_type == 'fiveactions':
         return [action[0] * dv, action[1] * dv, 0, action[2] * dv, action[3] * dv, action[4] * dv, 0, 0, 0, 0]
     elif self.action_type == 'fouractions':
-        return [action[0] * dv, action[1] * dv, 0, action[2] * dv, 0, action[3] * dv, 0, 0, 0, 0]
+        return [action[0] * dv, action[1] * dv, 0, action[2] * dv*10, 0, action[3] * dv*10, 0, 0, 0, 0]
     else:
         return [action[0] * dv, action[1] * dv, action[2] * dv, action[3] * dv*10, action[4] * dv*10, action[5] * dv*10, 0, 0, 0, 0]
 
