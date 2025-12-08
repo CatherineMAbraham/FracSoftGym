@@ -117,6 +117,7 @@ def compute_reward_sparse_euler(self, achieved_goal, desired_goal, info):
     return np.array(reward)
 
 def compute_reward_dense(self, achieved_goal, desired_goal, info):
+    hold = 0.1 if self.isHolding == 0 else 0
     d1 = self.pos_distance + self.angle
     d2 = self.pos_distance + self.angle
     d_pos = np.float32(self.pos_distance)
@@ -127,6 +128,8 @@ def compute_reward_dense(self, achieved_goal, desired_goal, info):
         return -d_pos
     elif self.reward_type == 'dense_1' and self.horizon == 'variable':
         return -d1
+    elif self.reward_type == 'dense_2':
+        return -(d2 + hold)
     elif self.reward_type == 'dense_1' and self.horizon == 'fixed':
         return -d1 + e
     

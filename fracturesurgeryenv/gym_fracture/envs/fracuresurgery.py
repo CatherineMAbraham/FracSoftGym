@@ -56,7 +56,6 @@ class fracturesurgery_env(gym.Env):
         self.pitch = 0.0
         self.n = 0
         self.start_pos = start_pos # 'home' or 'extended'
-
         metadata = {"render_modes": ["human", "direct"]}
         if self.render_mode == 'human':
             p.connect(p.GUI, options="--background_color_red=0.9686--background_color_blue=0.79216--background_color_green=0.7882")
