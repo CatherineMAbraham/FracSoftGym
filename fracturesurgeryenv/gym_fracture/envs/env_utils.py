@@ -127,6 +127,7 @@ def compute_reward_dense(self, achieved_goal, desired_goal, info):
     if self.reward_type == 'dense' and self.action_type == 'pos_only':
         return -d_pos
     elif self.reward_type == 'dense_1' and self.horizon == 'variable':
+        print(f'Pos Distance: {self.pos_distance}, Angle: {self.angle}, Holding Penalty: {hold}, Reward: {-d1}')
         return -d1
     elif self.reward_type == 'dense_2':
         return -(d2 + hold)

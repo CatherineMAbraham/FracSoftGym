@@ -132,7 +132,8 @@ def getStarts(self):
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]
-    difference = [0.0,0.02,0]
+    difference = [0.02,0.07,0]
+    #difference = [-0.004493, 0.079895+0.005, 0.073322]
     difference =np.array(difference)
     #legstart=[]
     # for i in range(len(difference)):

@@ -118,11 +118,11 @@ class fracturesurgery_env(gym.Env):
         
 
         currentDir = os.path.dirname(os.path.abspath(__file__))
-        leg_path = os.path.join(currentDir, "Assets/legankle.urdf")
+        leg_path = os.path.join(currentDir, "Assets/leg.urdf")
         foot_path = os.path.join(currentDir, "Assets/footpin.urdf")
         footorientation = p.getQuaternionFromEuler([0, 0, 90/180*np.pi])
        
-        legorientation = p.getQuaternionFromEuler([-90/180*np.pi, 0, 0])
+        legorientation = p.getQuaternionFromEuler([-90/180*np.pi, 90/180*np.pi, 0])
         
         self.objectUid = p.loadURDF(foot_path, basePosition=fracturestart, 
                                     baseOrientation=footorientation, useFixedBase=0,
