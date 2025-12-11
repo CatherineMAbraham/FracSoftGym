@@ -4,10 +4,10 @@ from gym_fracture.envs import utils
 
 def set_observation_space(self):
     if self.action_type == 'ori_only':
-        obs_shape = 34  # Reduced from 31
+        obs_shape = 34  
         goal_shape = 5
     elif self.action_type == "pos_only":
-        obs_shape = 34  # Reduced from 31
+        obs_shape = 34  
         goal_shape = 4
     else:
         obs_shape = 35

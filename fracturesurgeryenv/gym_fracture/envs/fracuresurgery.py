@@ -56,6 +56,9 @@ class fracturesurgery_env(gym.Env):
         self.pitch = 0.0
         self.n = 0
         self.start_pos = start_pos # 'home' or 'extended'
+
+        if self.action_type not in ['rot_vec', 'euler', 'fouractions', 'fiveactions', 'quat', 'joint', 'ori_only', 'pos_only']:
+            raise ValueError(f"Invalid action_type: {self.action_type}")
         metadata = {"render_modes": ["human", "direct"]}
         if self.render_mode == 'human':
             p.connect(p.GUI, options="--background_color_red=0.9686--background_color_blue=0.79216--background_color_green=0.7882")
@@ -122,14 +125,14 @@ class fracturesurgery_env(gym.Env):
         foot_path = os.path.join(currentDir, "Assets/footpin.urdf")
         footorientation = p.getQuaternionFromEuler([0, 0, 90/180*np.pi])
        
-        legorientation = p.getQuaternionFromEuler([-90/180*np.pi, 90/180*np.pi, 0])
+        legorientation = p.getQuaternionFromEuler([-90/180*np.pi, 90/180*np.pi, 10/180*np.pi])
         
         self.objectUid = p.loadURDF(foot_path, basePosition=fracturestart, 
                                     baseOrientation=footorientation, useFixedBase=0,
                                      globalScaling=1)
-        p.changeDynamics(self.objectUid, -1, mass=0.276, lateralFriction=5)
+        p.changeDynamics(self.objectUid, 0, mass=0.180,)# lateralFriction=5)
             
-        p.addUserDebugText('b', p.getAABB(self.objectUid,-1)[0], textColorRGB=[1, 0, 0], textSize=1) 
+        
         
         
         p.setPhysicsEngineParameter(contactSlop=0.001)
@@ -180,8 +183,7 @@ class fracturesurgery_env(gym.Env):
         
         [p.enableJointForceTorqueSensor(self.pandaUid, joint, enableSensor=True) for joint in range(p.getNumJoints(self.pandaUid))]
         p.enableJointForceTorqueSensor(self.objectUid, 0, enableSensor=True)
-        for i in range(p.getNumJoints(self.pandaUid)):
-            joint_info = p.getJointInfo(self.pandaUid, i)
+        
             #print(f"Joint {i}: {joint_info}")
         max_vel = [2.1750,2.1750,2.1750,2.1750,2.6100,2.6100,2.6100,0.2,0.2]
         if self.softtissue:
@@ -243,10 +245,10 @@ class fracturesurgery_env(gym.Env):
             newPosition, newOrientation = utils.get_new_pose(self,dx, dy, dz, qx, qy, qz, qw, mode)
             if self.action_type == 'pos_only':
                 #newPosition = np.array(p.getLinkState(self.pandaUid, 11)[0]) + np.array([0.0,0.1,0.0])
-                p.addUserDebugText('NP', newPosition, textColorRGB=[0, 0, 1], textSize=1)
+                #p.addUserDebugText('NP', newPosition, textColorRGB=[0, 0, 1], textSize=1)
                 jointPoses = p.calculateInverseKinematics(self.pandaUid, 11, targetPosition=newPosition, maxNumIterations=100, residualThreshold=1e-4)
             else:
-                p.addUserDebugText('NP', newPosition, textColorRGB=[0, 0, 1], textSize=1)
+                #p.addUserDebugText('NP', newPosition, textColorRGB=[0, 0, 1], textSize=1)
                 jointPoses = p.calculateInverseKinematics(self.pandaUid, 11, targetPosition=newPosition, targetOrientation=newOrientation, maxNumIterations=100, residualThreshold=1e-4)
             if np.any(np.isnan(jointPoses)) or np.any(np.abs(jointPoses) > 10):
                 print("IK failure, skipping step")
