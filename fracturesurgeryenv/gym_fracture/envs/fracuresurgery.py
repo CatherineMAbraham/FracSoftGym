@@ -124,8 +124,8 @@ class fracturesurgery_env(gym.Env):
         
 
         currentDir = os.path.dirname(os.path.abspath(__file__))
-        leg_path = os.path.join(currentDir, "Assets/legankle_orig.urdf")
-        foot_path = os.path.join(currentDir, "Assets/footpin_orig.urdf")
+        leg_path = os.path.join(currentDir, "Assets/leg.urdf")
+        foot_path = os.path.join(currentDir, "Assets/footpin.urdf")
         footorientation = p.getQuaternionFromEuler([0, 0, 90/180*np.pi])
        
         legorientation = p.getQuaternionFromEuler([-90/180*np.pi, 90/180*np.pi, 10/180*np.pi])
@@ -155,20 +155,7 @@ class fracturesurgery_env(gym.Env):
         p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=0, force=1)
         p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=0, force=1)
         p.stepSimulation()
-        #p.resetJointState(self.pandaUid, 9, target_positions[0])
-        #p.resetJointState(self.pandaUid, 10, target_positions[1])
-            #time.sleep(1.)  # Remove for speed
-        # for _ in range(500):
-        #     p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=target_positions[0], force=forces[0])
-        #     p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
-        #     p.stepSimulation()
         
-        # for _ in range(500):
-        #     p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=target_positions[0], force=forces[0])
-        #     p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=target_positions[1], force=forces[1])
-        #     p.stepSimulation()
-        #time.sleep(10)
-        p.addUserDebugText('l',legstartpos, textColorRGB=[0, 1, 0], textSize=1)
         self.leg = p.loadURDF(leg_path,
                         basePosition =legstartpos,
                         baseOrientation = legorientation,
@@ -275,6 +262,9 @@ class fracturesurgery_env(gym.Env):
                                                self.dist, initialisHolding)
         p.changeDynamics(self.pandaUid, 9, jointLowerLimit=0.00, jointUpperLimit=0.004)
         p.changeDynamics(self.pandaUid, 10, jointLowerLimit=0.0, jointUpperLimit=0.0042)
+        # link_state = p.getLinkState(self.pandaUid, 11)
+        # ee_pos = link_state[0]
+        # ee_orn = link_state[1]
         # link_state = p.getLinkState(self.pandaUid, 11)
         # ee_pos = link_state[0]
         # ee_orn = link_state[1]
