@@ -57,15 +57,17 @@ class fracturesurgery_env(gym.Env):
         self.n = 0
         self.start_pos = start_pos # 'home' or 'extended'
 
-        if self.action_type not in ['rot_vec', 'euler', 'fouractions', 'fiveactions', 'quat', 'joint', 'ori_only', 'pos_only']:
+        if self.action_type not in ['rot_vec', 'euler', 'fouractions', 'fiveactions', 'quat', 'joint', 'ori_only', 'pos_only']: #reduce possible action types to ones used
             raise ValueError(f"Invalid action_type: {self.action_type}")
-        metadata = {"render_modes": ["human", "direct"]}
+        
+        metadata = {"render_modes": ["human", "direct"]} ## need to fix this and add a render function, keep getting a warning about it
+        
         if self.render_mode == 'human':
             p.connect(p.GUI, options="--background_color_red=0.9686--background_color_blue=0.79216--background_color_green=0.7882")
         else:
             p.connect(p.DIRECT)
         self.connected = True
-        p.configureDebugVisualizer(p.COV_ENABLE_GUI,1)
+        p.configureDebugVisualizer(p.COV_ENABLE_GUI,0)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.resetDebugVisualizerCamera(cameraDistance=1.1, cameraYaw=87, cameraPitch=-20, cameraTargetPosition=[0, 0, 0])
         #p.getCameraImage(1000, 800)
@@ -110,7 +112,7 @@ class fracturesurgery_env(gym.Env):
         utils.make_scene(self)
         fracturestart, fractureorientationDeg, legstartpos = utils.getStarts(self)
         if isinstance(self.goal_type, str):
-            utils.getGoal(self, fracturestart, fractureorientationDeg)
+            utils.getGoal(self, fracturestart, fractureorientationDeg) ## do i want to increase the range of goals?
         else:
             self.goal_pos = np.array(fracturestart.copy())
             self.goal_ori = np.array(self.goal_type)
@@ -135,7 +137,7 @@ class fracturesurgery_env(gym.Env):
         
         
         
-        p.setPhysicsEngineParameter(contactSlop=0.001)
+        p.setPhysicsEngineParameter(contactSlop=0.001) ## check and tune this 
         #p.stepSimulation()
         target_positions = np.array([0.0, 0.0])
         forces = [10,10]
@@ -217,7 +219,7 @@ class fracturesurgery_env(gym.Env):
         p.changeDynamics(self.pandaUid, 9, jointLowerLimit=0.00, jointUpperLimit=0.004)
         p.changeDynamics(self.pandaUid, 10, jointLowerLimit=0.0, jointUpperLimit=0.0042)
 
-        
+        time.sleep(20)
         return self.state, {}
 
     
@@ -252,6 +254,7 @@ class fracturesurgery_env(gym.Env):
                 jointPoses = p.calculateInverseKinematics(self.pandaUid, 11, targetPosition=newPosition, targetOrientation=newOrientation, maxNumIterations=100, residualThreshold=1e-4)
             if np.any(np.isnan(jointPoses)) or np.any(np.abs(jointPoses) > 10):
                 print("IK failure, skipping step")
+                print(action)
                 # Avoid passing NaNs/invalid targets into PyBullet (can segfault)
                 # Fallback: use current joint positions for all 9 joints so
                 # `setJointMotorControlArray` receives valid targets of the

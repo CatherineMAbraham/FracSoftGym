@@ -74,7 +74,7 @@ def make_scene(self):
 
 def getGoal(self, fracturestart, fractureorientaionDeg):
     fracturestart = np.array(p.getLinkState(self.pandaUid, 11)[0] )
-    p.addUserDebugText('FS', fracturestart, textColorRGB=[1, 0, 0], textSize=1)
+    #p.addUserDebugText('FS', fracturestart, textColorRGB=[1, 0, 0], textSize=1)
     #print('Fracture Start:', fracturestart)
     self.goal_range_low = fracturestart-[0.0125,0.01,0.003] #[0.0125,0.01,0.003]
     self.goal_range_high = fracturestart+ [0.0125,0.02,0.003]
@@ -89,18 +89,18 @@ def getGoal(self, fracturestart, fractureorientaionDeg):
     f = fracturestart + [-0.0125,0.02,-0.003]
     g = fracturestart + [0.0125,-0.01,-0.003]
     h = fracturestart + [0.0125,0.02,-0.003]
-    p.addUserDebugLine(a, b, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(a, c, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(b, d, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(d, c, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(e, f, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(e, g, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(f, h, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(h, g, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(a, e, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(b, f, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(c, g, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(d, h, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(a, b, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(a, c, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(b, d, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(d, c, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(e, f, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(e, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(f, h, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(h, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(a, e, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(b, f, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(c, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(d, h, lineColorRGB=[0, 1, 0], lineWidth=3)
     #print(self.curriculum_phase)
     # if self.curriculum_phase ==1:
     #     self.goal_pos = fracturestart.copy()
@@ -203,7 +203,7 @@ def get_new_pose(self, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
             newOrientation = currentOrientation
             #newPosition[2] = np.clip(newPosition[2], self.goal_range_low[2], self.goal_range_high[2])
             #newPosition = np.clip(newPosition, (self.goal_range_low), (self.goal_range_high))
-            p.addUserDebugText('NP', newPosition, textColorRGB=[0, 1, 0], textSize=1, lifeTime=0.5)
+            #p.addUserDebugText('NP', newPosition, textColorRGB=[0, 1, 0], textSize=1, lifeTime=0.5)
             return newPosition, newOrientation
 
         elif mode == 'joint':
