@@ -36,7 +36,7 @@
   <joint name="yaw_joint" type="fixed">
     <parent link="base_link"/>
     <child link="moving_link"/>
-    <origin xyz="0.03 -0.03 0" rpy="0 1.57 0"/>
+    <origin xyz="0.025 -0.04 0" rpy="0 1.57 0"/>
     <axis xyz="1 1 1"/>
     <limit lower="-3.14" upper="3.14" effort="1.0" velocity="2.0"/>
   </joint>
@@ -47,7 +47,7 @@
     <visual>
 			<origin rpy="0 0 0" xyz="0.0 0 0" />
 			<geometry>
-				<mesh filename="./foot3.obj" scale="1 1 1" />
+				<mesh filename="./foot4.obj" scale="1 1 1" />
 			</geometry>
 			<material name="texture">
 				<color rgba="1.0 1.0 1.0 1.0" />
@@ -56,7 +56,7 @@
 		<collision>
 			<origin rpy="0 0 0" xyz="0.0 0 0" />
 			<geometry>
-				<mesh filename="./foot3_vhacd.obj" scale="1 1 1" />
+				<mesh filename="./foot4_vhacd.obj" scale="1 1 1" />
 			</geometry>
 		</collision>
 		<inertial>
