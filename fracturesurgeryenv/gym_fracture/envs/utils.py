@@ -372,3 +372,203 @@ def local_coords(self,link):
         parent_inv_pos, parent_inv_orn, child_pos, child_orn
     )
     return child_in_parent_pos, child_in_parent_orn
+
+
+def compute_target_velocity(desired_pos, current_pos, current_vel, dt,
+                            max_speed, Kd=0.01, desired_vel=None):
+    if desired_vel is None:
+        desired_vel = np.zeros_like(current_vel)
+    
+    # Step 1: base proportional velocity
+    prop_vel = (desired_pos - current_pos) / dt
+    prop_vel_np = np.array(prop_vel, dtype=float)
+    #print('Unclamped Vel:', prop_vel_np)
+    # Step 2: clamp to max speed
+    prop_vel_clamped_np = np.zeros(len(prop_vel_np), dtype=float)
+    for i in range(len(prop_vel_np)):
+        #print('Unclamped Vel:', vel)
+        v = max_speed[i]
+        prop_vel_clamped_np[i] = np.clip(prop_vel_np[i], -v, v)
+        #vels.append(vel)
+    #print('Clamped Vel:', prop_vel_clamped_np)
+    # Step 3: damping correction
+    #print(Kd * (desired_vel - current_vel))
+    damping = np.array(Kd * (desired_vel - current_vel), dtype=float)
+    prop_vel_clamped_np += damping
+
+    return prop_vel_clamped_np
+
+
+def move_panda_smoothly(self,robot_id, joint_indices, target_positions,
+                        max_speeds, Kd=0.01, max_force=20,
+                        dt=0.01, tolerance=1e-3, sleep_time=None):
+    """
+    Smoothly move Panda to target_positions using per-joint velocity control.
+    """
+    target_positions = np.array(target_positions, dtype=float)
+    max_speeds = np.array(max_speeds, dtype=float)
+
+    # Initialize current joint positions and velocities
+    q_current = np.array([p.getJointState(robot_id, j)[0] for j in joint_indices])
+    v_current = np.array([p.getJointState(robot_id, j)[1] for j in joint_indices])
+
+    while np.linalg.norm(target_positions - q_current) > tolerance:
+        # Compute target velocities using per-joint limits
+        target_velocities = compute_target_velocity(
+            desired_pos=target_positions,
+            current_pos=q_current,
+            current_vel=v_current,
+            dt=dt,
+            max_speed=max_speeds,
+            Kd=Kd
+        )
+
+        # Apply velocity control
+        p.setJointMotorControlArray(
+            robot_id,
+            jointIndices=joint_indices,
+            controlMode=p.VELOCITY_CONTROL,
+            targetVelocities=target_velocities.tolist(),
+            forces=max_force
+        )
+
+        # Step simulations
+        self.band.step()
+        p.stepSimulation()
+        #print('Target Velocities:', target_velocities)
+        if sleep_time:
+            time.sleep(sleep_time)
+
+        # Update current positions and velocities
+        q_current = np.array([p.getJointState(robot_id, j)[0] for j in joint_indices])
+        v_current = np.array([p.getJointState(robot_id, j)[1] for j in joint_indices])
+
+def compute_ee_forward_dynamics(
+    robot_id,
+    ee_link_index,
+    joint_indices,
+    joint_torques,
+    eps=1e-4
+):
+    # -------------------------
+    # 1. State
+    # -------------------------
+    q = np.array([p.getJointState(robot_id, j)[0] for j in joint_indices])
+    qdot = np.array([p.getJointState(robot_id, j)[1] for j in joint_indices])
+
+    # -------------------------
+    # 2. Mass matrix (M)
+    # -------------------------
+    M = np.array(p.calculateMassMatrix(robot_id, q))
+
+    # -------------------------
+    # 3. Nonlinear terms C(q,qdot) + g(q)
+    # -------------------------
+    Cg = np.array(p.calculateInverseDynamics(robot_id, q, qdot, [0]*len(joint_indices)))
+
+    # -------------------------
+    # 4. Joint accelerations: qdd = M⁻¹(τ - Cg)
+    # -------------------------
+    tau = np.array(joint_torques)
+    qdd = np.linalg.solve(M, tau - Cg)
+
+    # -------------------------
+    # 5. Jacobian at current state
+    # -------------------------
+    zero_local = [0, 0, 0]
+    Jv, Jw = p.calculateJacobian(
+        robot_id,
+        ee_link_index,
+        zero_local,
+        q.tolist(),
+        qdot.tolist(),
+        [0]*len(joint_indices)
+    )
+    Jv = np.array(Jv)
+    Jw = np.array(Jw)
+
+    # -------------------------
+    # 6. Jacobian at q + eps * qdot  (finite-difference Jdot)
+    # -------------------------
+    q_eps = (q + eps * qdot).tolist()
+    Jv2, Jw2 = p.calculateJacobian(
+        robot_id,
+        ee_link_index,
+        zero_local,
+        q_eps,
+        qdot.tolist(),
+        [0]*len(joint_indices)
+    )
+    Jv2 = np.array(Jv2)
+    Jw2 = np.array(Jw2)
+
+    Jv_dot = (Jv2 - Jv) / eps
+    Jw_dot = (Jw2 - Jw) / eps
+
+    # -------------------------
+    # 7. End-effector accelerations
+    # -------------------------
+    xdd = Jv @ qdd + Jv_dot @ qdot     # linear acceleration
+    wdd = Jw @ qdd + Jw_dot @ qdot     # angular acceleration
+
+    return qdd, xdd, wdd
+
+def compute_end_effector_force(robot_id, ee_link_index, joint_indices):
+    """
+    Compute the estimated end-effector force using:
+        F = (J^T)^+ * τ
+    where τ are the joint torques returned by PyBullet.
+    """
+    # -------------------------------------------
+    # 1. Get joint torques (reaction torques)
+    # -------------------------------------------
+    tau = []
+    for j in joint_indices:
+        js = p.getJointState(robot_id, j)
+        tau.append(js[3])   # joint reaction torque from physics
+    tau = np.array(tau)
+
+    # -------------------------------------------
+    # 2. Get joint positions/velocities for Jacobian
+    # -------------------------------------------
+    q = []
+    qdot = []
+    for j in joint_indices:
+        js = p.getJointState(robot_id, j)
+        q.append(js[0])
+        qdot.append(js[1])
+
+    # -------------------------------------------
+    # 3. Compute Jacobian at the end effector
+    # -------------------------------------------
+    link_state = p.getLinkState(robot_id, ee_link_index)
+    link_pos = link_state[0]
+
+    Jv, Jw = p.calculateJacobian(
+        robot_id,
+        ee_link_index,
+        localPosition=[0, 0, 0],
+        objPositions=q,
+        objVelocities=qdot,
+        objAccelerations=[0]*len(q),
+    )
+
+    Jv = np.array(Jv)
+    Jw = np.array(Jw)
+
+    # Full 6xN geometric Jacobian
+    J = np.vstack([Jv, Jw])
+    A = J.T                         # (N, 6)
+    w, residuals, rank, s = np.linalg.lstsq(A, tau, rcond=None)
+    # -------------------------------------------
+    # 4. Compute EE wrench F = (J^T)^+ τ
+    # -------------------------------------------
+    # JT = J.T
+    # JT_pinv = np.linalg.pinv(JT)
+
+    # F = JT_pinv @ tau
+
+    # F contains:
+    #   F[0:3] = force (x,y,z)
+    #   F[3:6] = torque (roll,pitch,yaw)
+    return w
