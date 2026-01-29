@@ -23,7 +23,7 @@ def make_scene(self):
        plane_id = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=plane_collision_shape, 
                              baseVisualShapeIndex=plane_visual_shape,basePosition=[0, 0, -0.33])
        
-       self.table =p.loadURDF("table/table.urdf", basePosition =[0.5,-0.35,-0.23] ,globalScaling =0.5);#[0.8, 0.4, -0.33]
+       #self.table =p.loadURDF("table/table.urdf", basePosition =[0.5,-0.35,-0.23] ,globalScaling =0.5);#[0.8, 0.4, -0.33]
 
        self.visual_shape = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[0.01,0.01,0.01], rgbaColor=[0.835, 0.7216, 1, 1])  # Purple Goal box - no collision properties
 
