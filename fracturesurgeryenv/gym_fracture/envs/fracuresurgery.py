@@ -32,6 +32,7 @@ class fracturesurgery_env(gym.Env):
         softtissue=False,
         start_pos = 'home'
     ):
+        metadata = {"render_modes": ["human", None]}
         ## Initialise variables
         self.render_mode = render_mode
         self.obs_type = obs_type
@@ -61,7 +62,7 @@ class fracturesurgery_env(gym.Env):
         ##
         
         ## Rendering setup
-        metadata = {"render_modes": ["human", None]} ## need to fix this and add a render function, keep getting a warning about it
+         ## need to fix this and add a render function, keep getting a warning about it
         
         self.render()
 
@@ -405,6 +406,7 @@ class fracturesurgery_env(gym.Env):
                 'angle': self.angle, 'Holding': self.isHolding, 
                 'force': self.output_force,'contact': self.contact}
         reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
+        reward = np.float32(reward)
         #print('force: ', self.force, reward)
         
         return self.state, reward, done, truncated, info
