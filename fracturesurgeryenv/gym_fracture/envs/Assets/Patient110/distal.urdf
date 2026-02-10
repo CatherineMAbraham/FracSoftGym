@@ -1,0 +1,66 @@
+<?xml version="1.0" ?>
+<robot name="L_shaped_tool">
+
+  <link name="base_link">
+    <inertial>
+      <origin xyz="-0.04 0 0" rpy="0 0 1.57"/>
+      <mass value="0.0001"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.04 -0.0 0" rpy="0 0 1.57"/>
+      <geometry><box size="0.01 0.08 0.01"/></geometry>
+      <material name="white"><color rgba="1 1 1 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.04 0 0" rpy="0 0 1.57"/>
+      <geometry><box size="0.01 0.08 0.01"/></geometry>
+    </collision>
+  </link>
+
+  <joint name="load_cell_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="pin_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="pin_link">
+    <inertial>
+      <origin xyz="0 0 -0.04" rpy="0 0 0"/>
+      <mass value="0.0001"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 -0.04" rpy="0 0 0"/>
+      <geometry><box size="0.008 0.01 0.08"/></geometry>
+      <material name="red"><color rgba="1 0 0 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.04" rpy="0 0 0"/>
+      <geometry><box size="0.008 0.01 0.08"/></geometry>
+    </collision>
+  </link>
+
+  <joint name="ankle_mount_joint" type="fixed">
+    <parent link="pin_link"/>
+    <child link="moving_link"/>
+    <origin xyz="-0.0 0.02 -0.08" rpy="1.57 0 0"/>
+  </joint>
+
+  <link name="moving_link">
+    <inertial>
+      <mass value="0.276" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.1" ixy="0.0" ixz="0.0" iyy="0.1" iyz="0.0" izz="0.1" />
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry><mesh filename="distal.obj" scale="1 1 1" /></geometry>
+      <material name="grey"><color rgba="0.7 0.7 0.7 1"/></material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry><mesh filename="distal_vhacd.obj" scale="0.8 0.8 0.8" /></geometry>
+    </collision>
+  </link>
+</robot>

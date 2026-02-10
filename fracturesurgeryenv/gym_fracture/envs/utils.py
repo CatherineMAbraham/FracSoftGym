@@ -19,13 +19,14 @@ def make_scene(self):
        #load scene
        #Make Plane, Table, Cube       
        plane_collision_shape = p.createCollisionShape(shapeType=p.GEOM_BOX,halfExtents=np.array([30.0, 30.0, 0.01]))
-       plane_visual_shape = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=np.array([30.0, 30.0, 0.01]),rgbaColor=[0.678, 0.847, 0.902, 1])
+       planecolour = [1, 0.94, 0.94, 1] # RGBA, Light pink color for the plane
+       plane_visual_shape = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=np.array([30.0, 30.0, 0.01]),rgbaColor=planecolour)
        plane_id = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=plane_collision_shape, 
                              baseVisualShapeIndex=plane_visual_shape,basePosition=[0, 0, -0.33])
-       
-       #self.table =p.loadURDF("table/table.urdf", basePosition =[0.5,-0.35,-0.23] ,globalScaling =0.5);#[0.8, 0.4, -0.33]
+       tableori = p.getQuaternionFromEuler([0, 0, 1.57])
+       self.table =p.loadURDF("table/table.urdf", basePosition =[0.5,-0.45,-0.36] ,baseOrientation =tableori, globalScaling =0.5);#[0.8, 0.4, -0.33]
 
-       self.visual_shape = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[0.01,0.01,0.01], rgbaColor=[0.835, 0.7216, 1, 1])  # Purple Goal box - no collision properties
+       self.visual_shape = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[0.005,0.005,0.005], rgbaColor=[0.835, 0.7216, 1, 1])  # Purple Goal box - no collision properties
 
        #Set up robot with calculated start positions
        urdfRootPath=pybullet_data.getDataPath()
@@ -76,41 +77,39 @@ def getGoal(self, fracturestart, fractureorientaionDeg):
     fracturestart = np.array(p.getLinkState(self.pandaUid, 11)[0] )
     #p.addUserDebugText('FS', fracturestart, textColorRGB=[1, 0, 0], textSize=1)
     #print('Fracture Start:', fracturestart)
-    self.goal_range_low = fracturestart-[0.0125,0.01,0.003] #[0.0125,0.01,0.003]
-    self.goal_range_high = fracturestart+ [0.0125,0.02,0.003]
+    self.goal_range_low = fracturestart-[0.0125,0.02,0.003] #[0.0125,0.01,0.003]
+    self.goal_range_high = fracturestart+ [0.0125,0.01,0.003]
     self.goal_ori_low= np.radians(fractureorientaionDeg - [15,5,15])
     self.goal_ori_high=np.radians(fractureorientaionDeg + [15,5,15])
     #print('Goal Pos Range Low:', self.goal_range_low, 'High:', self.goal_range_high,'Goal Ori Low:', self.goal_ori_low, 'High:', self.goal_ori_high)
-    a = fracturestart - [0.0125,0.01,-0.003] 
-    b = fracturestart + [-0.0125,0.02,0.003]
-    c = fracturestart + [0.0125,-0.01,0.003]
-    d = fracturestart + [0.0125,0.02,0.003]
-    e = fracturestart - [0.0125,0.01,0.003] 
-    f = fracturestart + [-0.0125,0.02,-0.003]
-    g = fracturestart + [0.0125,-0.01,-0.003]
-    h = fracturestart + [0.0125,0.02,-0.003]
-    # p.addUserDebugLine(a, b, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(a, c, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(b, d, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(d, c, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(e, f, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(e, g, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(f, h, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(h, g, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(a, e, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(b, f, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(c, g, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(d, h, lineColorRGB=[0, 1, 0], lineWidth=3)
+    a = fracturestart - [0.0125,0.02,-0.003] 
+    b = fracturestart + [-0.0125,0.01,0.003]
+    c = fracturestart + [0.0125,-0.02,0.003]
+    d = fracturestart + [0.0125,0.01,0.003]
+    e = fracturestart - [0.0125,0.02,0.003] 
+    f = fracturestart + [-0.0125,0.01,-0.003]
+    g = fracturestart + [0.0125,-0.02,-0.003]
+    h = fracturestart + [0.0125,0.01,-0.003]
+    p.addUserDebugLine(a, b, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(a, c, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(b, d, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(d, c, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(e, f, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(e, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(f, h, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(h, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(a, e, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(b, f, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(c, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(d, h, lineColorRGB=[0, 1, 0], lineWidth=3)
     #print(self.curriculum_phase)
     # if self.curriculum_phase ==1:
     #     self.goal_pos = fracturestart.copy()
     # else:0
     self.goal_pos = np.array(self.np_random.uniform(self.goal_range_low, self.goal_range_high,))
     #print('Goal Position:', self.goal_pos)
-    if self.action_type == 'fiveactions' or self.action_type== 'fouractions':
+    if self.action_type== 'fouractions':
         self.goal_pos[2] = fracturestart[2]
-   
-    if self.action_type == 'fouractions':
         self.goal_ori_low[1] =np.radians(fractureorientaionDeg[1] - 0)
         self.goal_ori_high[1] =np.radians(fractureorientaionDeg[1]+0)    
     
@@ -125,24 +124,23 @@ def getStarts(self):
     fracturestart= np.array(p.getLinkState(self.pandaUid, 11)[0] )
     fractureorientaionRad =p.getEulerFromQuaternion(p.getLinkState(self.pandaUid, 11)[1])
     fractureorientaionDeg = np.degrees(np.array(fractureorientaionRad)) 
-    pin = [0.004462 ,-0.002332 , 0.046608  ]
+    #pin = [0.004462 ,-0.002332 , 0.046608  ]
    # pin = [0.004462 ,-0.002332 , 0.049608  ]
     #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
-    fracturestart = fracturestart - pin
+    fracturestart = fracturestart - [-0.05,0,0]
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]
-    difference = [0.0,0.05,0]
+    difference = [0.0,0.005,0]
     difference =np.array(difference)
     #legstart=[]
     # for i in range(len(difference)):
     #     leg = (fracturestart[i])-(difference[i])
     #     legstart.append(leg)
-    legstart=fracturestart - difference
     #     i+=1
     
 
-    return fracturestart, fractureorientaionDeg, legstart
+    return fracturestart, fractureorientaionDeg#, legstart
 
 
 
@@ -166,7 +164,7 @@ def get_new_pose(self, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
             newPosition = np.clip(newPosition, self.goal_range_low, self.goal_range_high)
             return newPosition, newOrientation
 
-        elif mode in ['euler', 'fouractions', 'fiveactions', 'ori_only']:
+        elif mode in ['euler', 'fouractions', 'ori_only']:
             deltaorE = [qx, qy, qz]
             deltaor = p.getQuaternionFromEuler(deltaorE)
             if mode == 'ori_only':
@@ -180,21 +178,7 @@ def get_new_pose(self, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
             #newOrientation = p.getQuaternionFromEuler(newOrientationE)
             return newPosition, newOrientation
 
-        elif mode == 'quat':
-            deltaOr = np.array([qx, qy, qz, qw])
-            deltaOr /= np.linalg.norm(deltaOr)
-            axis, angle = p.getAxisAngleFromQuaternion(deltaOr)
-            max_rotation = np.deg2rad(3)
-            if angle > 0:
-                clipped_angle = min(angle, max_rotation)
-                deltaOr = p.getQuaternionFromAxisAngle(axis, clipped_angle)
-            else:
-                deltaOr = [0, 0, 0, 1]
-            deltaPos = [dx, dy, dz]
-            newPosition, newOrientation = p.multiplyTransforms(currentPosition, currentOrientation, deltaPos, deltaOr)
-            #newPosition = np.clip(newPosition, self.goal_range_low, self.goal_range_high)
-            return newPosition, newOrientation
-
+        
         elif mode == 'pos_only':
             newPosition = currentPosition + np.array([qx, qy, qz])
             #print(newPosition)
@@ -205,16 +189,12 @@ def get_new_pose(self, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
             #p.addUserDebugText('NP', newPosition, textColorRGB=[0, 1, 0], textSize=1, lifeTime=0.5)
             return newPosition, newOrientation
 
-        elif mode == 'joint':
-            currentJointPoses = [p.getJointState(self.pandaUid, i)[0] for i in range(9)]
-            jointPoses = np.array(currentJointPoses) + np.array([dx, dy, dz, qx, qy, qz, 0, 0, 0])
-            return jointPoses, None
-
-        else:
-            newPosition = currentPosition + np.array([dx, dy, dz])
-            newPosition = np.clip(newPosition, self.goal_range_low, self.goal_range_high)
-            newOrientation = np.array([qx, qy, qz])
-            return newPosition, newOrientation
+        
+        # else:
+        #     newPosition = currentPosition + np.array([dx, dy, dz])
+        #     newPosition = np.clip(newPosition, self.goal_range_low, self.goal_range_high)
+        #     newOrientation = np.array([qx, qy, qz])
+        return newPosition, newOrientation
 
 def unpack_action(self, action, dv):
     zeros = [0] * 10
@@ -571,3 +551,51 @@ def compute_end_effector_force(robot_id, ee_link_index, joint_indices):
     #   F[0:3] = force (x,y,z)
     #   F[3:6] = torque (roll,pitch,yaw)
     return w
+
+def drawAABB(self,object,link):
+    aabb = p.getAABB(object,link)
+    aabbMin = aabb[0]
+    aabbMax = aabb[1]
+    f = [aabbMin[0], aabbMin[1], aabbMin[2]]
+    t = [aabbMax[0], aabbMin[1], aabbMin[2]]
+    p.addUserDebugLine(f, t, [1, 0, 0])
+    f = [aabbMin[0], aabbMin[1], aabbMin[2]]
+    t = [aabbMin[0], aabbMax[1], aabbMin[2]]
+    p.addUserDebugLine(f, t, [0, 1, 0])
+    f = [aabbMin[0], aabbMin[1], aabbMin[2]]
+    t = [aabbMin[0], aabbMin[1], aabbMax[2]]
+    p.addUserDebugLine(f, t, [0, 0, 1])
+
+    f = [aabbMin[0], aabbMin[1], aabbMax[2]]
+    t = [aabbMin[0], aabbMax[1], aabbMax[2]]
+    p.addUserDebugLine(f, t, [1, 1, 1])
+
+    f = [aabbMin[0], aabbMin[1], aabbMax[2]]
+    t = [aabbMax[0], aabbMin[1], aabbMax[2]]
+    p.addUserDebugLine(f, t, [1, 1, 1])
+
+    f = [aabbMax[0], aabbMin[1], aabbMin[2]]
+    t = [aabbMax[0], aabbMin[1], aabbMax[2]]
+    p.addUserDebugLine(f, t, [1, 1, 1])
+
+    f = [aabbMax[0], aabbMin[1], aabbMin[2]]
+    t = [aabbMax[0], aabbMax[1], aabbMin[2]]
+    p.addUserDebugLine(f, t, [1, 1, 1])
+
+    f = [aabbMax[0], aabbMax[1], aabbMin[2]]
+    t = [aabbMin[0], aabbMax[1], aabbMin[2]]
+    p.addUserDebugLine(f, t, [1, 1, 1])
+
+    f = [aabbMin[0], aabbMax[1], aabbMin[2]]
+    t = [aabbMin[0], aabbMax[1], aabbMax[2]]
+    p.addUserDebugLine(f, t, [1, 1, 1])
+
+    f = [aabbMax[0], aabbMax[1], aabbMax[2]]
+    t = [aabbMin[0], aabbMax[1], aabbMax[2]]
+    p.addUserDebugLine(f, t, [1.0, 0.5, 0.5])
+    f = [aabbMax[0], aabbMax[1], aabbMax[2]]
+    t = [aabbMax[0], aabbMin[1], aabbMax[2]]
+    p.addUserDebugLine(f, t, [1, 1, 1])
+    f = [aabbMax[0], aabbMax[1], aabbMax[2]]
+    t = [aabbMax[0], aabbMax[1], aabbMin[2]]
+    p.addUserDebugLine(f, t, [1, 1, 1])
