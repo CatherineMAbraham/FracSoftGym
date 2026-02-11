@@ -370,7 +370,7 @@ class fracturesurgery_env(gym.Env):
         
         
         self.contact = int(bool(p.getContactPoints(self.objectUid, self.leg,1,-1))) 
-        print('Contact: ', self.contact)
+        #print('Contact: ', self.contact)
         if self.contact==1:
            # print('Contact detected between foot and leg!')
             self.anycontact = 1
