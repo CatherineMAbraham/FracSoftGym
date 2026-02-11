@@ -87,7 +87,7 @@ def compute_reward_sparse_euler(self, achieved_goal, desired_goal, info):
                 self.pos_distance <= self.distance_threshold_pos and
                 self.angle <= self.distance_threshold_ori and 
                 self.isHolding == 1 and
-                self.force <= 3 and
+                self.force <= self.maxforce and
                 self.contact == 0
             ) else -1
     else:
@@ -101,7 +101,7 @@ def compute_reward_sparse_euler(self, achieved_goal, desired_goal, info):
             (self.pos_distance <= self.distance_threshold_pos) &
             (self.angle <= self.distance_threshold_ori) &
             (self.isHolding == 1) & 
-            (self.force <= 3) &
+            (self.force <= self.maxforce) &
             (self.contact == 0),
             0, -1
         )
@@ -197,14 +197,14 @@ def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, force,cont
     
 def check_done(self):
         if self.horizon == 'variable' and self.action_type not in ['ori_only', 'pos_only']:
-            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.output_force <=3 and self.contact == 0
+            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.output_force <=self.maxforce and self.contact == 0
         elif self.horizon == 'fixed' and self.action_type == 'ori_only':
             return self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.current_step >= self.max_steps
         elif self.horizon == 'fixed' and self.action_type == 'pos_only':
             return self.pos_distance <= self.distance_threshold_pos and self.isHolding == 1 and self.current_step >= self.max_steps
         elif self.action_type == 'ori_only':
-            return self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.output_force <=3
+            return self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.output_force <=self.maxforce
         elif self.action_type == 'pos_only':
-            return self.pos_distance <= self.distance_threshold_pos and self.isHolding == 1 and self.output_force <=3
+            return self.pos_distance <= self.distance_threshold_pos and self.isHolding == 1 and self.output_force <=self.maxforce
         else:
-            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.output_force <=3 and self.contact == 0
+            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.output_force <=self.maxforce and self.contact == 0

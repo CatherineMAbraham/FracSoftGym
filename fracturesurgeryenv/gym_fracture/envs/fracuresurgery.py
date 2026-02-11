@@ -30,7 +30,8 @@ class fracturesurgery_env(gym.Env):
         action_type='rot_vec',
         horizon='variable',
         softtissue=False,
-        start_pos = 'home'
+        start_pos = 'home',
+        maxforce = 3.5
     ):
         metadata = {"render_modes": ["human", None]}
         ## Initialise variables
@@ -59,6 +60,7 @@ class fracturesurgery_env(gym.Env):
         self.pitch = 0.0
         self.n = 0
         self.start_pos = start_pos # 'home' or 'extended'
+        self.maxforce = maxforce
         ##
         
         ## Rendering setup
