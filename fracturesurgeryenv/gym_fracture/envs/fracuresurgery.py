@@ -61,6 +61,7 @@ class fracturesurgery_env(gym.Env):
         self.n = 0
         self.start_pos = start_pos # 'home' or 'extended'
         self.maxforce = maxforce
+        self.anycontact = 0
         ##
         
         ## Rendering setup
@@ -292,7 +293,7 @@ class fracturesurgery_env(gym.Env):
         
 
         ##draw aabb boxes round leg and foot 
-        utils.drawAABB(self, self.leg,0)
+        utils.drawAABB(self, self.leg,-1)
         utils.drawAABB(self, self.objectUid,1)
         return self.state, {}
 
@@ -369,7 +370,10 @@ class fracturesurgery_env(gym.Env):
         
         
         self.contact = int(bool(p.getContactPoints(self.objectUid, self.leg,1,-1))) 
-            
+        print('Contact: ', self.contact)
+        if self.contact==1:
+           # print('Contact detected between foot and leg!')
+            self.anycontact = 1
         
         #print('Contact points between foot and leg: ', contact)
         #print('Contact points between foot and leg: ', contact)
@@ -403,14 +407,14 @@ class fracturesurgery_env(gym.Env):
                'Pos Distance: ', self.pos_distance, 
                'Angle: ', self.angle, 
                'Holding: ', self.isHolding, 
-               'Contact: ', self.contact)
+               'Contact: ', self.anycontact)
         
         
         
         info = {'is_success': done, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.output_force,'contact': self.contact}
+                'force': self.output_force,'contact': self.anycontact}
         reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
         reward = np.float32(reward)
         #print('force: ', self.force, reward)

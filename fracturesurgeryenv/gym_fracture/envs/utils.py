@@ -77,19 +77,19 @@ def getGoal(self, fracturestart, fractureorientaionDeg):
     fracturestart = np.array(p.getLinkState(self.pandaUid, 11)[0] )
     #p.addUserDebugText('FS', fracturestart, textColorRGB=[1, 0, 0], textSize=1)
     #print('Fracture Start:', fracturestart)
-    self.goal_range_low = fracturestart-[0.0125,0.02,0.003] #[0.0125,0.01,0.003]
-    self.goal_range_high = fracturestart+ [0.0125,0.01,0.003]
+    self.goal_range_low = fracturestart-[0.0125,0.01,0.003] #[0.0125,0.01,0.003]
+    self.goal_range_high = fracturestart+ [0.0125,0.02,0.003]
     self.goal_ori_low= np.radians(fractureorientaionDeg - [15,5,15])
     self.goal_ori_high=np.radians(fractureorientaionDeg + [15,5,15])
     #print('Goal Pos Range Low:', self.goal_range_low, 'High:', self.goal_range_high,'Goal Ori Low:', self.goal_ori_low, 'High:', self.goal_ori_high)
-    a = fracturestart - [0.0125,0.02,-0.003] 
-    b = fracturestart + [-0.0125,0.01,0.003]
-    c = fracturestart + [0.0125,-0.02,0.003]
-    d = fracturestart + [0.0125,0.01,0.003]
-    e = fracturestart - [0.0125,0.02,0.003] 
-    f = fracturestart + [-0.0125,0.01,-0.003]
-    g = fracturestart + [0.0125,-0.02,-0.003]
-    h = fracturestart + [0.0125,0.01,-0.003]
+    a = fracturestart - [0.0125,0.01,-0.003] 
+    b = fracturestart + [-0.0125,0.02,0.003]
+    c = fracturestart + [0.0125,-0.01,0.003]
+    d = fracturestart + [0.0125,0.02,0.003]
+    e = fracturestart - [0.0125,0.01,0.003] 
+    f = fracturestart + [-0.0125,0.02,-0.003]
+    g = fracturestart + [0.0125,-0.01,-0.003]
+    h = fracturestart + [0.0125,0.02,-0.003]
     p.addUserDebugLine(a, b, lineColorRGB=[0, 1, 0], lineWidth=3)
     p.addUserDebugLine(a, c, lineColorRGB=[0, 1, 0], lineWidth=3)
     p.addUserDebugLine(b, d, lineColorRGB=[0, 1, 0], lineWidth=3)
