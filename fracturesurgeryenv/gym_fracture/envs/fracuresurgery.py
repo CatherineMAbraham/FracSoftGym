@@ -115,6 +115,7 @@ class fracturesurgery_env(gym.Env):
         self.current_step = 0
         self.output_force = 0
         contact = 0
+        self.anycontact = 0
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD)
         
         self.band_id = None
@@ -418,7 +419,7 @@ class fracturesurgery_env(gym.Env):
         reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
         reward = np.float32(reward)
         #print('force: ', self.force, reward)
-        
+        #print(self.anycontact)
         return self.state, reward, done, truncated, info
 
     def render(self) :
