@@ -398,8 +398,12 @@ class fracturesurgery_env(gym.Env):
         
         done = env_utils.check_done(self)
         truncated = self.current_step >= self.max_steps and not done
-        # if done:
-        #     print('yay')
+        if done:
+         print('MaxForce: ', self.output_force, 
+               'Pos Distance: ', self.pos_distance, 
+               'Angle: ', self.angle, 
+               'Holding: ', self.isHolding, 
+               'Contact: ', self.contact)
         
         
         
