@@ -11,7 +11,7 @@ def set_observation_space(self):
         goal_shape = 4
     else:
         obs_shape = 36
-        goal_shape = 10
+        goal_shape = 9
     if self.obs_type == 'dict':
         self.observation_space = spaces.Dict({
             'observation': spaces.Box(low=-200, high=200, shape=(obs_shape,), dtype=np.float32),
@@ -82,13 +82,13 @@ def compute_reward_sparse_euler(self, achieved_goal, desired_goal, info):
             self.pos_distance, self.angle = utils.calculate_distances(self, pos_achieved, angle_achieved, pos_desired, angle_desired)
             self.isHolding = achieved_goal[7]
             self.force = achieved_goal[8]
-            self.contact = achieved_goal[9]
+            #self.contact = achieved_goal[9]
             reward = 0 if (
                 self.pos_distance <= self.distance_threshold_pos and
                 self.angle <= self.distance_threshold_ori and 
                 self.isHolding == 1 and
-                self.force <= self.maxforce and
-                self.contact == 0
+                self.force <= self.maxforce #and
+                #self.contact == 0
             ) else -1
     else:
         pos_achieved, angle_achieved = achieved_goal[:, :3], achieved_goal[:, 3:7]
@@ -96,15 +96,15 @@ def compute_reward_sparse_euler(self, achieved_goal, desired_goal, info):
         self.pos_distance, self.angle = utils.calculate_distances(self, pos_achieved, angle_achieved, pos_desired, angle_desired)
         self.isHolding = achieved_goal[:, 7]
         self.force = achieved_goal[:, 8]
-        self.contact = achieved_goal[:, 9]
+        #self.contact = achieved_goal[:, 9]
         reward = np.where(
             (self.pos_distance <= self.distance_threshold_pos) &
             (self.angle <= self.distance_threshold_ori) &
             (self.isHolding == 1) & 
-            (self.force <= self.maxforce) &
-            (self.contact == 0),
-            0, -1
-        )
+            (self.force <= self.maxforce),#&
+           # (self.contact == 0),
+            0, -1)
+        
     return np.array(reward)
 
 def compute_reward_dense(self, achieved_goal, desired_goal, info):
@@ -176,14 +176,14 @@ def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, force,cont
     desired_force = [2.5]
     object_contact = [0] 
     if self.action_type == 'ori_only':
-        self.achieved_goal = np.array(list(ori) +[isHolding]+[force]+[self.contact])
-        self.desired_goal = np.array(list(self.goal_ori) + [1]+desired_force+object_contact)
+        self.achieved_goal = np.array(list(ori) +[isHolding]+[force])#+[self.contact])
+        self.desired_goal = np.array(list(self.goal_ori) + [1]+desired_force)#+object_contact)
     elif self.action_type == 'pos_only':
-        self.achieved_goal = np.array(list(pos) + [isHolding]+[force]+[self.contact])
-        self.desired_goal = np.array(list(self.goal_pos) + [1]+desired_force+object_contact)
+        self.achieved_goal = np.array(list(pos) + [isHolding]+[force])#+[self.contact])
+        self.desired_goal = np.array(list(self.goal_pos) + [1]+desired_force)#+object_contact)
     else:
-        self.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+[self.contact])
-        self.desired_goal = np.array(list(self.target_position) + [1]+desired_force+object_contact)
+        self.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force])#+[self.contact])
+        self.desired_goal = np.array(list(self.target_position) + [1]+desired_force)#+object_contact)
 
     if self.obs_type == 'dict':
         observation_dict = {
@@ -197,7 +197,7 @@ def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, force,cont
     
 def check_done(self):
         if self.horizon == 'variable' and self.action_type not in ['ori_only', 'pos_only']:
-            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.output_force <=self.maxforce and self.anycontact == 0
+            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.output_force <=self.maxforce #and self.anycontact == 0
         elif self.horizon == 'fixed' and self.action_type == 'ori_only':
             return self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.current_step >= self.max_steps
         elif self.horizon == 'fixed' and self.action_type == 'pos_only':
@@ -207,4 +207,4 @@ def check_done(self):
         elif self.action_type == 'pos_only':
             return self.pos_distance <= self.distance_threshold_pos and self.isHolding == 1 and self.output_force <=self.maxforce
         else:
-            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.output_force <=self.maxforce and self.anycontact == 0
+            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.output_force <=self.maxforce# and self.anycontact == 0
