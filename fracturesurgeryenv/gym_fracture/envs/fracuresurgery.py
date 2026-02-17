@@ -22,14 +22,14 @@ class fracturesurgery_env(gym.Env):
         render_mode=None,
         reward_type='sparse',
         distance_threshold_pos=0.005,
-        distance_threshold_ori=0.05,
-        max_steps=50,
+        distance_threshold_ori=3,
+        max_steps=100,
         obs_type='dict',
         goal_type='random',
-        dv=0.05,
-        action_type='rot_vec',
+        dv=0.001,
+        action_type='euler',
         horizon='variable',
-        softtissue=False,
+        softtissue='spring',
         start_pos = 'home',
         maxforce = 3.5
     ):
@@ -169,8 +169,8 @@ class fracturesurgery_env(gym.Env):
             #time.sleep(1./500)  # Remove for speed
         pos_9 = p.getJointState(self.pandaUid, 9)[0]
         pos_10 = p.getJointState(self.pandaUid, 10)[0]
-        p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=0, force=100)
-        p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=0, force=100)
+        #p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=0, force=100)
+        #p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=0, force=100)
         p.stepSimulation()
         ##
         difference = [0.0,0.09,0]
@@ -209,7 +209,7 @@ class fracturesurgery_env(gym.Env):
         p.enableJointForceTorqueSensor(self.objectUid, 0, enableSensor=True)
         ##
         
-
+        
         ##Initial Observation
         initialpos = p.getLinkState(self.pandaUid, 11)[0]
         initialor = p.getLinkState(self.pandaUid, 11)[1]
@@ -236,61 +236,24 @@ class fracturesurgery_env(gym.Env):
                                                self.dist, initialisHolding)
         
         ##
-        self.band = new_band.ElasticBand(bodyA=self.leg, linkA= -1,
+        
+        if self.softtissue=='soft':
+            point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0,0.0,-0.01])
+            point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.objectUid, 1,local_offset=[0,-0.0015,0.04])
+            #make_ligament(self,"cloth_Id1", self.objectUid, self.leg, point_c, point_d,orientation=p.getQuaternionFromEuler([0, 90/180*np.pi, 70/180*np.pi]), scale =1)
+            make_ligament(self, "cloth_Id2", self.objectUid, self.leg, point_a, point_b,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi , 180/180*np.pi]), scale =1) #0.75
+        elif self.softtissue=='spring':
+            self.band = new_band.ElasticBand(bodyA=self.leg, linkA= -1,
                                          bodyB=self.objectUid, linkB= 1,
                                          young_modulus=1e6,
                                          area=5e-6,
                                          rest_length=0.02,
                                          damping_ratio=1)
-        
-        # pin_pos = p.getLinkState(self.pandaUid, 11)[0]
-        # load_cell = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[0.01,0.01,0.01], rgbaColor=[1, 0, 0, 1])
-        # pin_uid = p.createMultiBody(
-        #         baseMass=0.01,
-        #         baseCollisionShapeIndex=-1,
-        #         baseVisualShapeIndex=load_cell,
-        #         basePosition=pin_pos,
-        #         baseOrientation=p.getLinkState(self.pandaUid, 11)[1]
-        #     )
-          # Small invisible box for load cell visualization
-
-        # p.createConstraint(
-        #                         parentBodyUniqueId=self.pandaUid,
-        #                         parentLinkIndex=11,
-        #                         childBodyUniqueId=pin_uid,
-        #                         childLinkIndex=-1,
-        #                         jointType=p.JOINT_FIXED,
-        #                         jointAxis=[0,0,0],
-        #                         parentFramePosition=[0,0,0],
-        #                         childFramePosition=[0,0,0]
-        #                     )
-        time.sleep(1)
-
-        # # 1. Create the Tool (Handle + Pin) as one MultiBody
-        # handle_shape = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.05, 0.02, 0.02])
-        # pin_shape = p.createVisualShape(p.GEOM_CYLINDER, radius=0.001, length=0.1)
-
-        # # The 'base' is your handle; the 'link' is your pin
-        # self.tool_uid = p.createMultiBody(
-        #     baseMass=0.01,
-        #     baseCollisionShapeIndex=p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.005, 0.002, 0.002]),
-        #     baseVisualShapeIndex=handle_shape,
-        #     basePosition=p.getLinkState(self.pandaUid, 11)[0],
-        #     linkMasses=[0.05],
-        #     linkCollisionShapeIndices=[p.createCollisionShape(p.GEOM_CYLINDER, radius=0.001, height=0.1)],
-        #     linkVisualShapeIndices=[pin_shape],
-        #     linkPositions=[[0, 0, 0]], # Offset the pin from the handle
-        #     linkOrientations=[[0, 0, 0, 1]],
-        #     linkInertialFramePositions=[[0, 0, 0]],
-        #     linkInertialFrameOrientations=[[0, 0, 0, 1]],
-        #     linkParentIndices=[0],
-        #     linkJointTypes=[p.JOINT_FIXED], # The "Load Cell" is this fixed joint
-        #     linkJointAxis=[[0, 0, 0]]
-        # )
-
-        # # 2. Enable the sensor on that internal joint (Index 0)
-        # p.enableJointForceTorqueSensor(self.tool_uid, 0, enableSensor=True)
-        #p.enableJointForceTorqueSensor(self.objectUid,self.load_cell,  enableSensor=True)
+            
+            
+        else: 
+            pass  
+       
         
 
         ##draw aabb boxes round leg and foot 
@@ -336,34 +299,27 @@ class fracturesurgery_env(gym.Env):
                 jointPoses = [0.0] * 9
 
         # Set Joint Motors
-        max_force = [87,87,87,87,12,12,12,50,50]
-        # max_vel = [2.1750,2.1750,2.1750,2.1750,2.6100,2.6100,2.6100,0.2,0.2]
-        # desired_pos = np.array(jointPoses)
-        # current_pos = np.array([p.getJointState(self.pandaUid,j)[0] for j in list(range(9))])
+        max_force = [87,87,87,87,12,12,12,5,5]
         
-        # targetVelocities = utils.compute_target_velocity(
-        #                     desired_pos=desired_pos,
-        #                     current_pos=current_pos,
-        #                     current_vel=[p.getJointState(self.pandaUid,j)[1] for j in list(range(9))],
-        #                     dt=0.05,
-        #                     max_speed=max_vel,
-        #                     Kd=0.001
-        #                 )
         
         
         p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
+        
+        if self.softtissue=='spring':
+            for _ in range(20):
+                self.band.step()
+                p.stepSimulation()
+        else:
+            for _ in range(20):
+                p.stepSimulation()
 
-        for _ in range(20):
-            self.band.step()
-            p.stepSimulation()
             
             
-        #self.force = utils.visualize_contact_forces(self,self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
-        # load_cell_info = p.getConstraintState(self.load_cell)
-        # force_magnitude = np.linalg.norm(load_cell_info[0])
-        # print('Load cell force: ', load_cell_info,force_magnitude)
+       
+        
         force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
         force_magnitude = np.linalg.norm(force)
+        #print(f'Force: {force_magnitude}')
         self.force = force_magnitude
         if self.force > self.output_force:
             #print('New max force: ', self.force, force_magnitude, self.output_force)

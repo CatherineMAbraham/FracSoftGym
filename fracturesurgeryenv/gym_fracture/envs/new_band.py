@@ -47,6 +47,7 @@ class ElasticBand:
         
         # 1. Slack Check
         if L <= self.L0:
+            #if less than rest length don't add any force 
             self.last_force_vector = np.zeros(3)
             return
 
@@ -54,20 +55,23 @@ class ElasticBand:
         d = delta / L
         # Displacement (Stretch)
         x = L - self.L0
+        strain = x / self.L0
 
-        # 2. Non-Linear Spring Component (The 'Toe Region')
-        # F = k * x^n (n > 1 creates the J-curve characteristic of ligaments)
-        spring_force = self.k * (x ** self.exponent)
+        # 2. Toe region
+        # F = k * x^n 
+        if strain < 0.1:
+            spring_force = self.k * (x ** self.exponent)
+        else: 
+            spring_force = self.k * x  
 
-        # 3. Non-Linear Damping
-        # Scaling damping by 'x' ensures the band doesn't 'hit' the robot 
-        # with high damping forces the moment it becomes taut.
+        # 3. Non-Linear damping
+        
         rel_vel = np.dot((velB - velA), d)
         damping_force = self.damping_ratio * x * rel_vel 
 
-        # 4. Total Force & Safety
+        # 4. Total force & safety
         F = spring_force + damping_force
-        F = np.clip(F, 0, 50) # Prevents simulation explosion
+        F = np.clip(F, 0, 50) # Prevents simulation explosion, need to tune this 
         
         F_vec = F * d
         self.last_force_vector = F_vec.copy()

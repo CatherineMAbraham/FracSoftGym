@@ -37,7 +37,7 @@ def change_leg_dynamics(self):
     p.setPhysicsEngineParameter(contactSlop=0.001)
  
 def change_foot_dynamics(self):
-    # Set the whole object to a consistent, low friction to match human 'sliding'
+    
     p.changeDynamics(self.objectUid, -1, 
                      mass=0.276, 
                      lateralFriction=1, # Lower this! 5.0 is causing the 50N spikes

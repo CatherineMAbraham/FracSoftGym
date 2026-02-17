@@ -10,8 +10,9 @@ def world_from_local(body, local_point, link=-1):
 def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     a = a
     b=b
-    pC = world_from_local(foot, a, 0)
-    pD = world_from_local(leg, b, 0)
+    pC = a#world_from_local(foot, a, 0)
+    pD = b#world_from_local(leg, b, 0)
+    #print(pC,pD)
     p.addUserDebugText( f"pC",pC, [1,0,0],1.0)
     p.addUserDebugText( f"pD",pD, [0,1,0],1.0)
     orientation = orientation
@@ -19,16 +20,16 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     name = name
     mid = 0.5 * (pC + pD)
     currentDir = os.path.dirname(os.path.abspath(__file__))
-    lig_path = os.path.join(currentDir, "Assets/lig8.obj")
+    lig_path = os.path.join(currentDir, "Assets/ligacc.obj")
     name = p.loadSoftBody(lig_path,
         basePosition=mid,
         baseOrientation=orientation,
         scale=scale,
-        mass=0.06,
+        mass=0.1,
         useNeoHookean=0,
         useMassSpring=1,
         useBendingSprings=0,
-        springElasticStiffness=40,      # stiffer -> springier/shape-preserving
+        springElasticStiffness=300,      # stiffer -> springier/shape-preserving
         springDampingStiffness=1,    # moderate damping -> oscillation allowed
         #springDampingAllDirections=1,
        #springBendingStiffness=2,       # preserve rod shape
@@ -101,7 +102,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
 
     p.stepSimulation()
     #time.sleep(5)
-    auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=pC, worldB=pD, axis=0, num_anchors=10)
+    auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=pC, worldB=pD, axis=0, num_anchors=5)
 
 import numpy as np
 
