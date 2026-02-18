@@ -59,10 +59,10 @@ class ElasticBand:
 
         # 2. Toe region
         # F = k * x^n 
-        if strain < 0.1:
-            spring_force = self.k * (x ** self.exponent)
-        else: 
-            spring_force = self.k * x  
+       # if strain < 0.1:
+        spring_force = self.k * (x ** self.exponent)
+        # else: 
+        #     spring_force = self.k * x  
 
         # 3. Non-Linear damping
         
