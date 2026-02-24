@@ -257,8 +257,8 @@ class fracturesurgery_env(gym.Env):
         
 
         ##draw aabb boxes round leg and foot 
-        utils.drawAABB(self, self.leg,-1)
-        utils.drawAABB(self, self.objectUid,1)
+        #utils.drawAABB(self, self.leg,-1)
+        #utils.drawAABB(self, self.objectUid,1)
         return self.state, {}
 
     
@@ -310,7 +310,7 @@ class fracturesurgery_env(gym.Env):
                 self.band.step()
                 p.stepSimulation()
         else:
-            for _ in range(20):
+            for _ in range(100):
                 p.stepSimulation()
 
             
@@ -319,7 +319,7 @@ class fracturesurgery_env(gym.Env):
         
         force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
         force_magnitude = np.linalg.norm(force)
-        #print(f'Force: {force_magnitude}')
+        print(f'Force: {force_magnitude}')
         self.force = force_magnitude
         if self.force > self.output_force:
             #print('New max force: ', self.force, force_magnitude, self.output_force)

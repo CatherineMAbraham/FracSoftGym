@@ -29,7 +29,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
         useNeoHookean=0,
         useMassSpring=1,
         useBendingSprings=0,
-        springElasticStiffness=300,      # stiffer -> springier/shape-preserving
+        springElasticStiffness=40,      # stiffer -> springier/shape-preserving
         springDampingStiffness=1,    # moderate damping -> oscillation allowed
         #springDampingAllDirections=1,
        #springBendingStiffness=2,       # preserve rod shape
