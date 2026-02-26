@@ -15,7 +15,7 @@ from scipy.spatial.transform import Rotation as R
 import wandb
 #from gym_fracture.envs.spring_damper import SpringDamper
 from gym_fracture.envs.createligament import make_ligament, make_ligament_rod
-from gym_fracture.envs.multispring import create_ligament_chain, apply_axial_springs
+#from gym_fracture.envs.multispring import create_ligament_chain, apply_axial_springs
 
 class fracturesurgery_env(gym.Env):
     def __init__(
