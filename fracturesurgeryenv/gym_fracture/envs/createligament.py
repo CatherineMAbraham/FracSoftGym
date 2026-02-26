@@ -21,22 +21,42 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     mid = 0.5 * (pC + pD)
     currentDir = os.path.dirname(os.path.abspath(__file__))
     lig_path = os.path.join(currentDir, "Assets/ligacc.obj")
-    name = p.loadSoftBody(lig_path,
-        basePosition=mid,
-        baseOrientation=orientation,
-        scale=scale,
+    # name = p.loadSoftBody(lig_path,
+    #     basePosition=mid,
+    #     baseOrientation=orientation,
+    #     scale=scale,
+    #     mass=0.1,
+    #     useNeoHookean=0,
+    #     useMassSpring=1,
+    #     useBendingSprings=0,
+    #     springElasticStiffness=40,      # stiffer -> springier/shape-preserving
+    #     springDampingStiffness=1,    # moderate damping -> oscillation allowed
+    #     #springDampingAllDirections=1,
+    #    #springBendingStiffness=2,       # preserve rod shape
+    #     useSelfCollision=0,             # disable initially for tuning
+    #     collisionMargin=0.01,
+    #     frictionCoeff=0.6,
+    #     useFaceContact=0
+    # )
+    E = 1e6
+    nu = 0.45
+    mu = E / (2 * (1 + nu))
+    lam = E * nu / ((1 + nu) * (1 - 2 * nu))
+    name = p.loadSoftBody(#"/home/catherine/FractureSoftGym/fracturesurgeryenv/gym_fracture/envs/Assets/ligacc.obj",
+       "/home/catherine/Policies/Test/rect3.vtk",
         mass=0.1,
-        useNeoHookean=0,
-        useMassSpring=1,
-        useBendingSprings=0,
-        springElasticStiffness=40,      # stiffer -> springier/shape-preserving
-        springDampingStiffness=1,    # moderate damping -> oscillation allowed
-        #springDampingAllDirections=1,
-       #springBendingStiffness=2,       # preserve rod shape
-        useSelfCollision=0,             # disable initially for tuning
-        collisionMargin=0.01,
-        frictionCoeff=0.6,
-        useFaceContact=0
+        basePosition=mid-[0,0.01,0],
+        baseOrientation=p.getQuaternionFromEuler([0, 0, 90/180*np.pi]),
+        scale=1,
+        useNeoHookean=1,
+        useMassSpring=0,
+        NeoHookeanMu=mu,
+        NeoHookeanLambda=lam,
+        useBendingSprings=1,
+        frictionCoeff=0.5,
+        NeoHookeanDamping=0.01,
+        repulsionStiffness=0.5 * mu,
+        collisionMargin=0.005
     )
 
     # name = p.loadSoftBody(
@@ -94,12 +114,12 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     #     useFaceContact=1)
     # print(p.getAABB(clothId))
     #p.setTimeStep(1.0/100.0)
-    p.setPhysicsEngineParameter(numSolverIterations=200)#, 
+    #p.setPhysicsEngineParameter(numSolverIterations=200)#, 
     #p.setPhysicsEngineParameter(erp=0.15)#, 
     #p.setPhysicsEngineParameter(contactERP=0.1)#, 
-    p.setPhysicsEngineParameter(numSubSteps=3) ##This is really important for stability and force control 
+    #p.setPhysicsEngineParameter(numSubSteps=3) ##This is really important for stability and force control 
     #p.setPhysicsEngineParameter(fixedTimeStep=1/120.0)
-
+    p.setPhysicsEngineParameter(numSolverIterations=1000, numSubSteps=50)
     p.stepSimulation()
     #time.sleep(5)
     auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=pC, worldB=pD, axis=0, num_anchors=5)

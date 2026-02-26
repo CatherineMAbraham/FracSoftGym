@@ -75,7 +75,7 @@ class ElasticBand:
         
         # F_vec = F * d
         # self.last_force_vector = F_vec.copy()
-        num_springs = 4
+        num_springs = 1
         radius = 0.01      # distance from center (creates bending resistance)
         posA, velA = self._get_pose_vel(self.bodyA, self.linkA,local_offset=[0,0.0,-0.01])
         posB, velB = self._get_pose_vel(self.bodyB, self.linkB,local_offset=[0,-0.0015,0.04])

@@ -15,6 +15,7 @@ from scipy.spatial.transform import Rotation as R
 import wandb
 #from gym_fracture.envs.spring_damper import SpringDamper
 from gym_fracture.envs.createligament import make_ligament, make_ligament_rod
+from gym_fracture.envs.multispring import create_ligament_chain, apply_axial_springs
 
 class fracturesurgery_env(gym.Env):
     def __init__(
@@ -252,6 +253,9 @@ class fracturesurgery_env(gym.Env):
             
             
         else: 
+            point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0,0.0,-0.01])
+            point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.objectUid, 1,local_offset=[0,-0.0015,0.04])
+            self.ligament_bodies, self.ligament_length = create_ligament_chain(point_a, point_b, num_segments=5, total_mass=0.05)
             pass  
        
         
@@ -308,6 +312,10 @@ class fracturesurgery_env(gym.Env):
         if self.softtissue=='spring':
             for _ in range(20):
                 self.band.step()
+                p.stepSimulation()
+        elif self.softtissue=='multi':
+            for _ in range(20):
+                apply_axial_springs(self.ligament_bodies, k_total=1e5, L0=self.ligament_length, damping=0.1)
                 p.stepSimulation()
         else:
             for _ in range(100):
