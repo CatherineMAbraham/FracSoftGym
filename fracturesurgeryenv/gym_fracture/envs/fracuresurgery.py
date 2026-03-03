@@ -14,7 +14,7 @@ from gym_fracture.envs import dynamics, new_band
 from scipy.spatial.transform import Rotation as R
 import wandb
 #from gym_fracture.envs.spring_damper import SpringDamper
-from gym_fracture.envs.createligament import make_ligament, make_ligament_rod
+from gym_fracture.envs.createligament import make_ligament, make_ligament_rod,radius_spring
 #from gym_fracture.envs.multispring import create_ligament_chain, apply_axial_springs
 
 class fracturesurgery_env(gym.Env):
@@ -77,7 +77,11 @@ class fracturesurgery_env(gym.Env):
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.resetDebugVisualizerCamera(cameraDistance=1.1, cameraYaw=87, cameraPitch=-20, cameraTargetPosition=[0, 0, 0])
         ##
-
+        #p.computeProjectionMatrixFOV(fov=60, aspect=1, nearVal=0.01, farVal=100)
+        matrix=p.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=[0, 0, 0], distance=1.1, yaw=87, pitch=-20, roll=0, upAxisIndex=2)
+        projection = p.computeProjectionMatrixFOV(fov=60, aspect=1, nearVal=0.01, farVal=100)
+        p.getCameraImage(10, 10,viewMatrix=matrix,projectionMatrix=projection)  # Warm up the renderer to prevent first-step lag
+        p.setTimeStep(1/240)
         ##Obs and Action Space setup
         if self.action_type not in ['euler', 'fouractions','ori_only', 'pos_only']: 
             raise ValueError(f"Invalid action_type: {self.action_type}")
@@ -144,7 +148,7 @@ class fracturesurgery_env(gym.Env):
         leg_path = os.path.join(currentDir, "Assets/Patient110/proximal.urdf")
         foot_path = os.path.join(currentDir, "Assets/Patient110/distal.urdf")
         
-        footorientation = p.getQuaternionFromEuler([90/180*np.pi, 0, 0])
+        #footorientation = p.getQuaternionFromEuler([90/180*np.pi, 0, 0])
        
         legorientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
         
@@ -157,22 +161,16 @@ class fracturesurgery_env(gym.Env):
         dynamics.change_robot_dynamics(self)
         #time.sleep(100)
         ##
-
-
+        #p.setPhysicsEngineParameter(contactERP=0.1) 
         ## Close gripper
-        target_positions = np.array([0.0, 0.0])
-        forces = [10,10]
+        #target_positions = np.array([0.0, 0.0])
+        fingerforce = 2 if self.softtissue=='soft' else 10
         for _ in range(100):
-            p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=50)
-            p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=50)
-
+            p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=fingerforce)
+            p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=fingerforce)
             p.stepSimulation()
             #time.sleep(1./500)  # Remove for speed
-        pos_9 = p.getJointState(self.pandaUid, 9)[0]
-        pos_10 = p.getJointState(self.pandaUid, 10)[0]
-        #p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=0, force=100)
-        #p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=0, force=100)
-        p.stepSimulation()
+        
         ##
         difference = [0.0,0.09,0]
         difference =np.array(difference)
@@ -201,13 +199,14 @@ class fracturesurgery_env(gym.Env):
         # Dummy visual shape for goal marker
         
         
-        goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
-                          basePosition=self.goal_pos, baseOrientation=self.goal_ori)
+        # goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
+        #                   basePosition=self.goal_pos, baseOrientation=self.goal_ori)
  
         
        ## Enable force/torque sensors
         [p.enableJointForceTorqueSensor(self.pandaUid, joint, enableSensor=True) for joint in range(p.getNumJoints(self.pandaUid))]
-        p.enableJointForceTorqueSensor(self.objectUid, 0, enableSensor=True)
+        p.enableJointForceTorqueSensor(self.objectUid, 0, enableSensor=True) # Load cell joint 
+        
         ##
         
         
@@ -230,32 +229,41 @@ class fracturesurgery_env(gym.Env):
         force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
         initial_force = np.linalg.norm(force)#utils.visualize_contact_forces(self,self.pandaUid, self.objectUid)
         self.contact = int(bool(p.getContactPoints(self.objectUid, self.leg,1,-1)))
-        env_utils.set_observation(self, initialpos, initialor, 
-                                               initialvel, initialJointPoses, 
-                                               initialJointVelocities, initial_force,self.contact,left_contact,
-                                               self.dist, self.angle, right_contact, 
-                                               self.dist, initialisHolding)
+        env_utils.set_observation(self, 
+                                  initialpos, 
+                                  initialor, 
+                                  initialvel, 
+                                  initialJointPoses, 
+                                  initialJointVelocities, 
+                                  initial_force,
+                                  self.contact,
+                                  self.pos_distance,
+                                  self.angle,
+                                  left_contact,
+                                  right_contact,
+                                  self.dist, 
+                                  initialisHolding)
         
         ##
-        
+        #time.sleep(5)
         if self.softtissue=='soft':
-            point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0,0.0,-0.01])
-            point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.objectUid, 1,local_offset=[0,-0.0015,0.04])
+            self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0,0.0,-0.01])
+            self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.objectUid, 1,local_offset=[0,-0.0015,0.04]) ##trial and error to place them 
             #make_ligament(self,"cloth_Id1", self.objectUid, self.leg, point_c, point_d,orientation=p.getQuaternionFromEuler([0, 90/180*np.pi, 70/180*np.pi]), scale =1)
-            make_ligament(self, "cloth_Id2", self.objectUid, self.leg, point_a, point_b,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi , 180/180*np.pi]), scale =1) #0.75
+            make_ligament(self, "cloth_Id2", self.objectUid, self.leg, self.point_a, self.point_b,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi , 180/180*np.pi]), scale =1) #0.75
         elif self.softtissue=='spring':
             self.band = new_band.ElasticBand(bodyA=self.leg, linkA= -1,
                                          bodyB=self.objectUid, linkB= 1,
                                          young_modulus=1e6,
                                          area=5e-6,
-                                         rest_length=0.02,
+                                         rest_length=0.05,
                                          damping_ratio=1)
             
             
         else: 
-            point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0,0.0,-0.01])
-            point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.objectUid, 1,local_offset=[0,-0.0015,0.04])
-            self.ligament_bodies, self.ligament_length = create_ligament_chain(point_a, point_b, num_segments=5, total_mass=0.05)
+            self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0,0.0,-0.01])
+            self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.objectUid, 1,local_offset=[0,-0.0015,0.04])
+            self.ligament_bodies, self.ligament_length = create_ligament_chain(self.point_a, self.point_b, num_segments=5, total_mass=0.05)
             pass  
        
         
@@ -263,6 +271,7 @@ class fracturesurgery_env(gym.Env):
         ##draw aabb boxes round leg and foot 
         #utils.drawAABB(self, self.leg,-1)
         #utils.drawAABB(self, self.objectUid,1)
+        #time.sleep(5)
         return self.state, {}
 
     
@@ -287,7 +296,7 @@ class fracturesurgery_env(gym.Env):
         else:
             jointPoses = p.calculateInverseKinematics(self.pandaUid, 11, targetPosition=newPosition, 
                                                       targetOrientation=newOrientation, maxNumIterations=100, residualThreshold=1e-4)
-            p.addUserDebugText('NP',newPosition, textSize=1.5)
+            #p.addUserDebugText('NP',newPosition, textSize=1.5)
         if np.any(np.isnan(jointPoses)) or np.any(np.abs(jointPoses) > 10):
             print("IK failure, skipping step")
             print(action)
@@ -303,41 +312,64 @@ class fracturesurgery_env(gym.Env):
                 jointPoses = [0.0] * 9
 
         # Set Joint Motors
-        max_force = [87,87,87,87,12,12,12,5,5]
+        max_force = [87,87,87,87,12,12,12,20,20]
         
+        start_pos = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
         
-        
-        p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
+        #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
         
         if self.softtissue=='spring':
             for _ in range(20):
-                self.band.step()
+                stretch, force_mag = self.band.step()
+                force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
+                force_magnitude = np.linalg.norm(force)
+                self.force = force_magnitude
+                if self.force > self.output_force:
+                    #print('New max force: ', self.force, force_magnitude, self.output_force)
+                    self.output_force = self.force
                 p.stepSimulation()
-        elif self.softtissue=='multi':
-            for _ in range(20):
-                apply_axial_springs(self.ligament_bodies, k_total=1e5, L0=self.ligament_length, damping=0.1)
-                p.stepSimulation()
-        else:
-            for _ in range(100):
-                p.stepSimulation()
-
-            
-            
-       
         
-        force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-        force_magnitude = np.linalg.norm(force)
-        print(f'Force: {force_magnitude}')
-        self.force = force_magnitude
-        if self.force > self.output_force:
-            #print('New max force: ', self.force, force_magnitude, self.output_force)
-            self.output_force = self.force
+        elif self.softtissue=='soft':
+            #print('here')
+            for i in range(50):
+                fraction = i / 50
+                current_target = start_pos + fraction * (np.array(jointPoses) - start_pos)
+                p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = current_target,forces=max_force)
+                p.stepSimulation()
+                force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
+                force_magnitude = np.linalg.norm(force)
+                self.force = force_magnitude
+                if self.force > self.output_force:
+                    #print('New max force: ', self.force, force_magnitude, self.output_force)
+                    self.output_force = self.force
+                #time.sleep(1./240)  # Remove for speed
+        else:
+            for _ in range(20):
+                p.stepSimulation()
+                force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
+                force_magnitude = np.linalg.norm(force)
+                self.force = force_magnitude
+                if self.force > self.output_force:
+                    #print('New max force: ', self.force, force_magnitude, self.output_force)
+                    self.output_force = self.force 
+
+        if self.softtissue=='soft':
+            worldA, worldB = radius_spring(self.objectUid, self.leg,
+                                                            self.point_a, self.point_b)
+            
+            stretch = np.linalg.norm(worldA - worldB) 
+
+        
+        #force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
+        #force_magnitude = np.linalg.norm(force)
+        #print(f'Force: {force_magnitude}')
+        
         
         
         self.contact = int(bool(p.getContactPoints(self.objectUid, self.leg,1,-1))) 
         #print('Contact: ', self.contact)
         if self.contact==1:
-           # print('Contact detected between foot and leg!')
+            #print('Contact detected between foot and leg!')
             self.anycontact = 1
         
         #print('Contact points between foot and leg: ', contact)
@@ -358,28 +390,39 @@ class fracturesurgery_env(gym.Env):
         jointVelocities = np.array([js[1] for js in joint_states])   # velocities
         self.pos_distance, self.angle = utils.calculate_distances(self, actualNewPosition, actualNewOrientation, self.goal_pos, self.goal_ori)
         
-        env_utils.set_observation(self, actualNewPosition, actualNewOrientation, 
-                                               actualNewVelocity, jointPoses, 
-                                               jointVelocities,self.force,self.contact, left_contact, 
-                                               dist, self.angle, right_contact, 
-                                               dist, self.isHolding)
+        env_utils.set_observation(self, 
+                                  actualNewPosition, 
+                                  actualNewOrientation, 
+                                  actualNewVelocity, 
+                                  jointPoses, 
+                                  jointVelocities,
+                                  self.force,
+                                  self.contact, 
+                                  self.pos_distance,
+                                  self.angle,
+                                  left_contact, 
+                                  right_contact, 
+                                  dist,  
+                                  self.isHolding)
         
         
         done = env_utils.check_done(self)
         truncated = self.current_step >= self.max_steps and not done
-        if done:
-            print('MaxForce: ', self.output_force, 
-               'Pos Distance: ', self.pos_distance, 
-               'Angle: ', self.angle, 
-               'Holding: ', self.isHolding, 
-               'Contact: ', self.anycontact)
+        # if done:
+        #     print('MaxForce: ', self.output_force, 
+        #        'Pos Distance: ', self.pos_distance, 
+        #        'Angle: ', self.angle, 
+        #        'Holding: ', self.isHolding, 
+        #        'Contact: ', self.anycontact)
         
         
         
         info = {'is_success': done, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.output_force,'contact': self.anycontact}
+                'force': self.output_force,'stretch': stretch,'force_mag':force_magnitude}#,
+        #print(stretch,self.output_force)
+                #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
         reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
         reward = np.float32(reward)
         #print('force: ', self.force, reward)

@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pybullet as p
 import os
@@ -7,46 +9,77 @@ def world_from_local(body, local_point, link=-1):
     world, _ = p.multiplyTransforms(pos, orn, local_point, [0,0,0,1])
     return np.array(world)
 
+def local_to_local(body_from, body_to, local_point, link_from=-1, link_to=-1):
+    # 1. Get current world poses
+    posA, ornA = p.getBasePositionAndOrientation(body_from)
+    posB, ornB = p.getBasePositionAndOrientation(body_to)
+
+    # 2. Invert Body B's transform
+    invPosB, invOrnB = p.invertTransform(posB, ornB)
+
+    # 3. Calculate the transform from B to A
+    # This represents Body A's pose as seen from Body B's perspective
+    posA_in_B, ornA_in_B = p.multiplyTransforms(invPosB, invOrnB, posA, ornA)
+
+    # 4. Transform the mesh vertices
+    mesh_data = p.getMeshData(body_from)
+    local_vertices_in_B = []
+
+    for v in mesh_data[1]: # mesh_data[1] is the list of vertices
+        # Transform each vertex by the relative pose
+        v_relative, _ = p.multiplyTransforms(posA_in_B, ornA_in_B, v, [0, 0, 0, 1])
+        local_vertices_in_B.append(v_relative)
+    return np.array(local_vertices_in_B)
+def radius_spring(foot,leg,a,b):
+    radius = 0.01      # distance from center (creates bending resistance)
+    num_springs = 1
+    angles = np.linspace(0, 2*np.pi, num_springs, endpoint=False)
+    local_offsets = []
+
+    for angle in angles:
+        x = radius * math.cos(angle)
+        y = radius * math.sin(angle)
+        local_offsets.append(np.array([x, y, 0]))
+        
+    ornA = p.getLinkState(leg, 0)[1] if 0 != -1 else p.getBasePositionAndOrientation(leg)[1]
+    ornB = p.getLinkState(foot, 0)[1] if 0 != -1 else p.getBasePositionAndOrientation(foot)[1]
+
+    RA = np.array(p.getMatrixFromQuaternion(ornA)).reshape(3,3)
+    RB = np.array(p.getMatrixFromQuaternion(ornB)).reshape(3,3)
+
+    for localA in local_offsets:
+
+        localB = localA.copy()
+        worldA = a + RA @ localA
+        worldB = b + RB @ localB
+
+    return worldA, worldB
 def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     a = a
     b=b
     pC = a#world_from_local(foot, a, 0)
     pD = b#world_from_local(leg, b, 0)
     #print(pC,pD)
-    p.addUserDebugText( f"pC",pC, [1,0,0],1.0)
-    p.addUserDebugText( f"pD",pD, [0,1,0],1.0)
+    #p.addUserDebugText( f"pC",pC, [1,0,0],1.0)
+    #p.addUserDebugText( f"pD",pD, [0,1,0],1.0)
+    worldA,worldB = radius_spring(foot, leg, a, b)
+    #print(np.linalg.norm(worldA-worldB))
     orientation = orientation
     scale = scale
     name = name
-    mid = 0.5 * (pC + pD)
+    mid = 0.5 * (worldA + worldB)
     currentDir = os.path.dirname(os.path.abspath(__file__))
-    lig_path = os.path.join(currentDir, "Assets/ligacc.obj")
-    # name = p.loadSoftBody(lig_path,
-    #     basePosition=mid,
-    #     baseOrientation=orientation,
-    #     scale=scale,
-    #     mass=0.1,
-    #     useNeoHookean=0,
-    #     useMassSpring=1,
-    #     useBendingSprings=0,
-    #     springElasticStiffness=40,      # stiffer -> springier/shape-preserving
-    #     springDampingStiffness=1,    # moderate damping -> oscillation allowed
-    #     #springDampingAllDirections=1,
-    #    #springBendingStiffness=2,       # preserve rod shape
-    #     useSelfCollision=0,             # disable initially for tuning
-    #     collisionMargin=0.01,
-    #     frictionCoeff=0.6,
-    #     useFaceContact=0
-    # )
+    #lig_path = os.path.join(currentDir, "Assets/ligacc.obj")
+    
     E = 1e6
     nu = 0.45
     mu = E / (2 * (1 + nu))
     lam = E * nu / ((1 + nu) * (1 - 2 * nu))
     name = p.loadSoftBody(#"/home/catherine/FractureSoftGym/fracturesurgeryenv/gym_fracture/envs/Assets/ligacc.obj",
        "/home/catherine/Policies/Test/rect3.vtk",
-        mass=0.1,
-        basePosition=mid-[0,0.01,0],
-        baseOrientation=p.getQuaternionFromEuler([0, 0, 90/180*np.pi]),
+        mass=0.01,
+        basePosition=mid-[-0.01,0.015,0],
+        baseOrientation=p.getQuaternionFromEuler([90/180*np.pi, 0, 90/180*np.pi]),
         scale=1,
         useNeoHookean=1,
         useMassSpring=0,
@@ -59,71 +92,26 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
         collisionMargin=0.005
     )
 
-    # name = p.loadSoftBody(
-    # lig_path,
-    # basePosition=mid,
-    # baseOrientation=orientation,
-    # scale=scale,
-    # mass=0.02,
-    # useNeoHookean=1,
-    # NeoHookeanMu=961500,
-    # NeoHookeanLambda= 1442300,
-    # NeoHookeanDamping=0.01,
-    # useMassSpring=0,
-    # useBendingSprings=0,
-    # useFaceContact=0,
-    # collisionMargin=0.001,
-    # frictionCoeff=0.5,
-    # useSelfCollision=1
-    # )
+    
     colour = [250/255,11/255,58/255,1]
     #print(colour)
     p.changeVisualShape(name, -1, rgbaColor=colour)
-### These parameters work
-#  clothId = p.loadSoftBody("/home/catherine/FractureGym/fracturesurgeryenv/gym_fracture/envs/Assets/241206/ligament2.obj",
-#         basePosition=mid,
-#         baseOrientation=p.getQuaternionFromEuler([0, 0, 90/180*np.pi]),
-#         scale=1,
-#         mass=0.1,
-#         useNeoHookean=0,
-#         useMassSpring=1,
-#         useBendingSprings=1,
-#         springElasticStiffness=50,      # stiffer -> springier/shape-preserving
-#         springDampingStiffness=0.5,    # moderate damping -> oscillation allowed
-#         #springDampingAllDirections=1,
-#         springBendingStiffness=1,       # preserve rod shape
-#         #useSelfCollision=0,             # disable initially for tuning
-#         collisionMargin=0.005,
-#         frictionCoeff=0.6,
-#         useFaceContact=0
-#     )
-
-####
-    # clothId = p.loadSoftBody("/home/catherine/FractureGym/fracturesurgeryenv/gym_fracture/envs/Assets/241206/ligamentrectangle1.obj",
-    #     basePosition=mid,
-    #     baseOrientation=p.getQuaternionFromEuler([0, 0, 90/180*np.pi]),
-    #     scale=1,
-    #     mass=0.05,
-    #     useNeoHookean=1,
-    #     NeoHookeanMu=20,
-    #     NeoHookeanLambda=50,
-    #     NeoHookeanDamping=0.02,
-    #     collisionMargin=0.005,
-    #     useSelfCollision=1,
-    #     frictionCoeff=0.5,
-    #     useFaceContact=1)
-    # print(p.getAABB(clothId))
-    #p.setTimeStep(1.0/100.0)
-    #p.setPhysicsEngineParameter(numSolverIterations=200)#, 
-    #p.setPhysicsEngineParameter(erp=0.15)#, 
-    #p.setPhysicsEngineParameter(contactERP=0.1)#, 
-    #p.setPhysicsEngineParameter(numSubSteps=3) ##This is really important for stability and force control 
-    #p.setPhysicsEngineParameter(fixedTimeStep=1/120.0)
-    p.setPhysicsEngineParameter(numSolverIterations=1000, numSubSteps=50)
+    p.changeDynamics(name, -1, mass=0.01, linearDamping=0.05)
+    p.setPhysicsEngineParameter(contactERP=0.5)#, 
+    p.setPhysicsEngineParameter(numSolverIterations=100, 
+                                numSubSteps=50,useSplitImpulse=1,
+                                splitImpulsePenetrationThreshold=0.0001) ##This is really important for stability and force control
+    p.setPhysicsEngineParameter(contactSlop=0) # Removes the 'allowance' for overlap
+    p.setCollisionFilterGroupMask(name, -1, collisionFilterGroup=0, collisionFilterMask=0) # Disable collisions for soft body to prevent explosion during tuning
+    #p.setCollisionFilterGroupMask(leg, -1, collisionFilterGroup=0, collisionFilterMask=0)
+    p.setCollisionFilterPair(name, foot, -1, -1, enableCollision=0)
+    p.setCollisionFilterPair(name, leg, -1, -1, enableCollision=0)
+    
+    #time.sleep(50)
+    
+    auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=worldA, worldB=worldB, axis=0, num_anchors=8)
     p.stepSimulation()
-    #time.sleep(5)
-    auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=pC, worldB=pD, axis=0, num_anchors=5)
-
+    return worldA, worldB
 import numpy as np
 
 def make_ligament_rod(foot, leg, a, b, rod_radius=0.01, rod_mass=0.05, stiffness=1e5):
@@ -237,33 +225,58 @@ def auto_anchor_ligament(clothId, bodyA, bodyB, worldA, worldB, axis=0, num_anch
     # get current simulation mesh
     numVerts, verts = p.getMeshData(clothId, -1, flags=p.MESH_DATA_SIMULATION_MESH)
     verts = np.array(verts)
-
+    #print(verts)
     # project vertices onto chosen axis
-    # axis_vals = verts[:, axis]
-
-    # # find min/max along that axis = ends of ligament
-    # min_val, max_val = np.min(axis_vals), np.max(axis_vals)
+    #axis_vals = verts[:, axis]
+    #data = p.getMeshData(clothId, -1, flags=p.MESH_DATA_SIMULATION_MESH)
+    # text_uid = []
+    # for i in range(data[0]):
+    #   pos = data[1][i]
+    #   #uid = p.addUserDebugText(str(i), pos, textColorRGB=[1,1,1])
+      #text_uid.append(uid)
+    # find min/max along that axis = ends of ligament
+    #min_val, max_val = np.min(axis_vals), np.max(axis_vals)
 
     # # indices sorted by distance from each end
-    # endA_ids = np.argsort(np.abs(axis_vals - min_val))[:num_anchors]
-    # endB_ids = np.argsort(np.abs(axis_vals - max_val))[:num_anchors]
+    #endA_ids = np.argsort(np.abs(axis_vals - min_val))[:num_anchors]
+    #endB_ids = np.argsort(np.abs(axis_vals - max_val))[:num_anchors]
     # Find closest vertices to bodyA and bodyB
-    distA = np.linalg.norm(verts - worldA, axis=1)
-    distB = np.linalg.norm(verts - worldB, axis=1)
-    anchorA_vertices = np.where(distA < 0.05)[0]
-    anchorB_vertices = np.where(distB < 0.05)[0]
+    #distA = np.linalg.norm(verts - worldA, axis=1)
+    #distB = np.linalg.norm(verts - worldB, axis=1)
+    #print(f"distA:{distA}, distB:{distB}")
+    #anchorA_vertices = np.where(distA < 0.05)[0]
+    #anchorB_vertices = np.where(distB < 0.05)[0]
     #print(f'verts:{verts}, worldA:{worldA}, worldB:{worldB}, distA:{distA}, distB:{distB}, anchorA_vertices:{anchorA_vertices}, anchorB_vertices:{anchorB_vertices}')
     #print(p.getContactPoints(clothId, bodyA))
     # create anchors at those vertices
-    anchorA_vertices = anchorA_vertices[:num_anchors]
-    anchorB_vertices = anchorB_vertices[:num_anchors]
+    #anchorA_vertices = anchorA_vertices[:num_anchors]
+    #anchorB_vertices = anchorB_vertices[:num_anchors]
+    #print(f"Anchoring vertices {endA_ids} to bodyA (foot) and {endB_ids} to bodyB (leg)")
+    #p.addUserDebugText('WorldA', worldA, [1,1,0], 2.0)
+    #p.addUserDebugText('WorldB', worldB, [1,0,1], 2.0)
+    anchorB_vertices = [0,3,4,7]
+    anchorA_vertices = [1,2,5,6]
+    b_verts =local_to_local(clothId, bodyB, -1)
+    a_verts =local_to_local(clothId, bodyA, -1)
+    a_coords = a_verts[anchorA_vertices]
+    b_coords = b_verts[anchorB_vertices]
+    #print(a_coords, b_coords)
     
-    for vid in anchorA_vertices:
+    #print(f"Distance between anchors: {diff:.4f} m")
+    # print(f"Anchor A vertices (local to bodyB): {a_coords}")
+    # print(f"Anchor B vertices (local to bodyB): {b_coords}")
+    # print(f"Anchor A vertices (local to bodyA): {a_coords[1]}")#
+    #diff = np.linalg.norm(verts[3]-verts[5])
+    #print(f"Distance between anchors: {diff:.4f} m")
+    for i, vid in enumerate(anchorA_vertices):
         #print(f'vid:{int(vid)}')
-        p.createSoftBodyAnchor(clothId, int(vid), bodyA, -1)
+        #print(a_coords[i])
+        p.createSoftBodyAnchor(clothId, int(vid), bodyA, -1,a_coords[i].tolist())
         #p.addUserDebugText( f"anchorA_{vid}",vid,[1,0,0], 5.0)
-    for vid in anchorB_vertices:
-        p.createSoftBodyAnchor(clothId, int(vid), bodyB, -1)
+        #p.addUserDebugText(f"A{vid}", verts[int(vid)], [0,0,1], 2)
+    for i, vid in enumerate(anchorB_vertices):
+        p.createSoftBodyAnchor(clothId, int(vid), bodyB, -1,b_coords[i].tolist())
         #p.addUserDebugText( f"anchorB_{vid}",vid,[0,1,0], 1.0)
-
+        #p.addUserDebugText(f"B{vid}", verts[int(vid)], [0,1,0], 2)
+    
     #print(f"Anchored {len(anchorA_vertices)} vertices to bodyA and {len(anchorB_vertices)} to bodyB")
