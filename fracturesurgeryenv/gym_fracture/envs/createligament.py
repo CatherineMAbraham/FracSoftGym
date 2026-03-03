@@ -69,14 +69,14 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     name = name
     mid = 0.5 * (worldA + worldB)
     currentDir = os.path.dirname(os.path.abspath(__file__))
-    #lig_path = os.path.join(currentDir, "Assets/ligacc.obj")
+    lig_path = os.path.join(currentDir, "Assets/rect3.vtk")
     
     E = 1e6
     nu = 0.45
     mu = E / (2 * (1 + nu))
     lam = E * nu / ((1 + nu) * (1 - 2 * nu))
     name = p.loadSoftBody(#"/home/catherine/FractureSoftGym/fracturesurgeryenv/gym_fracture/envs/Assets/ligacc.obj",
-       "/home/catherine/Policies/Test/rect3.vtk",
+       lig_path,
         mass=0.01,
         basePosition=mid-[-0.01,0.015,0],
         baseOrientation=p.getQuaternionFromEuler([90/180*np.pi, 0, 90/180*np.pi]),

@@ -419,7 +419,7 @@ class fracturesurgery_env(gym.Env):
         info = {'is_success': done, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.output_force,'stretch': stretch,'force_mag':force_magnitude}#,
+                'force': self.output_force}#'stretch': stretch,'force_mag':force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
         reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
