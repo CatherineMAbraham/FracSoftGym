@@ -261,9 +261,7 @@ class fracturesurgery_env(gym.Env):
             
             
         else: 
-            self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0,0.0,-0.01])
-            self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.objectUid, 1,local_offset=[0,-0.0015,0.04])
-            self.ligament_bodies, self.ligament_length = create_ligament_chain(self.point_a, self.point_b, num_segments=5, total_mass=0.05)
+            
             pass  
        
         
@@ -320,6 +318,7 @@ class fracturesurgery_env(gym.Env):
         
         if self.softtissue=='spring':
             for _ in range(20):
+                p.stepSimulation()
                 stretch, force_mag = self.band.step()
                 force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
                 force_magnitude = np.linalg.norm(force)
@@ -327,7 +326,7 @@ class fracturesurgery_env(gym.Env):
                 if self.force > self.output_force:
                     #print('New max force: ', self.force, force_magnitude, self.output_force)
                     self.output_force = self.force
-                p.stepSimulation()
+                
         
         elif self.softtissue=='soft':
             #print('here')
