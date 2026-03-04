@@ -317,6 +317,7 @@ class fracturesurgery_env(gym.Env):
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
         
         if self.softtissue=='spring':
+            p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)
             for _ in range(20):
                 p.stepSimulation()
                 stretch, force_mag = self.band.step()
@@ -343,6 +344,7 @@ class fracturesurgery_env(gym.Env):
                     self.output_force = self.force
                 #time.sleep(1./240)  # Remove for speed
         else:
+            p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)
             for _ in range(20):
                 p.stepSimulation()
                 force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
