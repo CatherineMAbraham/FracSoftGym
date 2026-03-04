@@ -118,6 +118,7 @@ class fracturesurgery_env(gym.Env):
     def reset(self, seed=None, options=None):
         self.n += 1
         self.current_step = 0
+        self.force = 0
         self.output_force = 0
         contact = 0
         self.anycontact = 0
@@ -317,43 +318,36 @@ class fracturesurgery_env(gym.Env):
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
         
         if self.softtissue=='spring':
-            p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)
-            for _ in range(20):
-                p.stepSimulation()
-                stretch, force_mag = self.band.step()
-                force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-                force_magnitude = np.linalg.norm(force)
-                self.force = force_magnitude
-                if self.force > self.output_force:
-                    #print('New max force: ', self.force, force_magnitude, self.output_force)
-                    self.output_force = self.force
+            utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+            #p.stepSimulation()
+            stretch, force_mag = self.band.step()
+            force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
+            force_magnitude = np.linalg.norm(force)
+            self.force = force_magnitude
+            if self.force > self.output_force:
+                #print('New max force: ', self.force, force_magnitude, self.output_force)
+                self.output_force = self.force
                 
         
         elif self.softtissue=='soft':
-            #print('here')
-            for i in range(50):
-                fraction = i / 50
-                current_target = start_pos + fraction * (np.array(jointPoses) - start_pos)
-                p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = current_target,forces=max_force)
-                p.stepSimulation()
-                force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-                force_magnitude = np.linalg.norm(force)
-                self.force = force_magnitude
-                if self.force > self.output_force:
-                    #print('New max force: ', self.force, force_magnitude, self.output_force)
-                    self.output_force = self.force
+            utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=50)
+            #p.stepSimulation()
+            force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
+            force_magnitude = np.linalg.norm(force)
+            self.force = force_magnitude
+            if self.force > self.output_force:
+                #print('New max force: ', self.force, force_magnitude, self.output_force)
+                self.output_force = self.force
                 #time.sleep(1./240)  # Remove for speed
-        else:
-            p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)
-            for _ in range(20):
-                p.stepSimulation()
-                force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-                force_magnitude = np.linalg.norm(force)
-                self.force = force_magnitude
-                if self.force > self.output_force:
-                    #print('New max force: ', self.force, force_magnitude, self.output_force)
-                    self.output_force = self.force 
-
+        else: 
+            utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+            #p.stepSimulation()
+            force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
+            self.force = np.linalg.norm(force)
+            if self.force > self.output_force:
+                #print('New max force: ', self.force, force_magnitude, self.output_force)
+                self.output_force = self.force 
+                #print(self.output_force)
         if self.softtissue=='soft':
             worldA, worldB = radius_spring(self.objectUid, self.leg,
                                                             self.point_a, self.point_b)
@@ -405,7 +399,6 @@ class fracturesurgery_env(gym.Env):
                                   right_contact, 
                                   dist,  
                                   self.isHolding)
-        
         
         done = env_utils.check_done(self)
         truncated = self.current_step >= self.max_steps and not done

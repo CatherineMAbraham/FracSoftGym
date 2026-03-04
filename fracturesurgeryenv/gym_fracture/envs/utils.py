@@ -425,6 +425,19 @@ def move_panda_smoothly(self,robot_id, joint_indices, target_positions,
         q_current = np.array([p.getJointState(robot_id, j)[0] for j in joint_indices])
         v_current = np.array([p.getJointState(robot_id, j)[1] for j in joint_indices])
 
+def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
+    for i in range(numsubsteps):
+        alpha = (i + 1) / numsubsteps
+        intermediate_targets = joint_current + alpha * (joint_targets - joint_current)
+        p.setJointMotorControlArray(
+            self.pandaUid,
+            jointIndices=range(9),
+            controlMode=p.POSITION_CONTROL,
+            targetPositions=intermediate_targets.tolist(),
+            forces=maxforce
+        )
+        p.stepSimulation()
+        
 def compute_ee_forward_dynamics(
     robot_id,
     ee_link_index,
