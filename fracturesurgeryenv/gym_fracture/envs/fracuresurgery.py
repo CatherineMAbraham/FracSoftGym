@@ -27,7 +27,8 @@ class fracturesurgery_env(gym.Env):
         max_steps=100,
         obs_type='dict',
         goal_type='random',
-        dv=0.001,
+        dt=0.001,
+        dr=0.1,
         action_type='euler',
         horizon='variable',
         softtissue='spring',
@@ -40,7 +41,8 @@ class fracturesurgery_env(gym.Env):
         self.obs_type = obs_type
         self.goal_type = goal_type
         self.reward_type = reward_type
-        self.dv = dv
+        self.dt = dt
+        self.dr = dr
         self.max_steps = max_steps
         self.action_type = action_type
         self.horizon = horizon
@@ -279,7 +281,7 @@ class fracturesurgery_env(gym.Env):
         self.current_step += 1
         
         ## Unpack Action
-        dx, dy, dz, qx, qy, qz, qw, x, y, z = utils.unpack_action(self,action, self.dv)
+        dx, dy, dz, qx, qy, qz, qw, x, y, z = utils.unpack_action(self,action, self.dr)
         mode_map = {
             'euler': 'euler',
             'fouractions': 'fouractions',
@@ -330,7 +332,7 @@ class fracturesurgery_env(gym.Env):
                 
         
         elif self.softtissue=='soft':
-            utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=50)
+            utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
             #p.stepSimulation()
             force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
             force_magnitude = np.linalg.norm(force)
@@ -366,7 +368,7 @@ class fracturesurgery_env(gym.Env):
         if self.contact==1:
             #print('Contact detected between foot and leg!')
             self.anycontact = 1
-        
+            #print('Contact!')
         #print('Contact points between foot and leg: ', contact)
         #print('Contact points between foot and leg: ', contact)
         #print('Load cell force: ', force, force_magnitude)
@@ -401,6 +403,9 @@ class fracturesurgery_env(gym.Env):
                                   self.isHolding)
         
         done = env_utils.check_done(self)
+        # if self.output_force > self.maxforce:
+        #     truncated = True
+        #else:
         truncated = self.current_step >= self.max_steps and not done
         # if done:
         #     print('MaxForce: ', self.output_force, 
@@ -414,7 +419,7 @@ class fracturesurgery_env(gym.Env):
         info = {'is_success': done, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.output_force}#'stretch': stretch,'force_mag':force_magnitude}#,
+                'force': self.output_force,'contact': self.anycontact}#'stretch': stretch,'force_mag':force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
         reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)

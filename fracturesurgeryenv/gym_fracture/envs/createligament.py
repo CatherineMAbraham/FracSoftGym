@@ -78,7 +78,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     name = p.loadSoftBody(#"/home/catherine/FractureSoftGym/fracturesurgeryenv/gym_fracture/envs/Assets/ligacc.obj",
        lig_path,
         mass=0.01,
-        basePosition=mid-[-0.01,0.015,0],
+        basePosition=mid-[-0.01,0.02,0],
         baseOrientation=p.getQuaternionFromEuler([90/180*np.pi, 0, 90/180*np.pi]),
         scale=1,
         useNeoHookean=1,
@@ -109,7 +109,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     
     #time.sleep(50)
     
-    auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=worldA, worldB=worldB, axis=0, num_anchors=8)
+    auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=worldA, worldB=worldB, axis=0, num_anchors=4)
     p.stepSimulation()
     return worldA, worldB
 import numpy as np
@@ -241,21 +241,21 @@ def auto_anchor_ligament(clothId, bodyA, bodyB, worldA, worldB, axis=0, num_anch
     #endA_ids = np.argsort(np.abs(axis_vals - min_val))[:num_anchors]
     #endB_ids = np.argsort(np.abs(axis_vals - max_val))[:num_anchors]
     # Find closest vertices to bodyA and bodyB
-    #distA = np.linalg.norm(verts - worldA, axis=1)
-    #distB = np.linalg.norm(verts - worldB, axis=1)
+    distA = np.linalg.norm(verts - worldA, axis=1)
+    distB = np.linalg.norm(verts - worldB, axis=1)
     #print(f"distA:{distA}, distB:{distB}")
-    #anchorA_vertices = np.where(distA < 0.05)[0]
-    #anchorB_vertices = np.where(distB < 0.05)[0]
+    anchorA_vertices = np.where(distA < 0.05)[0]
+    anchorB_vertices = np.where(distB < 0.05)[0]
     #print(f'verts:{verts}, worldA:{worldA}, worldB:{worldB}, distA:{distA}, distB:{distB}, anchorA_vertices:{anchorA_vertices}, anchorB_vertices:{anchorB_vertices}')
     #print(p.getContactPoints(clothId, bodyA))
     # create anchors at those vertices
-    #anchorA_vertices = anchorA_vertices[:num_anchors]
-    #anchorB_vertices = anchorB_vertices[:num_anchors]
+    anchorA_vertices = anchorA_vertices[:num_anchors]
+    anchorB_vertices = anchorB_vertices[:num_anchors]
     #print(f"Anchoring vertices {endA_ids} to bodyA (foot) and {endB_ids} to bodyB (leg)")
     #p.addUserDebugText('WorldA', worldA, [1,1,0], 2.0)
     #p.addUserDebugText('WorldB', worldB, [1,0,1], 2.0)
-    anchorB_vertices = [0,3,4,7]
-    anchorA_vertices = [1,2,5,6]
+    #anchorB_vertices = [0,3,4,7]
+    #anchorA_vertices = [1,2,5,6]
     b_verts =local_to_local(clothId, bodyB, -1)
     a_verts =local_to_local(clothId, bodyA, -1)
     a_coords = a_verts[anchorA_vertices]

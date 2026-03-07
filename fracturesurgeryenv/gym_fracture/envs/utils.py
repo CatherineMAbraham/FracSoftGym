@@ -212,7 +212,7 @@ def unpack_action(self, action, dv):
     elif self.action_type == 'fouractions':
         return [action[0] * dv, action[1] * dv, 0, action[2] * dv*10, 0, action[3] * dv*10, 0, 0, 0, 0]
     else:
-        return [action[0] * dv, action[1] * dv, action[2] * dv, action[3] * dv*10, action[4] * dv*10, action[5] * dv*10, 0, 0, 0, 0]
+        return [action[0] * self.dt, action[1] * self.dt, action[2] * self.dt, action[3] * self.dr, action[4] * self.dr, action[5] * self.dr, 0, 0, 0, 0]
 
 
 def calculate_distances(self,new_pos,new_ori,goal_pos,goal_ori):
