@@ -261,8 +261,8 @@ class fracturesurgery_env(gym.Env):
                                          bodyB=self.objectUid, linkB= 1,
                                          young_modulus=1e6,
                                          area=5e-6,
-                                         rest_length=0.05,
-                                         damping_ratio=1)
+                                         rest_length=0.1
+                                         )
             
             
         else: 

@@ -23,15 +23,46 @@ class ElasticBand:
         # Realism Parameters
         self.exponent = exponent  # 1.0 = linear, 1.5-2.0 = realistic tissue/rubber
         self.damping_ratio = damping_ratio
-        num_springs = 1
+        num_springs = 3
         radius = 0.01      # distance from center (creates bending resistance)
         posA, velA = self._get_pose_vel(self.bodyA, self.linkA,local_offset=[0,0.0,-0.01])
         posB, velB = self._get_pose_vel(self.bodyB, self.linkB,local_offset=[0,-0.0015,0.04])
         ornA = p.getLinkState(self.bodyA, self.linkA)[1] if self.linkA != -1 else p.getBasePositionAndOrientation(self.bodyA)[1]
         ornB = p.getLinkState(self.bodyB, self.linkB)[1] if self.linkB != -1 else p.getBasePositionAndOrientation(self.bodyB)[1]
-        self.L0 = np.linalg.norm(np.array(posB) - np.array(posA))
+        #self.L0 = np.linalg.norm(np.array(posB) - np.array(posA))
         self.last_force_vector = np.zeros(3)
-        self.k = (1e6 * 5e-6) / self.L0
+        # critical damping
+
+        # Attachment offsets in circular pattern
+        #angles = np.linspace(0, 2*np.pi, num_springs, endpoint=False)
+        width = 0.005 #5mm wide rectangle
+        #create 3 attachment points in a line across the width of the band
+        angles = np.linspace(-width/2, width/2, num_springs)
+        self.local_offsets = []
+
+        # for angle in angles:
+        #     x = radius * math.cos(angle)
+        #     y = radius * math.sin(angle)
+        #     self.local_offsets.append(np.array([x, y, 0]))
+        
+        for x_offset in np.linspace(-width/2, width/2, num_springs):
+              self.local_offsets.append(np.array([radius, 0, x_offset])) # Flat along X
+        posA = np.array(posA)
+        posB = np.array(posB)
+        velA = np.array(velA)
+        velB = np.array(velB)
+
+        self.RA = np.array(p.getMatrixFromQuaternion(ornA)).reshape(3,3)
+        self.RB = np.array(p.getMatrixFromQuaternion(ornB)).reshape(3,3)
+        base_L0 = np.linalg.norm((posB + self.RB @ self.local_offsets[0]) - (posA + self.RA @ self.local_offsets[0]))
+        self.L0_list = []
+        recruitment_spread = 0.02 # 2% variation
+        for i in range(num_springs):
+            # Linearly vary L0 for each fiber
+            factor = 1.0 + (i * recruitment_spread / (num_springs - 1))
+            self.L0_list.append(base_L0 * factor)
+        
+        self.k = (1e6 * 5e-6) / base_L0
         
         mA = p.getDynamicsInfo(self.bodyA, -1)[0]
         mB = p.getDynamicsInfo(self.bodyB, -1)[0]
@@ -42,25 +73,7 @@ class ElasticBand:
             m_eff = (mA * mB) / (mA + mB)
         #m_eff = (mA * mB) / (mA + mB)
 
-        self.c = 2 * math.sqrt(self.k * m_eff)  # critical damping
-
-        # Attachment offsets in circular pattern
-        angles = np.linspace(0, 2*np.pi, num_springs, endpoint=False)
-        self.local_offsets = []
-
-        for angle in angles:
-            x = radius * math.cos(angle)
-            y = radius * math.sin(angle)
-            self.local_offsets.append(np.array([x, y, 0]))
-        
-        
-        posA = np.array(posA)
-        posB = np.array(posB)
-        velA = np.array(velA)
-        velB = np.array(velB)
-
-        self.RA = np.array(p.getMatrixFromQuaternion(ornA)).reshape(3,3)
-        self.RB = np.array(p.getMatrixFromQuaternion(ornB)).reshape(3,3)
+        self.c = 2 * math.sqrt(self.k * m_eff)  
 
     def _get_pose_vel(self, body, link,local_offset=[0,-0.01,0]):
         if link == -1:
@@ -78,25 +91,30 @@ class ElasticBand:
         # Initialize default return values
         stretch = 0.0
         force_mag = 0.0
+        total_force_mag = 0.0
+        total_stretch = 0.0
+        active_springs = 0
         
 
         # Effective mass for damping
-        posA, velA = self._get_pose_vel(self.bodyA, self.linkA,local_offset=[0,0.0,-0.01])
-        posB, velB = self._get_pose_vel(self.bodyB, self.linkB,local_offset=[0,-0.0015,0.04])
+        posA, velA = self._get_pose_vel(self.bodyA, self.linkA,local_offset=[0.0,0.0,-0.01])
+        posB, velB = self._get_pose_vel(self.bodyB, self.linkB,local_offset=[0.0,-0.0015,0.04])
         #ornA = p.getLinkState(self.bodyA, self.linkA)[1] if self.linkA != -1 else p.getBasePositionAndOrientation(self.bodyA)[1]
         #ornB = p.getLinkState(self.bodyB, self.linkB)[1] if self.linkB != -1 else p.getBasePositionAndOrientation(self.bodyB)[1]
-
-        for localA in self.local_offsets:
-
-            localB = localA.copy()
-
+        ornA = p.getLinkState(self.bodyA, self.linkA)[1] if self.linkA != -1 else p.getBasePositionAndOrientation(self.bodyA)[1]
+        self.RA = np.array(p.getMatrixFromQuaternion(ornA)).reshape(3,3)
+        ornB = p.getLinkState(self.bodyB, self.linkB)[1] if self.linkB != -1 else p.getBasePositionAndOrientation(self.bodyB)[1]
+        self.RB = np.array(p.getMatrixFromQuaternion(ornB)).reshape(3,3)
+        for i, localA in enumerate(self.local_offsets):
+            #print(f"Local attachment point {i}: {localA}")
+            
             worldA = posA + self.RA @ localA
-            worldB = posB + self.RB @ localB
+            worldB = posB + self.RB @ localA
 
             delta = worldB - worldA
             dist = np.linalg.norm(delta)
-
-            lambda_stretch = dist/self.L0
+            current_L0 = self.L0_list[i]
+            lambda_stretch = dist/current_L0
             #print(f"Band length: {dist:.4f} m, Stretch: {dist - self.L0:.4f} m")
             #time.sleep(10)
             if dist < 1e-6:
@@ -106,22 +124,28 @@ class ElasticBand:
             mu = self.E / (2 * (1 + nu))
 
             direction = delta / dist
-            stretch = dist - self.L0
+            stretch = dist - current_L0
 
             if stretch <= 0:
                 continue  # tension only
 
             # Linear spring
             #Fs = self.k * (stretch** self.exponent)
-            Fs = self.A *mu * (lambda_stretch - 1/lambda_stretch**2)
+            # In step()
+            spring_area = self.A / len(self.local_offsets)
+            Fs = spring_area * mu * (lambda_stretch - 1/lambda_stretch**2)
+            #Fs = self.A *mu * (lambda_stretch - 1/lambda_stretch**2)
             # Relative velocity along spring direction
             rel_vel = np.dot((velB - velA), direction)
-            actual_damping = self.c * (lambda_stretch ** 2) # Damping increases with stretch
+            actual_damping = self.c * (lambda_stretch ** 2)/len(self.local_offsets) # Damping increases with stretch
             Fd = actual_damping * rel_vel
             #Fd = self.c * rel_vel
 
             force_mag = Fs + Fd
             force_mag = max(0.0, force_mag)
+            total_force_mag += force_mag
+            total_stretch += stretch
+            active_springs += 1
 
             forc_vec = force_mag * direction
             F_vec = forc_vec.copy()
@@ -137,11 +161,13 @@ class ElasticBand:
             p.applyExternalForce(self.bodyB, -1, (F_vec).tolist(),
                                      worldB.tolist(), p.WORLD_FRAME)
 
-            color = [1, 0, 0] if stretch > 0 else [0, 1, 0] 
+            #color = [1, 0, 0] if stretch > 0 else [0, 1, 0] 
+            
             width = max(1, int(1)) 
-            p.addUserDebugLine(worldA, worldB, color, 2) 
+            # make each spring a different color for visualization
+            colour = [1,0,0] if i == 0 else [0,1,0] if i == 1 else [0,0,1]
+            p.addUserDebugLine(worldA, worldB, colour, 2,lifeTime=0.1) 
             #print(stretch, force_mag)
-            return stretch, force_mag
             # if self.band_id is None: 
             #     self.band_id = p.addUserDebugLine(posA, posB, color, 1) 
             # else: 
@@ -155,6 +181,9 @@ class ElasticBand:
         # else: 
         #     p.addUserDebugText( text, posA + [0, 0.15, 0.15], textSize=1.2, replaceItemUniqueId=self.force_text_id)
         
+        if active_springs > 0:
+            return total_stretch / active_springs, total_force_mag
+
         # Return default values if no stretch detected
         return stretch, force_mag
 
