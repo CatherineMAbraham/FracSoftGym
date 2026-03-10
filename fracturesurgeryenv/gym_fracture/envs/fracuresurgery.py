@@ -33,7 +33,8 @@ class fracturesurgery_env(gym.Env):
         horizon='variable',
         softtissue='spring',
         start_pos = 'home',
-        maxforce = 3.5
+        maxforce = 3.5,
+        test = False
     ):
         metadata = {"render_modes": ["human", None]}
         ## Initialise variables
@@ -65,6 +66,7 @@ class fracturesurgery_env(gym.Env):
         self.start_pos = start_pos # 'home' or 'extended'
         self.maxforce = maxforce
         self.anycontact = 0
+        self.test= test
         ##
         
         ## Rendering setup
@@ -202,8 +204,8 @@ class fracturesurgery_env(gym.Env):
         # Dummy visual shape for goal marker
         
         
-        # goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
-        #                   basePosition=self.goal_pos, baseOrientation=self.goal_ori)
+        goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
+                           basePosition=self.goal_pos, baseOrientation=self.goal_ori)
  
         
        ## Enable force/torque sensors
@@ -332,7 +334,7 @@ class fracturesurgery_env(gym.Env):
                 
         
         elif self.softtissue=='soft':
-            utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+            utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=50)
             #p.stepSimulation()
             force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
             force_magnitude = np.linalg.norm(force)
@@ -403,9 +405,12 @@ class fracturesurgery_env(gym.Env):
                                   self.isHolding)
         
         done = env_utils.check_done(self)
-        # if self.output_force > self.maxforce:
-        #     truncated = True
-        #else:
+        if self.test:
+            if self.output_force > self.maxforce:
+                truncated = True
+            
+
+        
         truncated = self.current_step >= self.max_steps and not done
         # if done:
         #     print('MaxForce: ', self.output_force, 
@@ -416,7 +421,7 @@ class fracturesurgery_env(gym.Env):
         
         
         
-        info = {'is_success': done, 'current_step': self.current_step, 
+        info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
                 'force': self.output_force,'contact': self.anycontact}#'stretch': stretch,'force_mag':force_magnitude}#,

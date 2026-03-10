@@ -97,7 +97,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     #print(colour)
     p.changeVisualShape(name, -1, rgbaColor=colour)
     p.changeDynamics(name, -1, mass=0.01, linearDamping=0.05)
-    p.setPhysicsEngineParameter(contactERP=0.5)#, 
+    p.setPhysicsEngineParameter(contactERP=0.5)#, cfm=0.5)#, 
     p.setPhysicsEngineParameter(numSolverIterations=100, 
                                 numSubSteps=50,useSplitImpulse=1,
                                 splitImpulsePenetrationThreshold=0.0001) ##This is really important for stability and force control
