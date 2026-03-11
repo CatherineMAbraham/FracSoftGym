@@ -87,8 +87,8 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
         NeoHookeanLambda=lam,
         useBendingSprings=1,
         frictionCoeff=0.5,
-        NeoHookeanDamping=0.01,
-        repulsionStiffness=0.5 * mu,
+        NeoHookeanDamping=0.02,
+        #repulsionStiffness=0.5 * mu,
         collisionMargin=0.005
     )
 
@@ -96,12 +96,12 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     colour = [250/255,11/255,58/255,1]
     #print(colour)
     p.changeVisualShape(name, -1, rgbaColor=colour)
-    p.changeDynamics(name, -1, mass=0.01, linearDamping=0.05)
-    p.setPhysicsEngineParameter(contactERP=0.5)#, cfm=0.5)#, 
-    p.setPhysicsEngineParameter(numSolverIterations=100, 
-                                numSubSteps=50,useSplitImpulse=1,
+    p.changeDynamics(name, -1, mass=0.05, linearDamping=0.05)
+    p.setPhysicsEngineParameter(contactERP=0.1)#, CFM=0.0011)#, cfm=0.5)#, 
+    p.setPhysicsEngineParameter(numSolverIterations=10, 
+                                numSubSteps=10,useSplitImpulse=1,
                                 splitImpulsePenetrationThreshold=0.0001) ##This is really important for stability and force control
-    p.setPhysicsEngineParameter(contactSlop=0) # Removes the 'allowance' for overlap
+    #p.setPhysicsEngineParameter(contactSlop=0) # Removes the 'allowance' for overlap
     p.setCollisionFilterGroupMask(name, -1, collisionFilterGroup=0, collisionFilterMask=0) # Disable collisions for soft body to prevent explosion during tuning
     #p.setCollisionFilterGroupMask(leg, -1, collisionFilterGroup=0, collisionFilterMask=0)
     p.setCollisionFilterPair(name, foot, -1, -1, enableCollision=0)
@@ -109,7 +109,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale):
     
     #time.sleep(50)
     
-    auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=worldA, worldB=worldB, axis=0, num_anchors=4)
+    auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=worldA, worldB=worldB, axis=0, num_anchors=2)
     p.stepSimulation()
     return worldA, worldB
 import numpy as np

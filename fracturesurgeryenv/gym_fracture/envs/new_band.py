@@ -7,7 +7,7 @@ def vec(x): return np.array(x, dtype=float)
 class ElasticBand:
     def __init__(self, bodyA, linkA, bodyB, linkB,
                  young_modulus, area, rest_length,
-                 damping_ratio=0.5, exponent=1.5):
+                 damping_ratio=0.5, exponent=1.5,num_springs=3):
         self.bodyA = bodyA
         self.linkA = linkA
         self.bodyB = bodyB
@@ -23,7 +23,7 @@ class ElasticBand:
         # Realism Parameters
         self.exponent = exponent  # 1.0 = linear, 1.5-2.0 = realistic tissue/rubber
         self.damping_ratio = damping_ratio
-        num_springs = 3
+        self.num_springs = num_springs
         radius = 0.01      # distance from center (creates bending resistance)
         posA, velA = self._get_pose_vel(self.bodyA, self.linkA,local_offset=[0,0.0,-0.01])
         posB, velB = self._get_pose_vel(self.bodyB, self.linkB,local_offset=[0,-0.0015,0.04])
@@ -125,15 +125,24 @@ class ElasticBand:
 
             direction = delta / dist
             stretch = dist - current_L0
-
-            if stretch <= 0:
-                continue  # tension only
+            spring_area = self.A / len(self.local_offsets)
+            # if stretch <= 0:
+            #     continue  # tension only
+            if stretch > 0:
+                # NORMAL TENSION (Neo-Hookean)
+                Fs = spring_area * mu * (lambda_stretch - 1/(lambda_stretch**2))
+            else:
+                # COMPRESSION (The "Collision" Force)
+                # We use a linear high-stiffness "Bumper" to mimic mesh compression
+                # This simulates the physical volume of the ligament being squashed
+                compression_stiffness = self.E * self.A * 10 # 10x multiplier for hard contact
+                Fs = compression_stiffness * stretch # stretch is negative here, creating pushing force
 
             # Linear spring
             #Fs = self.k * (stretch** self.exponent)
             # In step()
-            spring_area = self.A / len(self.local_offsets)
-            Fs = spring_area * mu * (lambda_stretch - 1/lambda_stretch**2)
+            
+            #Fs = spring_area * mu * (lambda_stretch - 1/lambda_stretch**2)
             #Fs = self.A *mu * (lambda_stretch - 1/lambda_stretch**2)
             # Relative velocity along spring direction
             rel_vel = np.dot((velB - velA), direction)

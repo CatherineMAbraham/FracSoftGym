@@ -34,6 +34,8 @@ class fracturesurgery_env(gym.Env):
         softtissue='spring',
         start_pos = 'home',
         maxforce = 3.5,
+        number_of_springs = 3,
+        contact_type = False,
         test = False
     ):
         metadata = {"render_modes": ["human", None]}
@@ -65,6 +67,8 @@ class fracturesurgery_env(gym.Env):
         self.n = 0
         self.start_pos = start_pos # 'home' or 'extended'
         self.maxforce = maxforce
+        self.contact_type = contact_type
+        self.number_of_springs = number_of_springs
         self.anycontact = 0
         self.test= test
         ##
@@ -204,8 +208,8 @@ class fracturesurgery_env(gym.Env):
         # Dummy visual shape for goal marker
         
         
-        goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
-                           basePosition=self.goal_pos, baseOrientation=self.goal_ori)
+        # goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
+        #                    basePosition=self.goal_pos, baseOrientation=self.goal_ori)
  
         
        ## Enable force/torque sensors
@@ -261,7 +265,8 @@ class fracturesurgery_env(gym.Env):
                                          bodyB=self.objectUid, linkB= 1,
                                          young_modulus=1e6,
                                          area=5e-6,
-                                         rest_length=0.1
+                                         rest_length=0.1,
+                                         num_springs=self.number_of_springs
                                          )
             
             
@@ -334,7 +339,7 @@ class fracturesurgery_env(gym.Env):
                 
         
         elif self.softtissue=='soft':
-            utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=50)
+            utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
             #p.stepSimulation()
             force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
             force_magnitude = np.linalg.norm(force)
@@ -407,11 +412,12 @@ class fracturesurgery_env(gym.Env):
         done = env_utils.check_done(self)
         if self.test:
             if self.output_force > self.maxforce:
+                print('Terminating episode due to excessive force during testing.')
                 truncated = True
-            
-
-        
-        truncated = self.current_step >= self.max_steps and not done
+            else:
+                truncated = self.current_step >= self.max_steps and not done
+        else:
+            truncated = self.current_step >= self.max_steps and not done
         # if done:
         #     print('MaxForce: ', self.output_force, 
         #        'Pos Distance: ', self.pos_distance, 
