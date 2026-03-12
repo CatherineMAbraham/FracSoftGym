@@ -126,22 +126,24 @@ class ElasticBand:
             direction = delta / dist
             stretch = dist - current_L0
             spring_area = self.A / len(self.local_offsets)
+            if stretch <= 0:
+                continue  # tension only
             # if stretch <= 0:
             #     continue  # tension only
-            if stretch > 0:
-                # NORMAL TENSION (Neo-Hookean)
-                Fs = spring_area * mu * (lambda_stretch - 1/(lambda_stretch**2))
-            else:
-                # COMPRESSION (The "Collision" Force)
-                # We use a linear high-stiffness "Bumper" to mimic mesh compression
-                # This simulates the physical volume of the ligament being squashed
-                compression_stiffness = self.E * self.A * 10 # 10x multiplier for hard contact
-                Fs = compression_stiffness * stretch # stretch is negative here, creating pushing force
+            # if stretch > 0:
+            #     # NORMAL TENSION (Neo-Hookean)
+                
+            # else:
+            #     # COMPRESSION (The "Collision" Force)
+            #     # We use a linear high-stiffness "Bumper" to mimic mesh compression
+            #     # This simulates the physical volume of the ligament being squashed
+            #     compression_stiffness = self.E * self.A * 10 # 10x multiplier for hard contact
+            #     Fs = compression_stiffness * stretch # stretch is negative here, creating pushing force
 
             # Linear spring
             #Fs = self.k * (stretch** self.exponent)
             # In step()
-            
+            Fs = spring_area * mu * (lambda_stretch - 1/(lambda_stretch**2))
             #Fs = spring_area * mu * (lambda_stretch - 1/lambda_stretch**2)
             #Fs = self.A *mu * (lambda_stretch - 1/lambda_stretch**2)
             # Relative velocity along spring direction
