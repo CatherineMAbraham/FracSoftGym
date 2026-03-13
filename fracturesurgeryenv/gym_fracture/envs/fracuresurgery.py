@@ -35,7 +35,7 @@ class fracturesurgery_env(gym.Env):
         start_pos = 'home',
         maxforce = 3.5,
         number_of_springs = 3,
-        contact_type = False,
+        contact_type = 0,
         test = False
     ):
         metadata = {"render_modes": ["human", None]}
@@ -112,6 +112,8 @@ class fracturesurgery_env(gym.Env):
             # Handle pos_only case
             elif self.action_type == 'pos_only':
                 reward = env_utils.compute_reward_sparse_pos(self, achieved_goal, desired_goal, info)
+            elif self.action_type == 'euler' and self.contact_type ==1:
+                reward = env_utils.compute_reward_sparse_euler_contact(self, achieved_goal, desired_goal, info)
 
             # Handle general case (position + orientation)
             elif self.action_type == 'euler' or self.action_type == 'fouractions':
@@ -409,15 +411,15 @@ class fracturesurgery_env(gym.Env):
                                   dist,  
                                   self.isHolding)
         
+        
         done = env_utils.check_done(self)
-        if self.test:
-            if self.output_force > self.maxforce:
-                print('Terminating episode due to excessive force during testing.')
-                truncated = True
-            else:
-                truncated = self.current_step >= self.max_steps and not done
+        if self.test and self.output_force > self.maxforce:
+            print('Terminating episode due to excessive force during testing.')
+            truncated = True
+            reward = -100
         else:
             truncated = self.current_step >= self.max_steps and not done
+        
         # if done:
         #     print('MaxForce: ', self.output_force, 
         #        'Pos Distance: ', self.pos_distance, 
@@ -433,7 +435,9 @@ class fracturesurgery_env(gym.Env):
                 'force': self.output_force,'contact': self.anycontact}#'stretch': stretch,'force_mag':force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
-        reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
+        if (not self.test) or (self.output_force <= self.maxforce):
+            reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
+        # else: keep the earlier penalty reward (-100)
         reward = np.float32(reward)
         #print('force: ', self.force, reward)
         #print(self.anycontact)

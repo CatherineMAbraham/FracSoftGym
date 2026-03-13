@@ -216,7 +216,7 @@ def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, force,cont
     elif self.action_type == 'pos_only':
         self.achieved_goal = np.array(list(pos) + [isHolding]+[force])#+[self.contact])
         self.desired_goal = np.array(list(self.goal_pos) + [1]+desired_force)#+object_contact)
-    elif self.contact_type == True:
+    elif self.contact_type == 1:
         self.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+[self.anycontact])#+[self.contact])
         self.desired_goal = np.array(list(self.target_position) + [1]+desired_force +object_contact)
     else:
@@ -234,9 +234,9 @@ def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, force,cont
         self.state = observation.astype(np.float32)
     
 def check_done(self):
-        if self.horizon == 'variable' and self.action_type not in ['ori_only', 'pos_only']:
+        if self.horizon == 'variable' and self.action_type not in ['ori_only', 'pos_only'] and self.contact_type == 0:
             return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.output_force <=self.maxforce #and self.anycontact == 0
-        elif self.horizon == 'variable' and self.action_type not in ['ori_only', 'pos_only'] and self.contact_type == True:
+        elif self.horizon == 'variable' and self.action_type not in ['ori_only', 'pos_only'] and self.contact_type == 1:
             return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.output_force <=self.maxforce and self.anycontact == 0 
         elif self.horizon == 'fixed' and self.action_type == 'ori_only':
             return self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.current_step >= self.max_steps
