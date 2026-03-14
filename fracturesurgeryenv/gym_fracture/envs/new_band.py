@@ -57,10 +57,13 @@ class ElasticBand:
         base_L0 = np.linalg.norm((posB + self.RB @ self.local_offsets[0]) - (posA + self.RA @ self.local_offsets[0]))
         self.L0_list = []
         recruitment_spread = 0.02 # 2% variation
-        for i in range(num_springs):
-            # Linearly vary L0 for each fiber
-            factor = 1.0 + (i * recruitment_spread / (num_springs - 1))
-            self.L0_list.append(base_L0 * factor)
+        if num_springs > 1:
+            for i in range(num_springs):
+                # Linearly vary L0 for each fiber
+                factor = 1.0 + (i * recruitment_spread / (num_springs - 1))
+                self.L0_list.append(base_L0 * factor)
+        else:
+            self.L0_list.append(base_L0)
         
         self.k = (1e6 * 5e-6) / base_L0
         
