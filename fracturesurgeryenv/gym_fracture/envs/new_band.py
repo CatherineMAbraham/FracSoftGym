@@ -65,7 +65,7 @@ class ElasticBand:
         else:
             self.L0_list.append(base_L0)
         
-        self.k = (1e6 * 5e-6) / base_L0
+        self.k = (self.E * self.A) / base_L0
         
         mA = p.getDynamicsInfo(self.bodyA, -1)[0]
         mB = p.getDynamicsInfo(self.bodyB, -1)[0]
@@ -129,59 +129,72 @@ class ElasticBand:
             direction = delta / dist
             stretch = dist - current_L0
             spring_area = self.A / len(self.local_offsets)
-            if stretch <= 0:
-                continue  # tension only
             # if stretch <= 0:
             #     continue  # tension only
-            # if stretch > 0:
-            #     # NORMAL TENSION (Neo-Hookean)
+            # # if stretch <= 0:
+            # #     continue  # tension only
+            # # if stretch > 0:
+            # #     # NORMAL TENSION (Neo-Hookean)
                 
-            # else:
-            #     # COMPRESSION (The "Collision" Force)
-            #     # We use a linear high-stiffness "Bumper" to mimic mesh compression
-            #     # This simulates the physical volume of the ligament being squashed
-            #     compression_stiffness = self.E * self.A * 10 # 10x multiplier for hard contact
-            #     Fs = compression_stiffness * stretch # stretch is negative here, creating pushing force
+            # # else:
+            # #     # COMPRESSION (The "Collision" Force)
+            # #     # We use a linear high-stiffness "Bumper" to mimic mesh compression
+            # #     # This simulates the physical volume of the ligament being squashed
+            # #     compression_stiffness = self.E * self.A * 10 # 10x multiplier for hard contact
+            # #     Fs = compression_stiffness * stretch # stretch is negative here, creating pushing force
 
-            # Linear spring
-            #Fs = self.k * (stretch** self.exponent)
-            # In step()
-            Fs = spring_area * mu * (lambda_stretch - 1/(lambda_stretch**2))
-            #Fs = spring_area * mu * (lambda_stretch - 1/lambda_stretch**2)
-            #Fs = self.A *mu * (lambda_stretch - 1/lambda_stretch**2)
-            # Relative velocity along spring direction
-            rel_vel = np.dot((velB - velA), direction)
-            actual_damping = self.c * (lambda_stretch ** 2)/len(self.local_offsets) # Damping increases with stretch
-            Fd = actual_damping * rel_vel
-            #Fd = self.c * rel_vel
+            # # Linear spring
+            # #Fs = self.k * (stretch** self.exponent)
+            # # In step()
+            # Fs = spring_area * mu * (lambda_stretch - 1/(lambda_stretch**2))
+            # #Fs = spring_area * mu * (lambda_stretch - 1/lambda_stretch**2)
+            # #Fs = self.A *mu * (lambda_stretch - 1/lambda_stretch**2)
+            # # Relative velocity along spring direction
+            # rel_vel = np.dot((velB - velA), direction)
+            # actual_damping = self.c * (lambda_stretch ** 2)/len(self.local_offsets) # Damping increases with stretch
+            # Fd = actual_damping * rel_vel
+            # #Fd = self.c * rel_vel
 
-            force_mag = Fs + Fd
-            force_mag = max(0.0, force_mag)
-            total_force_mag += force_mag
-            total_stretch += stretch
-            active_springs += 1
+            # force_mag = Fs + Fd
+            if stretch > 0:
+                # Match the FEM material law exactly
+                # F = Area * mu * (lambda - 1/lambda^2)
+                Fs = (self.A / self.num_springs) * mu * (lambda_stretch - 1/(lambda_stretch**2))
+                
+                # Critical: Damping must be scaled to the new stiffness
+                # c = 2 * sqrt(k * m)
+                rel_vel = np.dot((velB - velA), direction)
+                Fd = (self.c / self.num_springs) * rel_vel
+                
+                force_mag = max(0.0, Fs + Fd)
+                force_mag = max(0.0, force_mag)
+                total_force_mag += force_mag
+                total_stretch += stretch
+                active_springs += 1
 
-            forc_vec = force_mag * direction
-            F_vec = forc_vec.copy()
-            self.last_force_vector = F_vec.copy()
+                forc_vec = force_mag * direction
+                F_vec = forc_vec.copy()
+                self.last_force_vector = F_vec.copy()
 
 
-        # Apply Force
-            # p.applyExternalForce(self.bodyA, self.linkA, (-F_vec).tolist(), posA.tolist(), p.WORLD_FRAME)
-            # p.applyExternalForce(self.bodyB, self.linkB, (F_vec).tolist(), posB.tolist(), p.WORLD_FRAME)
-            p.applyExternalForce(self.bodyA, -1, (-F_vec).tolist(),
-                                     worldA.tolist(), p.WORLD_FRAME)
+            # Apply Force
+                # p.applyExternalForce(self.bodyA, self.linkA, (-F_vec).tolist(), posA.tolist(), p.WORLD_FRAME)
+                # p.applyExternalForce(self.bodyB, self.linkB, (F_vec).tolist(), posB.tolist(), p.WORLD_FRAME)
+                p.applyExternalForce(self.bodyA, -1, (-F_vec).tolist(),
+                                        worldA.tolist(), p.WORLD_FRAME)
 
-            p.applyExternalForce(self.bodyB, -1, (F_vec).tolist(),
-                                     worldB.tolist(), p.WORLD_FRAME)
+                p.applyExternalForce(self.bodyB, -1, (F_vec).tolist(),
+                                        worldB.tolist(), p.WORLD_FRAME)
 
-            #color = [1, 0, 0] if stretch > 0 else [0, 1, 0] 
-            
-            width = max(1, int(1)) 
-            # make each spring a different color for visualization
-            colour = [1,0,0] if i == 0 else [0,1,0] if i == 1 else [0,0,1]
-            p.addUserDebugLine(worldA, worldB, colour, 2,lifeTime=0.1) 
-            #print(stretch, force_mag)
+                #color = [1, 0, 0] if stretch > 0 else [0, 1, 0] 
+                
+                width = max(1, int(1)) 
+                # make each spring a different color for visualization
+                colour = [1,0,0] if i == 0 else [0,1,0] if i == 1 else [0,0,1]
+                p.addUserDebugLine(worldA, worldB, colour, 2,lifeTime=0.1) 
+                print(stretch, force_mag)
+            else: 
+                continue
             # if self.band_id is None: 
             #     self.band_id = p.addUserDebugLine(posA, posB, color, 1) 
             # else: 

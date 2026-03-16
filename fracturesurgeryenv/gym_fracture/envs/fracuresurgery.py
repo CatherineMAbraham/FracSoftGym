@@ -258,14 +258,14 @@ class fracturesurgery_env(gym.Env):
         ##
         #time.sleep(5)
         if self.softtissue=='soft':
-            self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0,0.0,-0.01])
-            self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.objectUid, 1,local_offset=[0,-0.0015,0.04]) ##trial and error to place them 
+            self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
+            self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.objectUid, 1,local_offset=[0.01,-0.0015,0.04]) ##trial and error to place them 
             #make_ligament(self,"cloth_Id1", self.objectUid, self.leg, point_c, point_d,orientation=p.getQuaternionFromEuler([0, 90/180*np.pi, 70/180*np.pi]), scale =1)
             make_ligament(self, "cloth_Id2", self.objectUid, self.leg, self.point_a, self.point_b,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi , 180/180*np.pi]), scale =1) #0.75
         elif self.softtissue=='spring':
             self.band = new_band.ElasticBand(bodyA=self.leg, linkA= -1,
                                          bodyB=self.objectUid, linkB= 1,
-                                         young_modulus=1e6,
+                                         young_modulus=1e7,
                                          area=5e-6,
                                          rest_length=0.1,
                                          num_springs=self.number_of_springs
