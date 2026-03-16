@@ -36,6 +36,7 @@ class fracturesurgery_env(gym.Env):
         maxforce = 3.5,
         number_of_springs = 3,
         contact_type = 0,
+        youngs_modulus = 1e6,
         test = False
     ):
         metadata = {"render_modes": ["human", None]}
@@ -70,6 +71,7 @@ class fracturesurgery_env(gym.Env):
         self.contact_type = contact_type
         self.number_of_springs = number_of_springs
         self.anycontact = 0
+        self.young_modulus = youngs_modulus
         self.test= test
         ##
         
@@ -265,7 +267,7 @@ class fracturesurgery_env(gym.Env):
         elif self.softtissue=='spring':
             self.band = new_band.ElasticBand(bodyA=self.leg, linkA= -1,
                                          bodyB=self.objectUid, linkB= 1,
-                                         young_modulus=1e7,
+                                         young_modulus=self.young_modulus,
                                          area=5e-6,
                                          rest_length=0.1,
                                          num_springs=self.number_of_springs
