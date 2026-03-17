@@ -10,7 +10,7 @@ import numpy as np
 import time
 #from gym_fracture.envs import spring_system, utils #calculate_distances, make_scene, getStarts, getGoal, check_done, get_new_pose, unpack_action,fingertip_distance, visualize_contact_forces, world_to_local
 from gym_fracture.envs import env_utils, utils
-from gym_fracture.envs import dynamics, new_band
+from gym_fracture.envs import dynamics, new_band,new_band2
 from scipy.spatial.transform import Rotation as R
 import wandb
 #from gym_fracture.envs.spring_damper import SpringDamper
@@ -263,14 +263,16 @@ class fracturesurgery_env(gym.Env):
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
             self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.objectUid, 1,local_offset=[0.01,-0.0015,0.04]) ##trial and error to place them 
             #make_ligament(self,"cloth_Id1", self.objectUid, self.leg, point_c, point_d,orientation=p.getQuaternionFromEuler([0, 90/180*np.pi, 70/180*np.pi]), scale =1)
-            make_ligament(self, "cloth_Id2", self.objectUid, self.leg, self.point_a, self.point_b,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi , 180/180*np.pi]), scale =1) #0.75
+            make_ligament(self, "cloth_Id2", self.objectUid, 
+                          self.leg, self.point_a, 
+                          self.point_b,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi , 180/180*np.pi]), scale =1, youngs_modulus=self.young_modulus) #0.75
         elif self.softtissue=='spring':
-            self.band = new_band.ElasticBand(bodyA=self.leg, linkA= -1,
-                                         bodyB=self.objectUid, linkB= 1,
+            self.band = new_band2.ElasticBand(bodyA=self.objectUid, linkA= 1,
+                                         bodyB=self.leg, linkB= -1,
                                          young_modulus=self.young_modulus,
                                          area=5e-6,
                                          rest_length=0.1,
-                                         num_springs=self.number_of_springs
+                                         num_springs=2
                                          )
             
             
@@ -331,42 +333,40 @@ class fracturesurgery_env(gym.Env):
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
         
         if self.softtissue=='spring':
-            utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+           self.force_magnitude, self.output_force,max_step_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
             #p.stepSimulation()
-            stretch, force_mag = self.band.step()
-            force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-            force_magnitude = np.linalg.norm(force)
-            self.force = force_magnitude
-            if self.force > self.output_force:
-                #print('New max force: ', self.force, force_magnitude, self.output_force)
-                self.output_force = self.force
+            
+            
                 
         
         elif self.softtissue=='soft':
-            utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+            self.force_magnitude, self.output_force,max_step_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
             #p.stepSimulation()
-            force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-            force_magnitude = np.linalg.norm(force)
-            self.force = force_magnitude
-            if self.force > self.output_force:
-                #print('New max force: ', self.force, force_magnitude, self.output_force)
-                self.output_force = self.force
-                #time.sleep(1./240)  # Remove for speed
+            # force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
+            # force_magnitude = np.linalg.norm(force)
+            # self.force = force_magnitude
+            # if self.force > self.output_force:
+            #     #print('New max force: ', self.force, force_magnitude, self.output_force)
+            #     self.output_force = self.force
+            #     #time.sleep(1./240)  # Remove for speed
         else: 
-            utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+            self.force_magnitude, self.output_force,max_step_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
             #p.stepSimulation()
-            force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-            self.force = np.linalg.norm(force)
-            if self.force > self.output_force:
-                #print('New max force: ', self.force, force_magnitude, self.output_force)
-                self.output_force = self.force 
-                #print(self.output_force)
+            # force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
+            # self.force = np.linalg.norm(force)
+            # if self.force > self.output_force:
+            #     #print('New max force: ', self.force, force_magnitude, self.output_force)
+            #     self.output_force = self.force 
+            #     #print(self.output_force)
         if self.softtissue=='soft':
             worldA, worldB = radius_spring(self.objectUid, self.leg,
                                                             self.point_a, self.point_b)
             
             stretch = np.linalg.norm(worldA - worldB) 
-
+        ##measure the distance between the foot and leg to get an estimate of stretch (not exact but should correlate well and is much cheaper to compute than the world_to_local for each spring every step)
+        foot = p.getLinkState(self.objectUid, 1)[0]
+        leg = p.getBasePositionAndOrientation(self.leg)[0]
+        stretch = np.linalg.norm(np.array(foot) - np.array(leg))
         
         #force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
         #force_magnitude = np.linalg.norm(force)
@@ -434,7 +434,7 @@ class fracturesurgery_env(gym.Env):
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.output_force,'contact': self.anycontact}#'stretch': stretch,'force_mag':force_magnitude}#,
+                'force': max_step_force,'contact': self.anycontact,'stretch': stretch,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
         if (not self.test) or (self.output_force <= self.maxforce):

@@ -38,7 +38,8 @@ class ElasticBand:
         width = 0.005 #5mm wide rectangle
         #create 3 attachment points in a line across the width of the band
         angles = np.linspace(-width/2, width/2, num_springs)
-        self.local_offsets = []
+        self.local_offsets_A = []
+        self.local_offsets_B = []
 
         # for angle in angles:
         #     x = radius * math.cos(angle)
@@ -46,7 +47,10 @@ class ElasticBand:
         #     self.local_offsets.append(np.array([x, y, 0]))
         
         for x_offset in np.linspace(-width/2, width/2, num_springs):
-              self.local_offsets.append(np.array([radius, 0, x_offset])) # Flat along X
+              self.local_offsets_A.append(np.array([radius, 0, x_offset])) # Flat along X
+              self.local_offsets_B.append(np.array([radius, 0, x_offset])) 
+        self.local_offset_A = [np.array([-0.07402802, -0.02543187, -0.34601694]), np.array([-0.07401566, -0.02544761, -0.35315976])]
+        self.local_offset_B = [np.array([-0.26201391, -0.48721281, -0.01182608]), np.array([-0.26201391, -0.48721281, -0.01182608])]
         posA = np.array(posA)
         posB = np.array(posB)
         velA = np.array(velA)
@@ -54,9 +58,9 @@ class ElasticBand:
 
         self.RA = np.array(p.getMatrixFromQuaternion(ornA)).reshape(3,3)
         self.RB = np.array(p.getMatrixFromQuaternion(ornB)).reshape(3,3)
-        base_L0 = np.linalg.norm((posB + self.RB @ self.local_offsets[0]) - (posA + self.RA @ self.local_offsets[0]))
+        base_L0 = np.linalg.norm((posB + self.RB @ self.local_offsets_B[0]) - (posA + self.RA @ self.local_offsets_A[0]))
         self.L0_list = []
-        recruitment_spread = 0.02 # 2% variation
+        recruitment_spread = 0.0 # 2% variation
         if num_springs > 1:
             for i in range(num_springs):
                 # Linearly vary L0 for each fiber
@@ -108,11 +112,11 @@ class ElasticBand:
         self.RA = np.array(p.getMatrixFromQuaternion(ornA)).reshape(3,3)
         ornB = p.getLinkState(self.bodyB, self.linkB)[1] if self.linkB != -1 else p.getBasePositionAndOrientation(self.bodyB)[1]
         self.RB = np.array(p.getMatrixFromQuaternion(ornB)).reshape(3,3)
-        for i, localA in enumerate(self.local_offsets):
+        for i, localA in enumerate(self.local_offsets_A):
             #print(f"Local attachment point {i}: {localA}")
             
             worldA = posA + self.RA @ localA
-            worldB = posB + self.RB @ localA
+            worldB = posB + self.RB @ self.local_offsets_B[i]
 
             delta = worldB - worldA
             dist = np.linalg.norm(delta)
@@ -128,7 +132,7 @@ class ElasticBand:
 
             direction = delta / dist
             stretch = dist - current_L0
-            spring_area = self.A / len(self.local_offsets)
+            spring_area = self.A / len(self.local_offsets_A)
             # if stretch <= 0:
             #     continue  # tension only
             # # if stretch <= 0:
@@ -180,10 +184,10 @@ class ElasticBand:
             # Apply Force
                 # p.applyExternalForce(self.bodyA, self.linkA, (-F_vec).tolist(), posA.tolist(), p.WORLD_FRAME)
                 # p.applyExternalForce(self.bodyB, self.linkB, (F_vec).tolist(), posB.tolist(), p.WORLD_FRAME)
-                p.applyExternalForce(self.bodyA, -1, (-F_vec).tolist(),
+                p.applyExternalForce(self.bodyA, self.linkA, (-F_vec).tolist(),
                                         worldA.tolist(), p.WORLD_FRAME)
 
-                p.applyExternalForce(self.bodyB, -1, (F_vec).tolist(),
+                p.applyExternalForce(self.bodyB, self.linkB, (F_vec).tolist(),
                                         worldB.tolist(), p.WORLD_FRAME)
 
                 #color = [1, 0, 0] if stretch > 0 else [0, 1, 0] 
@@ -192,7 +196,7 @@ class ElasticBand:
                 # make each spring a different color for visualization
                 colour = [1,0,0] if i == 0 else [0,1,0] if i == 1 else [0,0,1]
                 p.addUserDebugLine(worldA, worldB, colour, 2,lifeTime=0.1) 
-                print(stretch, force_mag)
+                #print(stretch, force_mag)
             else: 
                 continue
             # if self.band_id is None: 
