@@ -177,7 +177,7 @@ class fracturesurgery_env(gym.Env):
         #p.setPhysicsEngineParameter(contactERP=0.1) 
         ## Close gripper
         #target_positions = np.array([0.0, 0.0])
-        fingerforce = 2 if self.softtissue=='soft' else 10
+        fingerforce = 2 if self.softtissue=='soft' else 2
         for _ in range(100):
             p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=fingerforce)
             p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=fingerforce)
@@ -407,7 +407,10 @@ class fracturesurgery_env(gym.Env):
         #        'Angle: ', self.angle, 
         #        'Holding: ', self.isHolding, 
         #        'Contact: ', self.anycontact)
-        
+        if done:
+            print('yay!')
+        elif truncated:
+            print('Episode truncated. Max force: ', self.output_force, 'pos distance: ', self.pos_distance, 'angle: ', self.angle)
         
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 

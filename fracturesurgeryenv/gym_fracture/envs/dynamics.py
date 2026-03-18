@@ -41,11 +41,17 @@ def change_leg_dynamics(self):
 def change_foot_dynamics(self):
     
     p.changeDynamics(self.objectUid, -1, 
-                     mass=0.276, 
+                     mass=0.01, 
                      lateralFriction=2, # Lower this! 5.0 is causing the 50N spikes
+                     contactStiffness=1000000, 
+                     contactDamping=1000,
+                     collisionMargin=0.01)
+    p.changeDynamics(self.objectUid, 1, 
+                     mass=0.276, 
+                     lateralFriction=0.5, # Lower this! 5.0 is causing the 50N spikes
                      contactStiffness=5000, 
                      contactDamping=100,
-                     collisionMargin=0.0001)
+                     collisionMargin=0.001)
    # print(p.getLinkState(self.objectUid, 1))
     
      

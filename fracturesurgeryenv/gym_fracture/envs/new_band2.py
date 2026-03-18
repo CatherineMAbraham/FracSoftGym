@@ -139,7 +139,7 @@ class ElasticBand:
             # Add damping separately
             rel_vel = np.dot((velB - velA), direction)
             force_mag += (self.c / len(self.local_offsets_A)) * rel_vel
-            #force_mag = min(force_mag, 10)  # Cap the force to prevent instability
+            force_mag = min(force_mag, 10)  # Cap the force to prevent instability
             total_force_mag += force_mag
             total_stretch += stretch
             active_springs += 1

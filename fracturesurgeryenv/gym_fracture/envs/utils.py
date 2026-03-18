@@ -451,7 +451,8 @@ def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
             max_step_force = force
             if max_step_force > self.output_force: ##episode max force 
                 self.output_force = max_step_force
-            
+                if max_step_force > 100:
+                    print('High Force Alert! Max Force:', max_step_force)
 
     return self.output_force, max_step_force
         
