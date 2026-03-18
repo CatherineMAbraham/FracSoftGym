@@ -99,6 +99,7 @@ def compute_reward_sparse_euler(self, achieved_goal, desired_goal, info):
         self.pos_distance, self.angle = utils.calculate_distances(self, pos_achieved, angle_achieved, pos_desired, angle_desired)
         self.isHolding = achieved_goal[:, 7]
         self.force = achieved_goal[:, 8]
+        
         #self.contact = achieved_goal[:, 9]
         reward = np.where(
             (self.pos_distance <= self.distance_threshold_pos) &

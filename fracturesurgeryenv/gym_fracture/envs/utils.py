@@ -438,6 +438,7 @@ def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
             forces=maxforce
         )
         if self.softtissue == 'spring':
+            #print('Stepping spring')
             stretch, force_mag = self.band.step()
         #print('stepping')
         p.stepSimulation()
@@ -446,11 +447,11 @@ def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
         force = force_magnitude
         #forces.append(force)
         #p.addUserDebugText(f'Force: {force:.2f} N', [0.5, 0, 0.5], textColorRGB=[1, 0, 0], textSize=1, lifeTime=0.1)
-        if force > self.output_force:
-            #print('New max force: ', self.force, force_magnitude, self.output_force)
-            self.output_force = force
-        if force > max_step_force:
+        if force > max_step_force: ## step max force
             max_step_force = force
+            if max_step_force > self.output_force: ##episode max force 
+                self.output_force = max_step_force
+            #print(max_step_force)
 
     return self.output_force, max_step_force
         

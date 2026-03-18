@@ -281,7 +281,7 @@ class fracturesurgery_env(gym.Env):
             pass  
        
         
-        #p.setPhysicsEngineParameter(numSolverIterations=10, numSubSteps=10)  # Increase solver iterations for better stability with springs
+        p.setPhysicsEngineParameter(numSolverIterations=10, numSubSteps=10)  # Increase solver iterations for better stability with springs
         ##draw aabb boxes round leg and foot 
         #utils.drawAABB(self, self.leg,-1)
         #utils.drawAABB(self, self.objectUid,1)
@@ -334,30 +334,10 @@ class fracturesurgery_env(gym.Env):
         
         if self.softtissue=='spring':
            self.output_force, max_step_force= utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
-            #p.stepSimulation()
-            
-            
-                
-        
         elif self.softtissue=='soft':
             self.output_force,max_step_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
-            #p.stepSimulation()
-            # force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-            # force_magnitude = np.linalg.norm(force)
-            # self.force = force_magnitude
-            # if self.force > self.output_force:
-            #     #print('New max force: ', self.force, force_magnitude, self.output_force)
-            #     self.output_force = self.force
-            #     #time.sleep(1./240)  # Remove for speed
         else: 
             self.output_force,max_step_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
-            #p.stepSimulation()
-            # force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-            # self.force = np.linalg.norm(force)
-            # if self.force > self.output_force:
-            #     #print('New max force: ', self.force, force_magnitude, self.output_force)
-            #     self.output_force = self.force 
-            #     #print(self.output_force)
         if self.softtissue=='soft':
             worldA, worldB = radius_spring(self.objectUid, self.leg,
                                                             self.point_a, self.point_b)
