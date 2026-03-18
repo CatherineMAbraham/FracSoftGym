@@ -29,28 +29,32 @@ import pybullet as p
 def change_leg_dynamics(self):
     p.changeDynamics(self.leg, 0, 
                      mass=0, 
-                     contactStiffness=1000000, 
+                     contactStiffness=5000, 
                      contactDamping=1000, 
                      lateralFriction=0.5,
                      linearDamping=0.01,
-                     angularDamping=0.01)
+                     angularDamping=0.01,
+                     collisionMargin=0.0001)
     p.setPhysicsEngineParameter(contactSlop=0.001)
+    #p.setCollisionFilterGroupMask(self.leg, -1, collisionFilterGroup=0, collisionFilterMask=0) 
  
 def change_foot_dynamics(self):
     
     p.changeDynamics(self.objectUid, -1, 
                      mass=0.276, 
                      lateralFriction=2, # Lower this! 5.0 is causing the 50N spikes
-                     contactStiffness=1000000, 
-                     contactDamping=1000,
-                     collisionMargin=0.01)
+                     contactStiffness=5000, 
+                     contactDamping=100,
+                     collisionMargin=0.0001)
+   # print(p.getLinkState(self.objectUid, 1))
+    
      
 def change_robot_dynamics(self):
     for i in [9, 10]:
         p.changeDynamics(self.pandaUid, i, 
                          lateralFriction=2.0, # Enough to grip, but not 'glued'
-                         contactStiffness=1000000, 
-                         contactDamping=1000,
+                         contactStiffness=5000, 
+                         contactDamping=100,
                          collisionMargin=0.01)
     #p.changeDynamics(self.pandaUid, 9, jointLowerLimit=0.00, jointUpperLimit=0.004,contactStiffness=2000, 
                     # contactDamping=100)
