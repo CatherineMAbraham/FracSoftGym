@@ -447,7 +447,7 @@ def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
         #p.addUserDebugText(f'Force: {force:.2f} N', [0.5, 0, 0.5], textColorRGB=[1, 0, 0], textSize=1, lifeTime=0.1)
         if force > self.output_force:
             #print('New max force: ', self.force, force_magnitude, self.output_force)
-            self.output_force = self.force
+            self.output_force = force
         
         
         
