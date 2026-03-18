@@ -134,6 +134,7 @@ class fracturesurgery_env(gym.Env):
         self.output_force = 0
         contact = 0
         self.anycontact = 0
+        self.filerted_force = 0
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD)
         
         self.band_id = None
@@ -333,16 +334,27 @@ class fracturesurgery_env(gym.Env):
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
         
         if self.softtissue=='spring':
-           self.output_force, max_step_force= utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+           self.output_force, max_step_force,avg_force= utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+           alpha = 0.2
+           self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
+           if self.filerted_force > self.output_force:
+                self.output_force = self.filerted_force
         elif self.softtissue=='soft':
-            self.output_force,max_step_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+            self.output_force,max_step_force, avg_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
         else: 
-            self.output_force,max_step_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+            self.output_force,max_step_force, avg_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=12)
+            alpha = 0.2
+            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
+            if self.filerted_force > self.output_force:
+                self.output_force = self.filerted_force
         if self.softtissue=='soft':
             worldA, worldB = radius_spring(self.objectUid, self.leg,
                                                             self.point_a, self.point_b)
-            
             stretch = np.linalg.norm(worldA - worldB) 
+        
+        force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
+        force_magnitude = np.linalg.norm(force)
+        print(f'Force: {self.filerted_force:.2f} N')    
         ##measure the distance between the foot and leg to get an estimate of stretch (not exact but should correlate well and is much cheaper to compute than the world_to_local for each spring every step)
         
         
@@ -376,14 +388,14 @@ class fracturesurgery_env(gym.Env):
         jointPoses = np.array([js[0] for js in joint_states])        # positions
         jointVelocities = np.array([js[1] for js in joint_states])   # velocities
         self.pos_distance, self.angle = utils.calculate_distances(self, actualNewPosition, actualNewOrientation, self.goal_pos, self.goal_ori)
-        
+        capped_force = min(self.output_force,200)
         env_utils.set_observation(self, 
                                   actualNewPosition, 
                                   actualNewOrientation, 
                                   actualNewVelocity, 
                                   jointPoses, 
                                   jointVelocities,
-                                  max_step_force,
+                                  capped_force,
                                   self.contact, 
                                   self.pos_distance,
                                   self.angle,
@@ -401,12 +413,12 @@ class fracturesurgery_env(gym.Env):
         else:
             truncated = self.current_step >= self.max_steps and not done
         
-        # if done:
-        #     print('MaxForce: ', self.output_force, 
-        #        'Pos Distance: ', self.pos_distance, 
-        #        'Angle: ', self.angle, 
-        #        'Holding: ', self.isHolding, 
-        #        'Contact: ', self.anycontact)
+        if done:
+            print('yay!')
+        elif truncated:
+            print('MaxForce: ', self.output_force, 
+               'Pos Distance: ', self.pos_distance, 
+               'Angle: ', self.angle)
         
         
         
