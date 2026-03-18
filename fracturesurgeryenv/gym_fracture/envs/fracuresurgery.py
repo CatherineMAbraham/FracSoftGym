@@ -334,7 +334,7 @@ class fracturesurgery_env(gym.Env):
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
         
         if self.softtissue=='spring':
-           self.output_force, max_step_force,avg_force= utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+           self.output_force, max_step_force,avg_force= utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=12)
            alpha = 0.2
            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
            if self.filerted_force > self.output_force:
@@ -352,9 +352,7 @@ class fracturesurgery_env(gym.Env):
                                                             self.point_a, self.point_b)
             stretch = np.linalg.norm(worldA - worldB) 
         
-        force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-        force_magnitude = np.linalg.norm(force)
-        print(f'Force: {self.filerted_force:.2f} N')    
+        #print(f'Force: {self.filerted_force:.2f} N')    
         ##measure the distance between the foot and leg to get an estimate of stretch (not exact but should correlate well and is much cheaper to compute than the world_to_local for each spring every step)
         
         
@@ -388,7 +386,7 @@ class fracturesurgery_env(gym.Env):
         jointPoses = np.array([js[0] for js in joint_states])        # positions
         jointVelocities = np.array([js[1] for js in joint_states])   # velocities
         self.pos_distance, self.angle = utils.calculate_distances(self, actualNewPosition, actualNewOrientation, self.goal_pos, self.goal_ori)
-        capped_force = min(self.output_force,200)
+        capped_force = min(self.filerted_force,200)
         env_utils.set_observation(self, 
                                   actualNewPosition, 
                                   actualNewOrientation, 
@@ -425,7 +423,7 @@ class fracturesurgery_env(gym.Env):
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.output_force,'contact': self.anycontact}#'stretch': stretch_step}#,'force_mag':self.force_magnitude}#,
+                'force': capped_force,'contact': self.anycontact}#'stretch': stretch_step}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
         if (not self.test) or (self.output_force <= self.maxforce):
