@@ -426,6 +426,7 @@ def move_panda_smoothly(self,robot_id, joint_indices, target_positions,
         v_current = np.array([p.getJointState(robot_id, j)[1] for j in joint_indices])
 
 def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
+    max_step_force = 0 
     for i in range(numsubsteps):
         alpha = (i + 1) / numsubsteps
         intermediate_targets = joint_current + alpha * (joint_targets - joint_current)
@@ -448,10 +449,10 @@ def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
         if force > self.output_force:
             #print('New max force: ', self.force, force_magnitude, self.output_force)
             self.output_force = force
-        
-        
-        
-    return self.output_force
+        if force > max_step_force:
+            max_step_force = force
+
+    return self.output_force, max_step_force
         
 def compute_ee_forward_dynamics(
     robot_id,

@@ -333,14 +333,14 @@ class fracturesurgery_env(gym.Env):
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
         
         if self.softtissue=='spring':
-           self.output_force= utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+           self.output_force, max_step_force= utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
             #p.stepSimulation()
             
             
                 
         
         elif self.softtissue=='soft':
-            self.output_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+            self.output_force,max_step_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
             #p.stepSimulation()
             # force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
             # force_magnitude = np.linalg.norm(force)
@@ -350,7 +350,7 @@ class fracturesurgery_env(gym.Env):
             #     self.output_force = self.force
             #     #time.sleep(1./240)  # Remove for speed
         else: 
-            self.output_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+            self.output_force,max_step_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
             #p.stepSimulation()
             # force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
             # self.force = np.linalg.norm(force)
@@ -402,7 +402,7 @@ class fracturesurgery_env(gym.Env):
                                   actualNewVelocity, 
                                   jointPoses, 
                                   jointVelocities,
-                                  self.force,
+                                  max_step_force,
                                   self.contact, 
                                   self.pos_distance,
                                   self.angle,
