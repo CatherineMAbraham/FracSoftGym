@@ -127,8 +127,10 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale, youngs_modulus):
     p.changeVisualShape(name, -1, rgbaColor=colour)
     p.changeDynamics(name, -1, mass=0.05, linearDamping=0.05)
     p.setPhysicsEngineParameter(contactERP=0.1)#, CFM=0.0011)#, cfm=0.5)#, 
-    p.setPhysicsEngineParameter(numSolverIterations=20, 
-                                numSubSteps=50,useSplitImpulse=1,
+    # p.setPhysicsEngineParameter(numSolverIterations=20, 
+    #                             numSubSteps=50,
+    p.setPhysicsEngineParameter(numSolverIterations=10, numSubSteps=10)
+    p.setPhysicsEngineParameter(useSplitImpulse=1,
                                 splitImpulsePenetrationThreshold=0.0001) ##This is really important for stability and force control
     #p.setPhysicsEngineParameter(contactSlop=0) # Removes the 'allowance' for overlap
     p.setCollisionFilterGroupMask(name, -1, collisionFilterGroup=0, collisionFilterMask=0) # Disable collisions for soft body to prevent explosion during tuning
@@ -138,7 +140,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale, youngs_modulus):
     
     #time.sleep(50)
     
-    anchorA_vertices, anchorB_vertices = auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=worldA, worldB=worldB, axis=0, num_anchors=2)
+    anchorA_vertices, anchorB_vertices = auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=worldA, worldB=worldB, axis=0, num_anchors=4)
     p.stepSimulation()
     force = measure_ligament_force(name, dt=1/240)
     # lengths = []
@@ -367,12 +369,12 @@ def auto_anchor_ligament(clothId, bodyA, bodyB, worldA, worldB, axis=0, num_anch
     #print(a_coords, b_coords)
     local_offsets_A = get_anchor_local_offsets(bodyA,1, verts[anchorA_vertices])
     local_offsets_B = get_anchor_local_offsets(bodyB,-1,  verts[anchorB_vertices])
-    print(f"Local offsets for bodyA: {local_offsets_A}")
-    print(f"Local offsets for bodyB: {local_offsets_B}")
-    print(f'a_coords: {a_coords}, b_coords: {b_coords}')
+    # print(f"Local offsets for bodyA: {local_offsets_A}")
+    # print(f"Local offsets for bodyB: {local_offsets_B}")
+    # print(f'a_coords: {a_coords}, b_coords: {b_coords}')
     p.addUserDebugText(f"A", verts[anchorA_vertices[0]], [1,0,0], 2.0)
     p.addUserDebugText(f"B", verts[anchorB_vertices[0]], [0,1,0], 2.0)
-    print(verts[anchorA_vertices], verts[anchorB_vertices])
+    #print(verts[anchorA_vertices], verts[anchorB_vertices])
     
     #print(f"Distance between anchors: {diff:.4f} m")
     # print(f"Anchor A vertices (local to bodyB): {a_coords}")
