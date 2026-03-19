@@ -129,7 +129,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale, youngs_modulus):
     p.setPhysicsEngineParameter(contactERP=0.1)#, CFM=0.0011)#, cfm=0.5)#, 
     # p.setPhysicsEngineParameter(numSolverIterations=20, 
     #                             numSubSteps=50,
-    p.setPhysicsEngineParameter(numSolverIterations=10, numSubSteps=10)
+    p.setPhysicsEngineParameter(numSolverIterations=10, numSubSteps=30)
     p.setPhysicsEngineParameter(useSplitImpulse=1,
                                 splitImpulsePenetrationThreshold=0.0001) ##This is really important for stability and force control
     #p.setPhysicsEngineParameter(contactSlop=0) # Removes the 'allowance' for overlap
@@ -140,7 +140,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale, youngs_modulus):
     
     #time.sleep(50)
     
-    anchorA_vertices, anchorB_vertices = auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=worldA, worldB=worldB, axis=0, num_anchors=4)
+    anchorA_vertices, anchorB_vertices = auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=worldA, worldB=worldB, axis=0, num_anchors=2)
     p.stepSimulation()
     force = measure_ligament_force(name, dt=1/240)
     # lengths = []

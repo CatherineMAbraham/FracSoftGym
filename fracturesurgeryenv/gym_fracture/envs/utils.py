@@ -445,7 +445,7 @@ def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
         #print('stepping')
         p.stepSimulation()
         force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-        force_magnitude = np.linalg.norm(force[:3])
+        force_magnitude = np.linalg.norm(force[:3])  # Magnitude of the force vector}])
         force = force_magnitude
         force_total += force
         #forces.append(force)
@@ -454,6 +454,7 @@ def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
             max_step_force = force
             if max_step_force > self.output_force: ##episode max force 
                 self.output_force = max_step_force
+                print('New Max Force:', self.output_force)
             
 
     return self.output_force, max_step_force, force_total/numsubsteps
