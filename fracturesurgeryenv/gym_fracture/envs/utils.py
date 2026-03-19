@@ -438,13 +438,14 @@ def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
             targetPositions=intermediate_targets.tolist(),
             forces=maxforce
         )
+        joint_current = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
         if self.softtissue == 'spring':
             #print('Stepping spring')
             stretch, force_mag = self.band.step()
         #print('stepping')
         p.stepSimulation()
         force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-        force_magnitude = np.linalg.norm(force)
+        force_magnitude = np.linalg.norm(force[:3])
         force = force_magnitude
         force_total += force
         #forces.append(force)
@@ -455,7 +456,7 @@ def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
                 self.output_force = max_step_force
             
 
-    return self.output_force, max_step_force, force_total//numsubsteps
+    return self.output_force, max_step_force, force_total/numsubsteps
         
 def compute_ee_forward_dynamics(
     robot_id,

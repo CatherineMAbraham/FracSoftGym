@@ -332,18 +332,22 @@ class fracturesurgery_env(gym.Env):
         start_pos = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
         
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
-        
+        alpha = 0.5
         if self.softtissue=='spring':
            self.output_force, max_step_force,avg_force= utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=12)
-           alpha = 0.2
+           
            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
            if self.filerted_force > self.output_force:
                 self.output_force = self.filerted_force
         elif self.softtissue=='soft':
-            self.output_force,max_step_force, avg_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=20)
+            self.output_force,max_step_force, avg_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=12)
+            
+            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
+            if self.filerted_force > self.output_force:
+                self.output_force = self.filerted_force
         else: 
             self.output_force,max_step_force, avg_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=12)
-            alpha = 0.2
+            
             self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
             if self.filerted_force > self.output_force:
                 self.output_force = self.filerted_force
@@ -404,7 +408,7 @@ class fracturesurgery_env(gym.Env):
         
         
         done = env_utils.check_done(self)
-        if self.test and self.output_force > self.maxforce:
+        if self.test and capped_force > self.maxforce:
             print('Terminating episode due to excessive force during testing.')
             truncated = True
             reward = -100
@@ -418,7 +422,10 @@ class fracturesurgery_env(gym.Env):
         #        'Holding: ', self.isHolding, 
         #        'Contact: ', self.anycontact)
         
-        
+        # if done:
+        #     print('yay')
+        # elif truncated:
+        #     print(f'truncated {capped_force},{self.pos_distance},{self.angle}')
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
@@ -426,7 +433,7 @@ class fracturesurgery_env(gym.Env):
                 'force': capped_force,'contact': self.anycontact}#'stretch': stretch_step}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
-        if (not self.test) or (self.output_force <= self.maxforce):
+        if (not self.test) or (capped_force <= self.maxforce):
             reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
         # else: keep the earlier penalty reward (-100)
         reward = np.float32(reward)
