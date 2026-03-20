@@ -325,7 +325,7 @@ class fracturesurgery_env(gym.Env):
         start_pos = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
         
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
-        alpha = 0.8
+        alpha = 1
         if self.softtissue=='spring':
            self.output_force, max_step_force,avg_force= utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=12)
            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
@@ -347,7 +347,8 @@ class fracturesurgery_env(gym.Env):
             stretch = np.linalg.norm(worldA - worldB) 
         
         
-        
+        stretch = np.array(p.getLinkState(self.objectUid, 1)[0]) - np.array(p.getBasePositionAndOrientation(self.leg)[0])
+        stretch = np.linalg.norm(stretch)
         self.contact = int(bool(p.getContactPoints(self.objectUid, self.leg,1,-1))) 
         
        
@@ -386,9 +387,9 @@ class fracturesurgery_env(gym.Env):
                                   dist,  
                                   self.isHolding)
         
-        #print('Capped Force: ', capped_force,)
+        #print('Capped Force: ', self.capped_force,)
         done = env_utils.check_done(self)
-        if self.test and self.capped_force > self.maxforce:
+        if self.test and self.capped_force >= self.maxforce:
             print('Terminating episode due to excessive force during testing.')
             truncated = True
             reward = -100
@@ -410,7 +411,7 @@ class fracturesurgery_env(gym.Env):
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.capped_force,'contact': self.anycontact}#'stretch': stretch_step}#,'force_mag':self.force_magnitude}#,
+                'force': self.capped_force,'contact': self.anycontact,'stretch': stretch}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
         if (not self.test) or (self.capped_force <= self.maxforce):
