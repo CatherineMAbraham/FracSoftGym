@@ -1,5 +1,5 @@
 import math
-
+from gym_fracture.envs.dynamics import change_ligament_dynamics
 import numpy as np
 import pybullet as p
 import os
@@ -98,7 +98,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale, youngs_modulus):
     name = name
     mid = 0.5 * (worldA + worldB)
     currentDir = os.path.dirname(os.path.abspath(__file__))
-    lig_path = os.path.join(currentDir, "Assets/rect3.vtk")
+    lig_path = os.path.join(currentDir, "Assets/recthigh.vtk")
     
     E = youngs_modulus
     nu = 0.45
@@ -106,8 +106,8 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale, youngs_modulus):
     lam = E * nu / ((1 + nu) * (1 - 2 * nu))
     name = p.loadSoftBody(#"/home/catherine/FractureSoftGym/fracturesurgeryenv/gym_fracture/envs/Assets/ligacc.obj",
        lig_path,
-        mass=0.01,
-        basePosition=mid-[-0.00,0.02,0],
+        mass=0.1,
+        basePosition=mid,#-[-0.00,0.02,0],
         baseOrientation=p.getQuaternionFromEuler([90/180*np.pi, 0, 90/180*np.pi]),
         scale=1,
         useNeoHookean=1,
@@ -120,199 +120,15 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale, youngs_modulus):
         #repulsionStiffness=0.5 * mu,
         collisionMargin=0.005
     )
-
-    
     colour = [250/255,11/255,58/255,1]
-    #print(colour)
     p.changeVisualShape(name, -1, rgbaColor=colour)
-    p.changeDynamics(name, -1, mass=0.05, linearDamping=0.05)
-    p.setPhysicsEngineParameter(contactERP=0.1)#, CFM=0.0011)#, cfm=0.5)#, 
-    # p.setPhysicsEngineParameter(numSolverIterations=20, 
-    #                             numSubSteps=50,
-    p.setPhysicsEngineParameter(numSolverIterations=10, numSubSteps=30)
-    p.setPhysicsEngineParameter(useSplitImpulse=1,
-                                splitImpulsePenetrationThreshold=0.0001) ##This is really important for stability and force control
-    #p.setPhysicsEngineParameter(contactSlop=0) # Removes the 'allowance' for overlap
-    p.setCollisionFilterGroupMask(name, -1, collisionFilterGroup=0, collisionFilterMask=0) # Disable collisions for soft body to prevent explosion during tuning
-    #p.setCollisionFilterGroupMask(leg, -1, collisionFilterGroup=0, collisionFilterMask=0)
-    p.setCollisionFilterPair(name, foot, 1, 1, enableCollision=0)
-    p.setCollisionFilterPair(name, leg, -1, -1, enableCollision=0)
-    
-    #time.sleep(50)
-    
+    change_ligament_dynamics(name)    
     anchorA_vertices, anchorB_vertices = auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=worldA, worldB=worldB, axis=0, num_anchors=2)
-    p.stepSimulation()
+    
     force = measure_ligament_force(name, dt=1/240)
-    # lengths = []
-    # forces = []
-    # rest_length = 0.05#np.linalg.norm(worldB - worldA)
-    # A = 5e-6
     
-    # for i in range(200):
-    #     currentpos = p.getLinkState(self.pandaUid, 11)[0]
-    #     newPosition = currentpos +np.array([0,0.001,0.0])
-    #     jointPoses = p.calculateInverseKinematics(self.pandaUid, 11, targetPosition=newPosition, maxNumIterations=100, residualThreshold=1e-4)
-    #     p.setJointMotorControlArray(
-    #         self.pandaUid,
-    #         jointIndices=range(9),
-    #         controlMode=p.POSITION_CONTROL,
-    #         targetPositions=jointPoses
-    #     )
-    #     p.stepSimulation()
-
-    #     # get mesh vertices
-    #     _, verts = p.getMeshData(name, -1,
-    #                             flags=p.MESH_DATA_SIMULATION_MESH)
-
-    #     verts = np.array(verts)
-
-    #     vA = verts[anchorA_vertices[0]]
-    #     vB = verts[anchorB_vertices[0]]
-    #     #print(f"vA: {vA}, vB: {vB}")
-    #     length = np.linalg.norm(vB - vA)
-
-    #     stretch = length - rest_length 
-
-    #     # estimate force using FEM material law
-    #     lam = length / rest_length
-    #     #print(length,rest_length,lam)
-    #     F = A * mu * (lam - 1/(lam**2)) if lam > 1 else 0
-
-    #     lengths.append(stretch)
-    #     forces.append(F)
-    #     #print(f"Ligament Force: {force}")
-    # import matplotlib.pyplot as plt
-    # print(lengths,forces)
-    # plt.plot(lengths, forces)
-    # plt.xlabel("Stretch (m)")
-    # plt.ylabel("Force (N)")
-    # plt.show()
-    # from scipy.optimize import curve_fit
-    # #import numpy as np
-
-    # def spring_model(x, k, n):
-    #     return k * np.power(np.maximum(x, 0.0), n)
-
-    # x_data = np.asarray(lengths, dtype=float)
-    # y_data = np.asarray(forces, dtype=float)
-    # valid_mask = np.isfinite(x_data) & np.isfinite(y_data)
-    # x_data = np.maximum(x_data[valid_mask], 0.0)
-    # y_data = y_data[valid_mask]
-
-    # k_fit, n_fit = 0.0, 1.0
-    # if x_data.size >= 3 and np.any(x_data > 0):
-    #     try:
-    #         params, _ = curve_fit(
-    #             spring_model,
-    #             x_data,
-    #             y_data,
-    #             p0=(1.0, 1.0),
-    #             bounds=([0.0, 0.1], [np.inf, 5.0]),
-    #             maxfev=20000,
-    #         )
-    #         k_fit, n_fit = params
-    #     except RuntimeError as exc:
-    #         print(f"Curve fitting failed, using fallback parameters (k={k_fit}, n={n_fit}): {exc}")
-    # else:
-    #     print("Insufficient valid stretch-force data for curve fitting; using fallback parameters (k=0.0, n=1.0).")
-
-    # print(k_fit, n_fit)
+    
     return worldA, worldB
-
-
-def make_ligament_rod(foot, leg, a, b, rod_radius=0.01, rod_mass=0.05, stiffness=1e5):
-    # Compute endpoints
-    pC = world_from_local(foot, a, 0)
-    pD = world_from_local(leg, b, 0)
-    mid = 0.5 * (pC + pD)
-    
-    # Rod vector and length
-    vec = pD - pC
-    L = np.linalg.norm(vec)
-    if L < 1e-6:
-        L = 0.01  # prevent zero-length
-    axis = vec / L
-    
-    # Compute orientation quaternion for capsule
-    z_axis = np.array([0,0,1])
-    v = np.cross(z_axis, axis)
-    c = np.dot(z_axis, axis)
-    if np.linalg.norm(v) < 1e-6:
-        orn = [0,0,0,1]  # aligned
-    else:
-        s = np.sqrt((1+c)*2)
-        q = np.array([v[0]/s, v[1]/s, v[2]/s, 0.5*s])
-        orn = q.tolist()
-    
-    # Create capsule rigid body
-    rod_collision = p.createCollisionShape(p.GEOM_CAPSULE, radius=rod_radius, height=L)
-    rod_visual = p.createVisualShape(p.GEOM_CAPSULE, radius=rod_radius, length=L, rgbaColor=[0,1,0,1])
-    rod = p.createMultiBody(baseMass=rod_mass,
-                            baseCollisionShapeIndex=rod_collision,
-                            baseVisualShapeIndex=rod_visual,
-                            basePosition=mid.tolist(),
-                            baseOrientation=orn)
-    
-    # --------------------------
-    # Create linear spring along rod axis
-    # --------------------------
-    # cid = p.createConstraint(
-    #     parentBodyUniqueId=foot,
-    #     parentLinkIndex=-1,
-    #     childBodyUniqueId=rod,
-    #     childLinkIndex=-1,
-    #     jointType=p.JOINT_PRISMATIC,
-    #     jointAxis=axis.tolist(),
-    #     parentFramePosition=[0,0,0],
-    #     childFramePosition=(-vec/2).tolist()  # align capsule
-    # )
-    
-    # # Set spring stiffness (Hooke's law)
-    # p.changeConstraint(cid, maxForce=stiffness)
-    
-    # # Anchor other end to leg with another spring (optional)
-    # cid2 = p.createConstraint(
-    #     parentBodyUniqueId=rod,
-    #     parentLinkIndex=-1,
-    #     childBodyUniqueId=leg,
-    #     childLinkIndex=-1,
-    #     jointType=p.JOINT_PRISMATIC,
-    #     jointAxis=axis.tolist(),
-    #     parentFramePosition=(vec/2).tolist(),
-    #     childFramePosition=[0,0,0]
-    # )
-    # p.changeConstraint(cid2, maxForce=stiffness)
-    cidA = p.createConstraint(
-        parentBodyUniqueId=foot,
-        parentLinkIndex=-1,
-        childBodyUniqueId=rod,
-        childLinkIndex=-1,
-        jointType=p.JOINT_FIXED,
-        jointAxis=axis.tolist(),
-        parentFramePosition=a,
-        childFramePosition=(-vec/2).tolist()  # capsule local offset
-    )
-    
-    # Anchor rod to leg (end)
-    cidB = p.createConstraint(
-        parentBodyUniqueId=leg,
-        parentLinkIndex=-1,
-        childBodyUniqueId=rod,
-        childLinkIndex=-1,
-        jointType=p.JOINT_FIXED,
-        jointAxis=axis.tolist(),
-        parentFramePosition=b,
-        childFramePosition=(vec/2).tolist()
-    )
-    
-    #return rod, cid, cid2
-
-
-def findClosestVertex(contactPos, vertices):
-    vertices_np = np.array(vertices)
-    contact_np = np.array(contactPos)
-    distances = np.linalg.norm(vertices_np - contact_np, axis=1)
-    return np.argmin(distances)
 
 
 
@@ -331,67 +147,29 @@ def auto_anchor_ligament(clothId, bodyA, bodyB, worldA, worldB, axis=0, num_anch
     # get current simulation mesh
     numVerts, verts = p.getMeshData(clothId, -1, flags=p.MESH_DATA_SIMULATION_MESH)
     verts = np.array(verts)
-    #print(verts)
-    # project vertices onto chosen axis
-    #axis_vals = verts[:, axis]
-    #data = p.getMeshData(clothId, -1, flags=p.MESH_DATA_SIMULATION_MESH)
-    # text_uid = []
-    # for i in range(data[0]):
-    #   pos = data[1][i]
-    #   #uid = p.addUserDebugText(str(i), pos, textColorRGB=[1,1,1])
-      #text_uid.append(uid)
-    # find min/max along that axis = ends of ligament
-    #min_val, max_val = np.min(axis_vals), np.max(axis_vals)
-
-    # # indices sorted by distance from each end
-    #endA_ids = np.argsort(np.abs(axis_vals - min_val))[:num_anchors]
-    #endB_ids = np.argsort(np.abs(axis_vals - max_val))[:num_anchors]
-    # Find closest vertices to bodyA and bodyB
+    
     distA = np.linalg.norm(verts - worldA, axis=1)
     distB = np.linalg.norm(verts - worldB, axis=1)
-    #print(f"distA:{distA}, distB:{distB}")
+    
     anchorA_vertices = np.where(distA < 0.005)[0]
     anchorB_vertices = np.where(distB < 0.005)[0]
-    #print(f'verts:{verts}, worldA:{worldA}, worldB:{worldB}, distA:{distA}, distB:{distB}, anchorA_vertices:{anchorA_vertices}, anchorB_vertices:{anchorB_vertices}')
-    #print(p.getContactPoints(clothId, bodyA))
-    # create anchors at those vertices
     anchorA_vertices = anchorA_vertices[:num_anchors]
     anchorB_vertices = anchorB_vertices[:num_anchors]
-    #print(f"Anchoring vertices {endA_ids} to bodyA (foot) and {endB_ids} to bodyB (leg)")
-    #p.addUserDebugText('WorldA', worldA, [1,1,0], 2.0)
-    #p.addUserDebugText('WorldB', worldB, [1,0,1], 2.0)
-    #anchorB_vertices = [0,3,4,7]
-    #anchorA_vertices = [1,2,5,6]
+    ligament_dir = worldB - worldA
+    unit_dir = ligament_dir / np.linalg.norm(ligament_dir)
+    safety_offset = 0.005
     b_verts =local_to_local(clothId, bodyB, -1)
     a_verts =local_to_local(clothId, bodyA, -1)
     a_coords = a_verts[anchorA_vertices]
     b_coords = b_verts[anchorB_vertices]
-    #print(a_coords, b_coords)
     local_offsets_A = get_anchor_local_offsets(bodyA,1, verts[anchorA_vertices])
     local_offsets_B = get_anchor_local_offsets(bodyB,-1,  verts[anchorB_vertices])
-    # print(f"Local offsets for bodyA: {local_offsets_A}")
-    # print(f"Local offsets for bodyB: {local_offsets_B}")
-    # print(f'a_coords: {a_coords}, b_coords: {b_coords}')
     p.addUserDebugText(f"A", verts[anchorA_vertices[0]], [1,0,0], 2.0)
     p.addUserDebugText(f"B", verts[anchorB_vertices[0]], [0,1,0], 2.0)
-    #print(verts[anchorA_vertices], verts[anchorB_vertices])
-    
-    #print(f"Distance between anchors: {diff:.4f} m")
-    # print(f"Anchor A vertices (local to bodyB): {a_coords}")
-    # print(f"Anchor B vertices (local to bodyB): {b_coords}")
-    # print(f"Anchor A vertices (local to bodyA): {a_coords[1]}")#
-    #diff = np.linalg.norm(verts[3]-verts[5])
-    #print(f"Distance between anchors: {diff:.4f} m")
     for i, vid in enumerate(anchorA_vertices):
-        #print(f'vid:{int(vid)}')
-        #print(a_coords[i])
         p.createSoftBodyAnchor(clothId, int(vid), bodyA, 1,a_coords[i].tolist())
-        #p.addUserDebugText( f"anchorA_{vid}",vid,[1,0,0], 5.0)
-        #p.addUserDebugText(f"A{vid}", verts[int(vid)], [0,0,1], 2)
     for i, vid in enumerate(anchorB_vertices):
+        offset_pos = b_verts[vid] + (unit_dir * safety_offset)
         p.createSoftBodyAnchor(clothId, int(vid), bodyB, -1,b_coords[i].tolist())
-        #p.addUserDebugText( f"anchorB_{vid}",vid,[0,1,0], 1.0)
-        #p.addUserDebugText(f"B{vid}", verts[int(vid)], [0,1,0], 2)
     return anchorA_vertices, anchorB_vertices
     
-    #print(f"Anchored {len(anchorA_vertices)} vertices to bodyA and {len(anchorB_vertices)} to bodyB")

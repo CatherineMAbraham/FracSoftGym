@@ -56,17 +56,17 @@ def make_scene(self):
                                   basePosition=[0,-0.06,-0.33],#[-0.5,0,-0.65],
                                   useFixedBase=True, globalScaling = 1)
        
-       p.changeDynamics(self.pandaUid,9, lateralFriction= 5,spinningFriction= 0.001)#,jointLowerLimit=0.00, jointUpperLimit=0.01)
-       p.changeDynamics(self.pandaUid,10, lateralFriction= 5,spinningFriction= 0.001)#,jointLowerLimit=0.00, jointUpperLimit=0.01)
+       #p.changeDynamics(self.pandaUid,9, lateralFriction= 5,spinningFriction= 0.001)#,jointLowerLimit=0.00, jointUpperLimit=0.01)
+       #p.changeDynamics(self.pandaUid,10, lateralFriction= 5,spinningFriction= 0.001)#,jointLowerLimit=0.00, jointUpperLimit=0.01)
        p.resetJointState(self.pandaUid,9, 0.04)
        p.resetJointState(self.pandaUid,10, 0.04) 
 
        for i in range(8):
            p.resetJointState(self.pandaUid,i, startposition[i])
         
-       for _ in range(10):
-           p.stepSimulation()
-           time.sleep(0.002)
+    #    for _ in range(10):
+    #        p.stepSimulation()
+    #        time.sleep(0.002)
         
       # time.sleep(10)
            
@@ -455,7 +455,7 @@ def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
             max_step_force = force
             if max_step_force > self.output_force: ##episode max force 
                 self.output_force = max_step_force
-                print('New Max Force:', self.output_force)
+                #print('New Max Force:', self.output_force)
             
 
     return self.output_force, max_step_force, force_total/numsubsteps

@@ -1,31 +1,5 @@
 import pybullet as p
 
-# def fix_robot_physics(self, robot_id):
-#         num_joints = p.getNumJoints(robot_id)
-#         for i in range(num_joints):
-#             mass = p.getDynamicsInfo(robot_id, i)[0]
-            
-#             # Soften the contact constraints
-#             # contactStiffness: lower = softer 'squish'
-#             # contactDamping: higher = less 'bounce'
-#             p.changeDynamics(robot_id, i, 
-#                             contactStiffness=3000, 
-#                             contactDamping=100,
-#                             lateralFriction=0.1,
-#                             jointDamping=0.01)
-            
-#             if mass > 0:
-#                 new_inertia = [mass * 0.001, mass * 0.001, mass * 0.001]
-#                 p.changeDynamics(robot_id, i, localInertiaDiagonal=new_inertia)
-#             else:
-#                 p.changeDynamics(robot_id, i, mass=0.001, localInertiaDiagonal=[1e-6]*3)
-         ## check and tune this 
-            # Also soften the object you are moving!
-            # p.changeDynamics(self.objectUid, -1, 
-            #                 contactStiffness=3000, 
-            #                 contactDamping=100,
-            #                 lateralFriction=1)
-            
 def change_leg_dynamics(self):
     p.changeDynamics(self.leg, 0, 
                      mass=0, 
@@ -35,22 +9,22 @@ def change_leg_dynamics(self):
                      linearDamping=0.01,
                      angularDamping=0.01,
                      collisionMargin=0.0001)
-    p.setPhysicsEngineParameter(contactSlop=0.001)
+    p.setPhysicsEngineParameter(contactSlop=0.0005)
     #p.setCollisionFilterGroupMask(self.leg, -1, collisionFilterGroup=0, collisionFilterMask=0) 
  
 def change_foot_dynamics(self):
     
     p.changeDynamics(self.objectUid, -1, 
                      mass=0.001, 
-                     lateralFriction=1, # Lower this! 5.0 is causing the 50N spikes
-                     contactStiffness=1000000, 
-                     contactDamping=1000,
-                     collisionMargin=0.01)
+                     lateralFriction=2, # Lower this! 5.0 is causing the 50N spikes
+                     contactStiffness=5000, 
+                     contactDamping=100,
+                     collisionMargin=0.001)
     p.changeDynamics(self.objectUid, 1, 
                      mass=0.276, 
                      lateralFriction=0.5, # Lower this! 5.0 is causing the 50N spikes
-                     contactStiffness=5000, 
-                     contactDamping=100,
+                     contactStiffness=3000, 
+                     contactDamping=300,
                      collisionMargin=0.01)
    # print(p.getLinkState(self.objectUid, 1))
     
@@ -61,12 +35,14 @@ def change_robot_dynamics(self):
                          lateralFriction=2.0, # Enough to grip, but not 'glued'
                          contactStiffness=5000, 
                          contactDamping=100,
-                         collisionMargin=0.01)
-    #p.changeDynamics(self.pandaUid, 9, jointLowerLimit=0.00, jointUpperLimit=0.004,contactStiffness=2000, 
-                    # contactDamping=100)
-    #p.changeDynamics(self.pandaUid, 10, jointLowerLimit=0.0, jointUpperLimit=0.0042,contactStiffness=2000, 
-                     #contactDamping=100)
+                         collisionMargin=0.001)
 
+def change_ligament_dynamics(name):
+    p.changeDynamics(name, -1, mass=0.01, linearDamping=0.5, angularDamping=0.5)
+    p.setPhysicsEngineParameter(contactERP=0.1,useSplitImpulse=1,
+                                splitImpulsePenetrationThreshold=0.01)#, CFM=0.0011)#, cfm=0.5)#, 
+    p.setCollisionFilterGroupMask(name, -1, collisionFilterGroup=0, collisionFilterMask=0) # Disable collisions for soft body to prevent explosion during tuning
+   
        
         
         
