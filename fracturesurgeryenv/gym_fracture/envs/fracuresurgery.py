@@ -377,7 +377,7 @@ class fracturesurgery_env(gym.Env):
                                   actualNewVelocity, 
                                   jointPoses, 
                                   jointVelocities,
-                                self.capped_force,
+                                  self.capped_force,
                                   self.contact, 
                                   self.pos_distance,
                                   self.angle,
