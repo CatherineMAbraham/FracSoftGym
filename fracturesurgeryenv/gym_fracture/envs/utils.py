@@ -438,12 +438,13 @@ def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
             targetPositions=intermediate_targets.tolist(),
             forces=maxforce
         )
-        joint_current = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
+        
         if self.softtissue == 'spring':
             #print('Stepping spring')
             stretch, force_mag = self.band.step()
         #print('stepping')
         p.stepSimulation()
+        joint_current = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
         force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
         force_magnitude = np.linalg.norm(force[:3])  # Magnitude of the force vector}])
         force = force_magnitude

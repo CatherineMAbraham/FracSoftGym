@@ -282,7 +282,7 @@ class fracturesurgery_env(gym.Env):
             pass  
        
         
-        p.setPhysicsEngineParameter(numSolverIterations=500, numSubSteps=100)  # Increase solver iterations for better stability with springs
+        p.setPhysicsEngineParameter(numSolverIterations=10, numSubSteps=10)  # Increase solver iterations for better stability with springs
         ##draw aabb boxes round leg and foot 
         #utils.drawAABB(self, self.leg,-1)
         #utils.drawAABB(self, self.objectUid,1)
