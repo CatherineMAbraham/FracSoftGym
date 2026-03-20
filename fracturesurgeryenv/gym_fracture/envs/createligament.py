@@ -98,7 +98,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale, youngs_modulus):
     name = name
     mid = 0.5 * (worldA + worldB)
     currentDir = os.path.dirname(os.path.abspath(__file__))
-    lig_path = os.path.join(currentDir, "Assets/recthigh.vtk")
+    lig_path = os.path.join(currentDir, "Assets/rectcentre.vtk")
     
     E = youngs_modulus
     nu = 0.45
