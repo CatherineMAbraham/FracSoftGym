@@ -15,7 +15,7 @@ def get_anchor_local_offsets(body, link, anchor_world_positions):
     else:
         # Use index 4 and 5 for the world link frame position/orientation
         state = p.getLinkState(body, link)
-        pos, orn = state[4], state[5] 
+        pos, orn = state[2], state[3] 
         
     inv_pos, inv_orn = p.invertTransform(pos, orn)
     local_offsets = []
@@ -98,7 +98,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale, youngs_modulus):
     name = name
     mid = 0.5 * (worldA + worldB)
     currentDir = os.path.dirname(os.path.abspath(__file__))
-    lig_path = os.path.join(currentDir, "Assets/rectcentre.vtk")
+    lig_path = os.path.join(currentDir, "Assets/recthigh.vtk")
     
     E = youngs_modulus
     nu = 0.45
@@ -123,7 +123,7 @@ def make_ligament(self,name,foot,leg,a,b, orientation,scale, youngs_modulus):
     colour = [250/255,11/255,58/255,1]
     p.changeVisualShape(name, -1, rgbaColor=colour)
     change_ligament_dynamics(name)    
-    anchorA_vertices, anchorB_vertices = auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=worldA, worldB=worldB, axis=0, num_anchors=2)
+    anchorA_vertices, anchorB_vertices = auto_anchor_ligament(name, bodyA=foot, bodyB=leg, worldA=worldA, worldB=worldB, axis=0, num_anchors=5)
     
     force = measure_ligament_force(name, dt=1/240)
     

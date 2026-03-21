@@ -236,16 +236,16 @@ def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, force,cont
     
 def check_done(self):
         if self.horizon == 'variable' and self.action_type not in ['ori_only', 'pos_only'] and self.contact_type == 0:
-            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.capped_force <=self.maxforce #and self.anycontact == 0
+            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.filerted_force <=self.maxforce #and self.anycontact == 0
         elif self.horizon == 'variable' and self.action_type not in ['ori_only', 'pos_only'] and self.contact_type == 1:
-            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.capped_force <=self.maxforce and self.anycontact == 0 
+            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.filerted_force <=self.maxforce and self.anycontact == 0 
         elif self.horizon == 'fixed' and self.action_type == 'ori_only':
             return self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.current_step >= self.max_steps
         elif self.horizon == 'fixed' and self.action_type == 'pos_only':
             return self.pos_distance <= self.distance_threshold_pos and self.isHolding == 1 and self.current_step >= self.max_steps
         elif self.action_type == 'ori_only':
-            return self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.capped_force <=self.maxforce
+            return self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.filerted_force <=self.maxforce
         elif self.action_type == 'pos_only':
-            return self.pos_distance <= self.distance_threshold_pos and self.isHolding == 1 and self.capped_force <=self.maxforce
+            return self.pos_distance <= self.distance_threshold_pos and self.isHolding == 1 and self.filerted_force <=self.maxforce
         else:
-            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.capped_force <=self.maxforce and self.anycontact == 0
+            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.filerted_force <=self.maxforce and self.anycontact == 0

@@ -66,8 +66,9 @@ class ElasticBand:
         else:
             self.L0_list.append(base_L0)
         
-        self.k = (self.E * self.A) / base_L0
-        
+        #self.k = (self.E * self.A) / base_L0
+        stiffness_scale = 0.01  # VERY IMPORTANT
+        self.k = stiffness_scale (self.E * self.A) / base_L0
         mA = p.getDynamicsInfo(self.bodyA, -1)[0]
         mB = p.getDynamicsInfo(self.bodyB, -1)[0]
 
@@ -95,7 +96,7 @@ class ElasticBand:
         total_force_mag = 0.0
         total_stretch = 0.0
         active_springs = 0
-
+        max_stretch = 0.004
         posA, velA = self._get_pose_vel(self.bodyA, self.linkA,local_offset=[0,0,0])#, local_offset=[0.01, -0.0015, 0.04])
         posB, velB = self._get_pose_vel(self.bodyB, self.linkB,local_offset=[0,0,0])#, local_offset=[0.01, 0.0, -0.01])
 
@@ -121,25 +122,42 @@ class ElasticBand:
 
             if dist < 1e-6:
                 continue
-
             current_L0 = self.L0_list[i]
-            lambda_i = dist / current_L0
-
-            if lambda_i <= 1.0:
-                continue  # tension only
-
             direction = delta / dist
             stretch = dist - current_L0
 
             mu = self.E / (2 * (1 + 0.45)) 
 
-            # The force magnitude for a single strand
-            force_mag = spring_area * mu * (lambda_i - (1 / (lambda_i**2)))
+            
+            # lambda_i = dist / current_L0
+            # f_target = spring_area * mu * (1.05 - (1 / (1.05**2)))
+            # if lambda_i < 1.0:
+            #     continue  # tension only
+            # elif 1 <= lambda_i <= 1.05:
+            #     t = (lambda_i - 1.0) / (1.05 - 1.0)
+            #     force_mag = f_target * (t**2) 
+            # elif stretch >= 0.5:
+            #     force_mag = 0 
+            # else:
+            #     # 4. Standard Neo-Hookean for high stretch
+            #     force_mag = spring_area * mu * (lambda_i - (1 / (lambda_i**2)))
+            stretch_ratio = dist / current_L0
 
+            if stretch_ratio <= 1:
+                continue  # no compression
+
+            # Smooth saturating curve
+            #alpha = 50
+            
+            #force_mag = self.k * current_L0 * (1 - np.exp(-alpha * (stretch_ratio - 1)))
+            force_mag = self.k* (stretch)
             # Add damping separately
             rel_vel = np.dot((velB - velA), direction)
-            force_mag += (self.c / len(self.local_offsets_A)) * rel_vel
-            force_mag = min(force_mag, 10)  # Cap the force to prevent instability
+            damping_force = -self.c * rel_vel
+            force_mag += damping_force
+            #force_mag += (self.c / len(self.local_offsets_A)) * rel_vel
+            #force_mag = min(force_mag, 10)  # Cap the force to prevent instability
+            force_mag = max(force_mag, 0)
             total_force_mag += force_mag
             total_stretch += stretch
             active_springs += 1
@@ -153,7 +171,7 @@ class ElasticBand:
                                 worldB.tolist(), p.WORLD_FRAME)
 
             colour = [1, 0, 0] if i == 0 else [0, 1, 0] if i == 1 else [0, 0, 1]
-            p.addUserDebugLine(worldA, worldB, colour, 2)
+            p.addUserDebugLine(worldA, worldB, colour, 2,lifeTime=0.1)
             #p.addUserDebugText(f'A{i}', worldA, colour, 1.5)
             #p.addUserDebugText(f'B{i}', worldB, colour, 1.5)
 #            print(stretch, force_mag)

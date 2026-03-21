@@ -39,6 +39,7 @@ class fracturesurgery_env(gym.Env):
         youngs_modulus = 1e6,
         test = False
     ):
+        """Initialize the fracture surgery environment."""
         metadata = {"render_modes": ["human", None]}
         ## Initialise variables
         self.render_mode = render_mode
@@ -51,7 +52,6 @@ class fracturesurgery_env(gym.Env):
         self.action_type = action_type
         self.horizon = horizon
         self.softtissue = softtissue
-        self.success_threshold = 0.6
         self.episodes_done = 0
         self.force = np.float32(0)
         self.output_force = np.float32(0)
@@ -173,16 +173,15 @@ class fracturesurgery_env(gym.Env):
         dynamics.change_foot_dynamics(self)
         dynamics.change_robot_dynamics(self)
         
-        fingerforce = 2 if self.softtissue=='soft' else 2
+        fingerforce_n = 2 if self.softtissue=='soft' else 2
         for _ in range(100):
-            p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=fingerforce)
-            p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=fingerforce)
+            p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=fingerforce_n)
+            p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=fingerforce_n)
             p.stepSimulation()
             #time.sleep(1./240)  # Remove for speed
         
         ##
-        difference = [0.0,0.09,0]
-        difference =np.array(difference)
+        difference = np.array([0.0,0.09,0])
         foot = p.getLinkState(self.objectUid, 1)[0]
         legstart=foot - difference
     
@@ -237,7 +236,9 @@ class fracturesurgery_env(gym.Env):
         self.pos_distance, self.angle = utils.calculate_distances(self, initialpos, initialor, self.goal_pos, self.goal_ori)
         initialisHolding = int(initialisHolding)
         force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-        initial_force = np.linalg.norm(force)#utils.visualize_contact_forces(self,self.pandaUid, self.objectUid)
+        #normalise initial force
+        initial_f = np.linalg.norm(force)#utils.visualize_contact_forces(self,self.pandaUid, self.objectUid)
+        initial_force = initial_f / self.maxforce if initial_f <= self.maxforce else 1.0
         self.contact = int(bool(p.getContactPoints(self.objectUid, self.leg,1,-1)))
         env_utils.set_observation(self, 
                                   initialpos, 
@@ -268,8 +269,7 @@ class fracturesurgery_env(gym.Env):
                                          bodyB=self.leg, linkB= -1,
                                          young_modulus=self.young_modulus,
                                          area=5e-6,
-                                         rest_length=0.1,
-                                         num_springs=2
+                                         rest_length=0.1
                                          )
             
             
@@ -320,7 +320,7 @@ class fracturesurgery_env(gym.Env):
                 jointPoses = [0.0] * 9
 
         # Set Joint Motors
-        max_force = [87,87,87,87,12,12,12,20,20]
+        max_force = [87,87,87,87,12,12,12,20,20] ##max force for each joint, fingers have lower max force found on urdf 
         
         start_pos = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
         
@@ -350,7 +350,8 @@ class fracturesurgery_env(gym.Env):
         stretch = np.array(p.getLinkState(self.objectUid, 1)[0]) - np.array(p.getBasePositionAndOrientation(self.leg)[0])
         stretch = np.linalg.norm(stretch)
         self.contact = int(bool(p.getContactPoints(self.objectUid, self.leg,1,-1))) 
-        
+        # for _ in range(50):
+        #     p.stepSimulation()
        
         if self.contact==1:
             #print('Contact detected between foot and leg!')
@@ -371,14 +372,16 @@ class fracturesurgery_env(gym.Env):
         jointPoses = np.array([js[0] for js in joint_states])        # positions
         jointVelocities = np.array([js[1] for js in joint_states])   # velocities
         self.pos_distance, self.angle = utils.calculate_distances(self, actualNewPosition, actualNewOrientation, self.goal_pos, self.goal_ori)
-        self.capped_force = min(self.filerted_force,200)
+        #self.capped_force = min(self.filerted_force,200)
+        #normalise force instead of cap 
+        self.normalised_force = self.filerted_force / self.maxforce ## pass this instead of filtered 
         env_utils.set_observation(self, 
                                   actualNewPosition, 
                                   actualNewOrientation, 
                                   actualNewVelocity, 
                                   jointPoses, 
                                   jointVelocities,
-                                  self.capped_force,
+                                  self.normalised_force,
                                   self.contact, 
                                   self.pos_distance,
                                   self.angle,
@@ -389,7 +392,7 @@ class fracturesurgery_env(gym.Env):
         
         #print('Capped Force: ', self.capped_force,)
         done = env_utils.check_done(self)
-        if self.test and self.capped_force >= self.maxforce:
+        if self.test and self.filerted_force >= self.maxforce:
             print('Terminating episode due to excessive force during testing.')
             truncated = True
             reward = -100
@@ -411,10 +414,10 @@ class fracturesurgery_env(gym.Env):
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.capped_force,'contact': self.anycontact,'stretch': stretch}#,'force_mag':self.force_magnitude}#,
+                'force': self.filerted_force,'contact': self.anycontact,'stretch': stretch}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
-        if (not self.test) or (self.capped_force <= self.maxforce):
+        if (not self.test) or (self.filerted_force <= self.maxforce):
             reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
         # else: keep the earlier penalty reward (-100)
         reward = np.float32(reward)

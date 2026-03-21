@@ -16,7 +16,7 @@ def change_foot_dynamics(self):
     
     p.changeDynamics(self.objectUid, -1, 
                      mass=0.001, 
-                     lateralFriction=2, # Lower this! 5.0 is causing the 50N spikes
+                     lateralFriction=5, # Lower this! 5.0 is causing the 50N spikes
                      contactStiffness=5000, 
                      contactDamping=100,
                      collisionMargin=0.001)
@@ -32,13 +32,13 @@ def change_foot_dynamics(self):
 def change_robot_dynamics(self):
     for i in [9, 10]:
         p.changeDynamics(self.pandaUid, i, 
-                         lateralFriction=2.0, # Enough to grip, but not 'glued'
+                         lateralFriction=5.0, # Enough to grip, but not 'glued'
                          contactStiffness=5000, 
                          contactDamping=100,
                          collisionMargin=0.001)
 
 def change_ligament_dynamics(name):
-    p.changeDynamics(name, -1, mass=0.01, linearDamping=0.5, angularDamping=0.5)
+    p.changeDynamics(name, -1, mass=0.1, linearDamping=0.5, angularDamping=0.5)
     p.setPhysicsEngineParameter(contactERP=0.1,useSplitImpulse=1,
                                 splitImpulsePenetrationThreshold=0.01)#, CFM=0.0011)#, cfm=0.5)#, 
     p.setCollisionFilterGroupMask(name, -1, collisionFilterGroup=0, collisionFilterMask=0) # Disable collisions for soft body to prevent explosion during tuning
