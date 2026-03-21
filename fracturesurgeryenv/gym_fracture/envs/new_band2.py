@@ -68,7 +68,7 @@ class ElasticBand:
         
         #self.k = (self.E * self.A) / base_L0
         stiffness_scale = 0.01  # VERY IMPORTANT
-        self.k = stiffness_scale (self.E * self.A) / base_L0
+        self.k = stiffness_scale *(self.E * self.A) / base_L0
         mA = p.getDynamicsInfo(self.bodyA, -1)[0]
         mB = p.getDynamicsInfo(self.bodyB, -1)[0]
 
