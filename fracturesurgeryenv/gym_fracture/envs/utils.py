@@ -177,7 +177,7 @@ def get_new_pose(self, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
             #newPosition = np.clip(newPosition, self.goal_range_low, self.goal_range_high)
             newOrientation = np.array(p.multiplyTransforms([0, 0, 0], currentOrientation, [0, 0, 0], deltaor)[1])
             #ensure normalised quaternion
-            newOrientation = newOrientation / np.linalg.norm(newOrientation)
+            #newOrientation = newOrientation / np.linalg.norm(newOrientation)
             #euler = p.getEulerFromQuaternion(newOrientation)
             #newOrientationE = np.clip(euler, self.goal_ori_low, self.goal_ori_high)
             #newOrientation = p.getQuaternionFromEuler(newOrientationE)
@@ -457,7 +457,7 @@ def smooth_motion(self, joint_targets, joint_current, maxforce,numsubsteps):
             max_step_force = force
             if max_step_force > self.output_force: ##episode max force 
                 self.output_force = max_step_force
-                print('New Max Force:', self.output_force)
+                #print('New Max Force:', self.output_force)
             
 
     return self.output_force, max_step_force, force_total/numsubsteps
