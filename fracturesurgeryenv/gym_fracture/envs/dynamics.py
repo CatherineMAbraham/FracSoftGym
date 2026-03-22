@@ -16,7 +16,7 @@ def change_foot_dynamics(self):
     
     p.changeDynamics(self.objectUid, -1, 
                      mass=0.001, 
-                     lateralFriction=5, # Lower this! 5.0 is causing the 50N spikes
+                     lateralFriction=2, # Lower this! 5.0 is causing the 50N spikes
                      contactStiffness=5000, 
                      contactDamping=100,
                      collisionMargin=0.001)
@@ -32,7 +32,7 @@ def change_foot_dynamics(self):
 def change_robot_dynamics(self):
     for i in [9, 10]:
         p.changeDynamics(self.pandaUid, i, 
-                         lateralFriction=5.0, # Enough to grip, but not 'glued'
+                         lateralFriction=2.0, # Enough to grip, but not 'glued'
                          contactStiffness=5000, 
                          contactDamping=100,
                          collisionMargin=0.001)

@@ -161,7 +161,8 @@ def compute_reward_dense(self, achieved_goal, desired_goal, info):
     elif self.reward_type == 'dense_1' and self.horizon == 'fixed':
         return -d1 + e
     
-def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, force,contact,left_contact,position, angle, right_contact, dist, isHolding):
+def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, 
+                    force,contact,position, angle,left_contact, right_contact, dist, isHolding):
     if self.action_type == 'ori_only':
         observation = np.concatenate([
         np.array(pos),
@@ -171,10 +172,10 @@ def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, force,cont
         np.array(jointVelocities),
         np.array([force]),
         np.array([contact]),
-        np.array([self.angle]),
-        np.array([self.left_contact]),
-        np.array([self.right_contact]),
-        np.array([self.dist]),
+        np.array([angle]),
+        np.array([left_contact]),
+        np.array([right_contact]),
+        np.array([dist]),
         np.array([isHolding])
     ])  # Total: 31 elements
     elif self.action_type == 'pos_only':

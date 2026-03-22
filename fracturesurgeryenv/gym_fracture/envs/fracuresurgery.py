@@ -235,10 +235,9 @@ class fracturesurgery_env(gym.Env):
         initialJointVelocities = [p.getJointState(self.pandaUid, i)[1] for i in range(9)]
         self.pos_distance, self.angle = utils.calculate_distances(self, initialpos, initialor, self.goal_pos, self.goal_ori)
         initialisHolding = int(initialisHolding)
-        force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
-        #normalise initial force
-        initial_f = np.linalg.norm(force)#utils.visualize_contact_forces(self,self.pandaUid, self.objectUid)
-        initial_force = initial_f / self.maxforce if initial_f <= self.maxforce else 1.0
+        initial_force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
+        #get initial force without normalization
+        #initial_f = np.linalg.norm(force)#utils.visualize_contact_forces(self,self.pandaUid, self.objectUid)
         self.contact = int(bool(p.getContactPoints(self.objectUid, self.leg,1,-1)))
         env_utils.set_observation(self, 
                                   initialpos, 
@@ -374,18 +373,18 @@ class fracturesurgery_env(gym.Env):
         self.pos_distance, self.angle = utils.calculate_distances(self, actualNewPosition, actualNewOrientation, self.goal_pos, self.goal_ori)
         #self.capped_force = min(self.filerted_force,200)
         #normalise force instead of cap 
-        self.normalised_force = self.filerted_force / self.maxforce ## pass this instead of filtered 
+        #self.normalised_force = self.filerted_force / self.maxforce ## for visualization only
         env_utils.set_observation(self, 
                                   actualNewPosition, 
                                   actualNewOrientation, 
                                   actualNewVelocity, 
                                   jointPoses, 
                                   jointVelocities,
-                                  self.normalised_force,
+                                  self.filerted_force,
                                   self.contact, 
                                   self.pos_distance,
                                   self.angle,
-                                  left_contact, 
+                                  left_contact,
                                   right_contact, 
                                   dist,  
                                   self.isHolding)
