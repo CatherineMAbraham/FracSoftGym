@@ -236,6 +236,8 @@ class fracturesurgery_env(gym.Env):
         self.pos_distance, self.angle = utils.calculate_distances(self, initialpos, initialor, self.goal_pos, self.goal_ori)
         initialisHolding = int(initialisHolding)
         initial_force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
+        initial_force = np.linalg.norm(initial_force[0:3])
+        print('Initial Force:', initial_force)
         #get initial force without normalization
         #initial_f = np.linalg.norm(force)#utils.visualize_contact_forces(self,self.pandaUid, self.objectUid)
         self.contact = int(bool(p.getContactPoints(self.objectUid, self.leg,1,-1)))
