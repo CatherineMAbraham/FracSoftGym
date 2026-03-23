@@ -177,6 +177,11 @@ def get_new_pose(self, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
             #newPosition = np.clip(newPosition, self.goal_range_low, self.goal_range_high)
             newOrientation = np.array(p.multiplyTransforms([0, 0, 0], currentOrientation, [0, 0, 0], deltaor)[1])
             #ensure normalised quaternion
+            #check if quat is normalised 
+            #norm = np.linalg.norm(newOrientation)
+            norm = newOrientation[0]**2 + newOrientation[1]**2 + newOrientation[2]**2 + newOrientation[3]**2
+            if norm > 1+1e-6 or norm < 1-1e-6:
+                print(f'not normalised! {norm}')
             #newOrientation = newOrientation / np.linalg.norm(newOrientation)
             #euler = p.getEulerFromQuaternion(newOrientation)
             #newOrientationE = np.clip(euler, self.goal_ori_low, self.goal_ori_high)
