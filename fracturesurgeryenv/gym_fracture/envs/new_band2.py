@@ -37,7 +37,7 @@ class ElasticBand:
         #angles = np.linspace(0, 2*np.pi, num_springs, endpoint=False)
         width = 0.005 #5mm wide rectangle
         #create 3 attachment points in a line across the width of the band
-                
+        
         # self.local_offsets_A = [np.array([-0.07402802, -0.02543187, -0.34601694]), np.array([-0.07401566, -0.02544761, -0.35315976])]
         # self.local_offsets_B = [np.array([-0.26201391, -0.48721281, -0.01182608]), np.array([-0.26201391, -0.48721281, -0.01182608])]
         # self.world_offset = [np.array([-0.07402802, -0.02543187, -0.34601694]), np.array([-0.07401566, -0.02544761, -0.35315976])]
@@ -46,8 +46,16 @@ class ElasticBand:
         #self.local_offsets_B = [np.array([ 0.01999438, -0.00067805, -0.0100396 ]), np.array([ 0.01999438,  0.00432195, -0.0100396 ])]
         #self.local_offsets_A= [np.array([ 0.3769989,  -0.08445022,  0.07449624]),np.array([ 0.3769989,  -0.07730737,  0.07449624])]
         #self.local_offsets_B=[np.array([ 0.3769989,  -0.12016451,  0.07449624]),np.array([ 0.3769989,  -0.12016451,  0.07949624])]
-        self.local_offsets_A=[np.array([ 0.02000636, -0.00083421,  0.04432721]), np.array([ 0.02000484, -0.00081395,  0.03718438])]
-        self.local_offsets_B= [np.array([ 0.01999438, -0.00067805, -0.0100396 ]), np.array([ 0.01999438,  0.00432195, -0.0100396 ])]
+        #[np.array([ 0.02000636, -0.00083421,  0.04432721]), [np.array([ 0.01999438, -0.00067805, -0.0100396 ]),
+        self.local_offsets_A=[np.array([ 0.02000484, -0.00081395,  0.03718438])]
+        self.local_offsets_B=  [np.array([ 0.01999438,  0.00432195, -0.0100396 ])]
+        ##start from offset_A and create a line of attachment points across the width of the band up to the number of springs
+        ## offset = width of the band/num springs * i - width/2 to center it around the original point
+        for i in range(1, num_springs):
+            offset_A = self.local_offsets_A[0] - np.array([0, width/num_springs * (i-1), 0])
+            offset_B = self.local_offsets_B[0] - np.array([0, width/num_springs * (i-1), 0])
+            self.local_offsets_A.append(offset_A)
+            self.local_offsets_B.append(offset_B)
         posA = np.array(posA)
         posB = np.array(posB)
         velA = np.array(velA)
@@ -57,14 +65,14 @@ class ElasticBand:
         self.RB = np.array(p.getMatrixFromQuaternion(ornB)).reshape(3,3)
         base_L0 = np.linalg.norm((posB + self.RB @ self.local_offsets_B[0]) - (posA + self.RA @ self.local_offsets_A[0]))
         self.L0_list = [np.linalg.norm(self.local_offsets_B[i] - self.local_offsets_A[i]) for i in range(len(self.local_offsets_A))]
-        recruitment_spread = 0.0 # 2% variation
-        if num_springs > 1:
-            for i in range(num_springs):
-                # Linearly vary L0 for each fiber
-                factor = 1.0 + (i * recruitment_spread / (num_springs - 1))
-                self.L0_list.append(base_L0 * factor)
-        else:
-            self.L0_list.append(base_L0)
+        # recruitment_spread = 0.0 # 2% variation
+        # if num_springs > 1:
+        #     for i in range(num_springs):
+        #         # Linearly vary L0 for each fiber
+        #         factor = 1.0 + (i * recruitment_spread / (num_springs - 1))
+        #         self.L0_list.append(base_L0 * factor)
+        # else:
+        #     self.L0_list.append(base_L0)
         
         #self.k = (self.E * self.A) / base_L0
         stiffness_scale = 0.01  # VERY IMPORTANT
@@ -127,7 +135,7 @@ class ElasticBand:
             stretch = dist - current_L0
 
             mu = self.E / (2 * (1 + 0.45)) 
-
+            #print(f'Spring {i}: Stretch={stretch:.4f} m, L0={current_L0:.4f} m, Dist={dist:.4f} m')
             
             # lambda_i = dist / current_L0
             # f_target = spring_area * mu * (1.05 - (1 / (1.05**2)))
@@ -143,25 +151,26 @@ class ElasticBand:
             #     force_mag = spring_area * mu * (lambda_i - (1 / (lambda_i**2)))
             stretch_ratio = dist / current_L0
 
-            if stretch_ratio <= 1:
-                continue  # no compression
+            #if stretch_ratio <= 1:
+             #  continue  # no compression
 
             # Smooth saturating curve
             #alpha = 50
             
             #force_mag = self.k * current_L0 * (1 - np.exp(-alpha * (stretch_ratio - 1)))
-            force_mag = self.k* (stretch)
+            force_mag =spring_area * self.k* (stretch)
+            #print(force_mag)
             # Add damping separately
             rel_vel = np.dot((velB - velA), direction)
             damping_force = -self.c * rel_vel
             force_mag += damping_force
             #force_mag += (self.c / len(self.local_offsets_A)) * rel_vel
             #force_mag = min(force_mag, 10)  # Cap the force to prevent instability
-            force_mag = max(force_mag, 0)
+            #force_mag = max(force_mag, 0)
             total_force_mag += force_mag
             total_stretch += stretch
             active_springs += 1
-
+            #print(f'Spring {i}: Stretch={stretch:.4f} m, Force={force_mag:.4f} N')
             F_vec = force_mag * direction
             self.last_force_vector = F_vec.copy()
             #print(force_mag)
@@ -170,6 +179,7 @@ class ElasticBand:
             p.applyExternalForce(self.bodyB, self.linkB, (F_vec).tolist(),
                                 worldB.tolist(), p.WORLD_FRAME)
 
+            
             colour = [1, 0, 0] if i == 0 else [0, 1, 0] if i == 1 else [0, 0, 1]
             p.addUserDebugLine(worldA, worldB, colour, 2,lifeTime=0.1)
             #p.addUserDebugText(f'A{i}', worldA, colour, 1.5)

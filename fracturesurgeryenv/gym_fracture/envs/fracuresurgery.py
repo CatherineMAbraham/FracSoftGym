@@ -237,7 +237,7 @@ class fracturesurgery_env(gym.Env):
         initialisHolding = int(initialisHolding)
         initial_force = p.getJointState(self.objectUid, 0)[2]  # Joint index 0 is the fixed joint
         initial_force = np.linalg.norm(initial_force[0:3])
-        print('Initial Force:', initial_force)
+        #print('Initial Force:', initial_force)
         #get initial force without normalization
         #initial_f = np.linalg.norm(force)#utils.visualize_contact_forces(self,self.pandaUid, self.objectUid)
         self.contact = int(bool(p.getContactPoints(self.objectUid, self.leg,1,-1)))
@@ -263,7 +263,7 @@ class fracturesurgery_env(gym.Env):
             self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.objectUid, 1,local_offset=[0.01,-0.0015,0.04]) ##trial and error to place them 
             self.point_c,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[-0.03,0.0,-0.01])
             self.point_d,_ = new_band.ElasticBand._get_pose_vel(self,self.objectUid, 1,local_offset=[-0.03,-0.0015,0.04])
-            make_ligament(self,"cloth_Id1", self.objectUid, self.leg, self.point_c, self.point_d,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi,180/180*np.pi]), scale =1,youngs_modulus=self.young_modulus)
+            #make_ligament(self,"cloth_Id1", self.objectUid, self.leg, self.point_c, self.point_d,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi,180/180*np.pi]), scale =1,youngs_modulus=self.young_modulus)
             make_ligament(self, "cloth_Id2", self.objectUid, 
                           self.leg, self.point_a, 
                           self.point_b,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi , 180/180*np.pi]), scale =1, youngs_modulus=self.young_modulus) #0.75
@@ -272,7 +272,8 @@ class fracturesurgery_env(gym.Env):
                                          bodyB=self.leg, linkB= -1,
                                          young_modulus=self.young_modulus,
                                          area=5e-6,
-                                         rest_length=0.1
+                                         rest_length=0.1,
+                                         num_springs=self.number_of_springs
                                          )
             
             
