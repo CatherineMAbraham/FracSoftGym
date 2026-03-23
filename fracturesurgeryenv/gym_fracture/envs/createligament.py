@@ -164,8 +164,8 @@ def auto_anchor_ligament(clothId, bodyA, bodyB, worldA, worldB, axis=0, num_anch
     b_coords = b_verts[anchorB_vertices]
     local_offsets_A = get_anchor_local_offsets(bodyA,1, verts[anchorA_vertices])
     local_offsets_B = get_anchor_local_offsets(bodyB,-1,  verts[anchorB_vertices])
-    p.addUserDebugText(f"A", verts[anchorA_vertices[0]], [1,0,0], 2.0)
-    p.addUserDebugText(f"B", verts[anchorB_vertices[0]], [0,1,0], 2.0)
+    #p.addUserDebugText(f"A", verts[anchorA_vertices[0]], [1,0,0], 2.0)
+    #p.addUserDebugText(f"B", verts[anchorB_vertices[0]], [0,1,0], 2.0)
     for i, vid in enumerate(anchorA_vertices):
         p.createSoftBodyAnchor(clothId, int(vid), bodyA, 1,a_coords[i].tolist())
     for i, vid in enumerate(anchorB_vertices):
