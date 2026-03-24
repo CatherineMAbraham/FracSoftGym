@@ -421,7 +421,7 @@ class fracturesurgery_env(gym.Env):
                 'force': self.filerted_force,'contact': self.anycontact,'stretch': stretch}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
-        if (not self.test) or (self.filerted_force <= self.maxforce):
+        if (not self.test) or (self.filerted_force <= 100):
             reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
         # else: keep the earlier penalty reward (-100)
         reward = np.float32(reward)
