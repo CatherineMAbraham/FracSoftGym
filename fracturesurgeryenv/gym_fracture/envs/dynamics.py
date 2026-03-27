@@ -1,7 +1,7 @@
 import pybullet as p
 
-def change_leg_dynamics(self):
-    p.changeDynamics(self.leg, 0, 
+def change_leg_dynamics(env):
+    p.changeDynamics(env.leg, 0, 
                      mass=0, 
                      contactStiffness=5000, 
                      contactDamping=1000, 
@@ -10,28 +10,28 @@ def change_leg_dynamics(self):
                      angularDamping=0.01,
                      collisionMargin=0.0001)
     p.setPhysicsEngineParameter(contactSlop=0.0005)
-    #p.setCollisionFilterGroupMask(self.leg, -1, collisionFilterGroup=0, collisionFilterMask=0) 
+    #p.setCollisionFilterGroupMask(env.leg, -1, collisionFilterGroup=0, collisionFilterMask=0) 
  
-def change_foot_dynamics(self):
+def change_foot_dynamics(env):
     
-    p.changeDynamics(self.objectUid, -1, 
+    p.changeDynamics(env.foot, -1, 
                      mass=0.001, 
                      lateralFriction=2, # Lower this! 5.0 is causing the 50N spikes
                      contactStiffness=5000, 
                      contactDamping=100,
                      collisionMargin=0.001)
-    p.changeDynamics(self.objectUid, 1, 
+    p.changeDynamics(env.foot, 1, 
                      mass=0.276, 
                      lateralFriction=0.5, # Lower this! 5.0 is causing the 50N spikes
                      contactStiffness=3000, 
                      contactDamping=300,
                      collisionMargin=0.01)
-   # print(p.getLinkState(self.objectUid, 1))
+   # print(p.getLinkState(env.foot, 1))
     
      
-def change_robot_dynamics(self):
+def change_robot_dynamics(env):
     for i in [9, 10]:
-        p.changeDynamics(self.pandaUid, i, 
+        p.changeDynamics(env.pandaUid, i, 
                          lateralFriction=2.0, # Enough to grip, but not 'glued'
                          contactStiffness=5000, 
                          contactDamping=100,

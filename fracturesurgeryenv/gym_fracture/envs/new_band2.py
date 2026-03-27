@@ -6,7 +6,7 @@ def vec(x): return np.array(x, dtype=float)
 
 class ElasticBand:
     def __init__(self, bodyA, linkA, bodyB, linkB,
-                 young_modulus, area, rest_length,
+                 young_modulus, area,
                  damping_ratio=0.5, exponent=1.5,num_springs=3):
         self.bodyA = bodyA
         self.linkA = linkA
