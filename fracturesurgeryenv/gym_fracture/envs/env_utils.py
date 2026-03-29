@@ -2,168 +2,168 @@ import numpy as np
 from gymnasium import spaces
 from gym_fracture.envs import utils
 
-def set_observation_space(self):
-    if self.action_type == 'ori_only':
+def set_observation_space(env):
+    if env.action_type == 'ori_only':
         obs_shape = 35  
         goal_shape = 5
-    elif self.action_type == "pos_only":
+    elif env.action_type == "pos_only":
         obs_shape = 35  
         goal_shape = 4
-    elif self.contact_type == True:
+    elif env.contact_type == True:
         obs_shape = 36
         goal_shape = 10
     else:
         obs_shape = 36
         goal_shape = 9
-    if self.obs_type == 'dict':
-        self.observation_space = spaces.Dict({
+    if env.obs_type == 'dict':
+        env.observation_space = spaces.Dict({
             'observation': spaces.Box(low=-200, high=200, shape=(obs_shape,), dtype=np.float32),
             'achieved_goal': spaces.Box(low=-200, high=200, shape=(goal_shape,), dtype=np.float32),
             'desired_goal': spaces.Box(low=-200, high=200, shape=(goal_shape,), dtype=np.float32)
         })
     else:
-        self.observation_space = spaces.Box(low=-200, high=200, shape=(obs_shape,), dtype=np.float32)
+        env.observation_space = spaces.Box(low=-200, high=200, shape=(obs_shape,), dtype=np.float32)
 
-def set__action_space(self):
-    if self.action_type == 'ori_only':
-        self.action_space = spaces.Box(low=-1, high=1, shape=(3,))
+def set__action_space(env):
+    if env.action_type == 'ori_only':
+        env.action_space = spaces.Box(low=-1, high=1, shape=(3,))
         # low=np.array([-0.0007, -0.0013, -0.0014]),
             #  high=np.array([0.001, 0.0015, 0.0014]),
-    elif self.action_type == 'pos_only':
-        self.action_space = spaces.Box(low =-1, high=1, shape=(3,))
+    elif env.action_type == 'pos_only':
+        env.action_space = spaces.Box(low =-1, high=1, shape=(3,))
             #low=np.array([-0.005, -0.005, -0.005]),
             #high=np.array([0.005, 0.005, 0.005]),
             #shape=(3,)
         #)
-    elif self.action_type == 'fouractions':
-        self.action_space = spaces.Box(low=-1, high=1, shape=(4,))
+    elif env.action_type == 'fouractions':
+        env.action_space = spaces.Box(low=-1, high=1, shape=(4,))
     else:
-        self.action_space = spaces.Box(low=-1, high=1, shape=(6,))
+        env.action_space = spaces.Box(low=-1, high=1, shape=(6,))
 
 
-def compute_reward_sparse_pos(self, achieved_goal, desired_goal, info):
+def compute_reward_sparse_pos(env, achieved_goal, desired_goal, info):
     if achieved_goal.ndim == 1:
-                    self.pos_distance = np.linalg.norm(achieved_goal[:3] - desired_goal[:3])
-                    self.isHolding = achieved_goal[3]
-                    reward = 0 if (self.pos_distance <= self.distance_threshold_pos and self.isHolding == 1) else -1
+                    env.pos_distance = np.linalg.norm(achieved_goal[:3] - desired_goal[:3])
+                    env.isHolding = achieved_goal[3]
+                    reward = 0 if (env.pos_distance <= env.distance_threshold_pos and env.isHolding == 1) else -1
     else:
         pos_achieved = achieved_goal[:, :3]
         pos_desired = desired_goal[:, :3]
-        self.isHolding = achieved_goal[:, 3]
-        self.pos_distance = np.linalg.norm(pos_achieved - pos_desired, axis=1)
+        env.isHolding = achieved_goal[:, 3]
+        env.pos_distance = np.linalg.norm(pos_achieved - pos_desired, axis=1)
         reward = np.where(
-            (self.pos_distance <= self.distance_threshold_pos) & (self.isHolding == 1),
+            (env.pos_distance <= env.distance_threshold_pos) & (env.isHolding == 1),
             0, -1
         )
     return np.array(reward)
 
-def compute_reward_sparse_ori(self, achieved_goal, desired_goal, info):
-    if self.action_type == 'ori_only':
+def compute_reward_sparse_ori(env, achieved_goal, desired_goal, info):
+    if env.action_type == 'ori_only':
             if achieved_goal.ndim == 1:
                 new_ori = achieved_goal[:4]
                 goal_ori = desired_goal[:4]
-                self.isHolding = achieved_goal[4]
+                env.isHolding = achieved_goal[4]
                 dot_product = np.clip(np.abs(np.sum(new_ori * goal_ori)), -1.0, 1.0)
-                self.angle = 2 * np.arccos(dot_product)
-                reward = 0 if (self.angle <= self.distance_threshold_ori and self.isHolding == 1) else -1
+                env.angle = 2 * np.arccos(dot_product)
+                reward = 0 if (env.angle <= env.distance_threshold_ori and env.isHolding == 1) else -1
             else:
                 new_ori = achieved_goal[:, :4]
                 goal_ori = desired_goal[:, :4]
-                self.isHolding = achieved_goal[:, 4]
+                env.isHolding = achieved_goal[:, 4]
                 dot_product = np.clip(np.abs(np.sum(new_ori * goal_ori, axis=-1)), -1.0, 1.0)
-                self.angle = 2 * np.arccos(dot_product)
+                env.angle = 2 * np.arccos(dot_product)
                 reward = np.where(
-                    (self.angle <= self.distance_threshold_ori) & (self.isHolding == 1),
+                    (env.angle <= env.distance_threshold_ori) & (env.isHolding == 1),
                     0, -1
                 )
             return np.array(reward)
     
-def compute_reward_sparse_euler(self, achieved_goal, desired_goal, info):
+def compute_reward_sparse_euler(env, achieved_goal, desired_goal, info):
     if achieved_goal.ndim == 1:   
             pos_achieved, angle_achieved = achieved_goal[:3], achieved_goal[3:7]
             pos_desired, angle_desired = desired_goal[:3], desired_goal[3:7]
-            self.pos_distance, self.angle = utils.calculate_distances(self, pos_achieved, angle_achieved, pos_desired, angle_desired)
-            self.isHolding = achieved_goal[7]
-            self.force = achieved_goal[8]
-            #self.contact = achieved_goal[9]
+            env.pos_distance, env.angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
+            env.isHolding = achieved_goal[7]
+            env.force = achieved_goal[8]
+            #env.contact = achieved_goal[9]
             reward = 0 if (
-                self.pos_distance <= self.distance_threshold_pos and
-                self.angle <= self.distance_threshold_ori and 
-                self.isHolding == 1 and
-                self.force <= self.maxforce# and
-               # self.contact == 0
+                env.pos_distance <= env.distance_threshold_pos and
+                env.angle <= env.distance_threshold_ori and 
+                env.isHolding == 1 and
+                env.force <= env.max_force# and
+               # env.contact == 0
             ) else -1
     else:
         pos_achieved, angle_achieved = achieved_goal[:, :3], achieved_goal[:, 3:7]
         pos_desired, angle_desired = desired_goal[:, :3], desired_goal[:, 3:7]
-        self.pos_distance, self.angle = utils.calculate_distances(self, pos_achieved, angle_achieved, pos_desired, angle_desired)
-        self.isHolding = achieved_goal[:, 7]
-        self.force = achieved_goal[:, 8]
+        env.pos_distance, env.angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
+        env.isHolding = achieved_goal[:, 7]
+        env.force = achieved_goal[:, 8]
         
-        #self.contact = achieved_goal[:, 9]
+        #env.contact = achieved_goal[:, 9]
         reward = np.where(
-            (self.pos_distance <= self.distance_threshold_pos) &
-            (self.angle <= self.distance_threshold_ori) &
-            (self.isHolding == 1) & 
-            (self.force <= self.maxforce),# &
-            #(self.contact == 0),
+            (env.pos_distance <= env.distance_threshold_pos) &
+            (env.angle <= env.distance_threshold_ori) &
+            (env.isHolding == 1) & 
+            (env.force <= env.max_force),# &
+            #(env.contact == 0),
             0, -1)
         
     return np.array(reward)
 
-def compute_reward_sparse_euler_contact(self, achieved_goal, desired_goal, info):
+def compute_reward_sparse_euler_contact(env, achieved_goal, desired_goal, info):
     if achieved_goal.ndim == 1:   
             pos_achieved, angle_achieved = achieved_goal[:3], achieved_goal[3:7]
             pos_desired, angle_desired = desired_goal[:3], desired_goal[3:7]
-            self.pos_distance, self.angle = utils.calculate_distances(self, pos_achieved, angle_achieved, pos_desired, angle_desired)
-            self.isHolding = achieved_goal[7]
-            self.force = achieved_goal[8]
-            self.contact = achieved_goal[9]
+            env.pos_distance, env.angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
+            env.isHolding = achieved_goal[7]
+            env.force = achieved_goal[8]
+            env.contact = achieved_goal[9]
             reward = 0 if (
-                self.pos_distance <= self.distance_threshold_pos and
-                self.angle <= self.distance_threshold_ori and 
-                self.isHolding == 1 and
-                self.force <= self.maxforce and
-                self.contact == 0
+                env.pos_distance <= env.distance_threshold_pos and
+                env.angle <= env.distance_threshold_ori and 
+                env.isHolding == 1 and
+                env.force <= env.max_force and
+                env.contact == 0
             ) else -1
     else:
         pos_achieved, angle_achieved = achieved_goal[:, :3], achieved_goal[:, 3:7]
         pos_desired, angle_desired = desired_goal[:, :3], desired_goal[:, 3:7]
-        self.pos_distance, self.angle = utils.calculate_distances(self, pos_achieved, angle_achieved, pos_desired, angle_desired)
-        self.isHolding = achieved_goal[:, 7]
-        self.force = achieved_goal[:, 8]
-        self.contact = achieved_goal[:, 9]
+        env.pos_distance, env.angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
+        env.isHolding = achieved_goal[:, 7]
+        env.force = achieved_goal[:, 8]
+        env.contact = achieved_goal[:, 9]
         reward = np.where(
-            (self.pos_distance <= self.distance_threshold_pos) &
-            (self.angle <= self.distance_threshold_ori) &
-            (self.isHolding == 1) & 
-            (self.force <= self.maxforce) &
-            (self.contact == 0),
+            (env.pos_distance <= env.distance_threshold_pos) &
+            (env.angle <= env.distance_threshold_ori) &
+            (env.isHolding == 1) & 
+            (env.force <= env.max_force) &
+            (env.contact == 0),
             0, -1)
         
     return np.array(reward)
 
-def compute_reward_dense(self, achieved_goal, desired_goal, info):
-    hold = 0.1 if self.isHolding == 0 else 0
-    d1 = self.pos_distance + self.angle
-    d2 = self.pos_distance + self.angle
-    d_pos = np.float32(self.pos_distance)
-    rewardDistance = np.exp(-0.1 * self.pos_distance)
-    rewardOrientation = np.exp(-0.1 * self.angle)
+def compute_reward_dense(env, achieved_goal, desired_goal, info):
+    hold = 0.1 if env.isHolding == 0 else 0
+    d1 = env.pos_distance + env.angle
+    d2 = env.pos_distance + env.angle
+    d_pos = np.float32(env.pos_distance)
+    rewardDistance = np.exp(-0.1 * env.pos_distance)
+    rewardOrientation = np.exp(-0.1 * env.angle)
     e = rewardDistance + rewardOrientation
-    if self.reward_type == 'dense' and self.action_type == 'pos_only':
+    if env.reward_type == 'dense' and env.action_type == 'pos_only':
         return -d_pos
-    elif self.reward_type == 'dense_1' and self.horizon == 'variable':
-        print(f'Pos Distance: {self.pos_distance}, Angle: {self.angle}, Holding Penalty: {hold}, Reward: {-d1}')
+    elif env.reward_type == 'dense_1' and env.horizon == 'variable':
+        print(f'Pos Distance: {env.pos_distance}, Angle: {env.angle}, Holding Penalty: {hold}, Reward: {-d1}')
         return -d1
-    elif self.reward_type == 'dense_2':
+    elif env.reward_type == 'dense_2':
         return -(d2 + hold)
-    elif self.reward_type == 'dense_1' and self.horizon == 'fixed':
+    elif env.reward_type == 'dense_1' and env.horizon == 'fixed':
         return -d1 + e
     
-def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, 
+def set_observation(env, pos, ori, vel, jointPoses, jointVelocities, 
                     force,contact,position, angle,left_contact, right_contact, dist, isHolding):
-    if self.action_type == 'ori_only':
+    if env.action_type == 'ori_only':
         observation = np.concatenate([
         np.array(pos),
         np.array(ori),
@@ -178,7 +178,7 @@ def set_observation(self, pos, ori, vel, jointPoses, jointVelocities,
         np.array([dist]),
         np.array([isHolding])
     ])  # Total: 31 elements
-    elif self.action_type == 'pos_only':
+    elif env.action_type == 'pos_only':
           observation = np.concatenate([
                 np.array(pos),
                 np.array(ori),
@@ -212,41 +212,41 @@ def set_observation(self, pos, ori, vel, jointPoses, jointVelocities,
 
     desired_force = [2.5]
     object_contact = [0] 
-    if self.action_type == 'ori_only':
-        self.achieved_goal = np.array(list(ori) +[isHolding]+[force])#+[self.contact])
-        self.desired_goal = np.array(list(self.goal_ori) + [1]+desired_force)#+object_contact)
-    elif self.action_type == 'pos_only':
-        self.achieved_goal = np.array(list(pos) + [isHolding]+[force])#+[self.contact])
-        self.desired_goal = np.array(list(self.goal_pos) + [1]+desired_force)#+object_contact)
-    elif self.contact_type == 1:
-        self.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+[self.anycontact])#+[self.contact])
-        self.desired_goal = np.array(list(self.target_position) + [1]+desired_force +object_contact)
+    if env.action_type == 'ori_only':
+        env.achieved_goal = np.array(list(ori) +[isHolding]+[force])#+[env.contact])
+        env.desired_goal = np.array(list(env.goal_ori) + [1]+desired_force)#+object_contact)
+    elif env.action_type == 'pos_only':
+        env.achieved_goal = np.array(list(pos) + [isHolding]+[force])#+[env.contact])
+        env.desired_goal = np.array(list(env.goal_pos) + [1]+desired_force)#+object_contact)
+    elif env.contact_type == 1:
+        env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+[env.anycontact])#+[env.contact])
+        env.desired_goal = np.array(list(env.target_position) + [1]+desired_force +object_contact)
     else:
-        self.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force])#+[self.contact])
-        self.desired_goal = np.array(list(self.target_position) + [1]+desired_force)#+object_contact)
+        env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force])#+[env.contact])
+        env.desired_goal = np.array(list(env.target_position) + [1]+desired_force)#+object_contact)
 
-    if self.obs_type == 'dict':
+    if env.obs_type == 'dict':
         observation_dict = {
             "observation": observation.astype(np.float32),
-            "achieved_goal": self.achieved_goal.astype(np.float32),
-            "desired_goal": self.desired_goal.astype(np.float32),
+            "achieved_goal": env.achieved_goal.astype(np.float32),
+            "desired_goal": env.desired_goal.astype(np.float32),
         }
-        self.state = observation_dict
+        env.state = observation_dict
     else:
-        self.state = observation.astype(np.float32)
+        env.state = observation.astype(np.float32)
     
-def check_done(self):
-        if self.horizon == 'variable' and self.action_type not in ['ori_only', 'pos_only'] and self.contact_type == 0:
-            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.filerted_force <=self.maxforce #and self.anycontact == 0
-        elif self.horizon == 'variable' and self.action_type not in ['ori_only', 'pos_only'] and self.contact_type == 1:
-            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.filerted_force <=self.maxforce and self.anycontact == 0 
-        elif self.horizon == 'fixed' and self.action_type == 'ori_only':
-            return self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.current_step >= self.max_steps
-        elif self.horizon == 'fixed' and self.action_type == 'pos_only':
-            return self.pos_distance <= self.distance_threshold_pos and self.isHolding == 1 and self.current_step >= self.max_steps
-        elif self.action_type == 'ori_only':
-            return self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.filerted_force <=self.maxforce
-        elif self.action_type == 'pos_only':
-            return self.pos_distance <= self.distance_threshold_pos and self.isHolding == 1 and self.filerted_force <=self.maxforce
+def check_done(env):
+        if env.horizon == 'variable' and env.action_type not in ['ori_only', 'pos_only'] and env.contact_type == 0:
+            return env.pos_distance <= env.distance_threshold_pos and env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.filerted_force <=env.max_force #and env.anycontact == 0
+        elif env.horizon == 'variable' and env.action_type not in ['ori_only', 'pos_only'] and env.contact_type == 1:
+            return env.pos_distance <= env.distance_threshold_pos and env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.filerted_force <=env.max_force and env.anycontact == 0 
+        elif env.horizon == 'fixed' and env.action_type == 'ori_only':
+            return env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.current_step >= env.max_steps
+        elif env.horizon == 'fixed' and env.action_type == 'pos_only':
+            return env.pos_distance <= env.distance_threshold_pos and env.isHolding == 1 and env.current_step >= env.max_steps
+        elif env.action_type == 'ori_only':
+            return env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.filerted_force <=env.max_force
+        elif env.action_type == 'pos_only':
+            return env.pos_distance <= env.distance_threshold_pos and env.isHolding == 1 and env.filerted_force <=env.max_force
         else:
-            return self.pos_distance <= self.distance_threshold_pos and self.angle <= self.distance_threshold_ori and self.isHolding == 1 and self.filerted_force <=self.maxforce and self.anycontact == 0
+            return env.pos_distance <= env.distance_threshold_pos and env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.filerted_force <=env.max_force and env.anycontact == 0
