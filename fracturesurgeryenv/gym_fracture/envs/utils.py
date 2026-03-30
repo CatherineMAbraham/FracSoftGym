@@ -206,7 +206,7 @@ def get_new_pose(env, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
         #     newOrientation = np.array([qx, qy, qz])
         return newPosition, newOrientation
 
-def unpack_action(env, action, dv):
+def unpack_action(env, action):
     zeros = [0] * 10
     if env.action_type in ['ori_only', 'pos_only']:
         return [0, 0, 0, action[0] * dv, action[1] * dv, action[2] * dv, 0, 0, 0, 0]

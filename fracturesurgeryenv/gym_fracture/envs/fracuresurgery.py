@@ -23,7 +23,7 @@ class fracturesurgery_env(gym.Env):
         render_mode=None,
         reward_type='sparse',
         distance_threshold_pos=0.005,
-        distance_threshold_ori=3,
+        distance_threshold_ori=np.deg2rad(5),
         max_steps=100,
         obs_type='dict',
         goal_type='random',
@@ -143,10 +143,10 @@ class fracturesurgery_env(gym.Env):
     def reset(self, seed=None, options=None):
         ##Counters 
         # self.n += 1
-        self.current_step = 0 ##Do I Need this?
-        # self.force = 0
-        # self.output_force = 0
-        # self.anycontact = 0
+        self.current_step = 0 ##THESE NEED TO BE RESET HERE 
+        #self.force = 0
+        self.output_force = 0
+        self.anycontact = 0
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
         
@@ -313,7 +313,7 @@ class fracturesurgery_env(gym.Env):
         self.current_step += 1
         
         ## Unpack Action
-        dx, dy, dz, qx, qy, qz, qw, x, y, z = utils.unpack_action(self,action, self.dr)
+        dx, dy, dz, qx, qy, qz, qw, x, y, z = utils.unpack_action(self,action)
         mode_map = {
             'euler': 'euler',
             'fouractions': 'fouractions',
@@ -345,24 +345,24 @@ class fracturesurgery_env(gym.Env):
                 jointPoses = [0.0] * 9
 
         # Set Joint Motors
-        max_force = [87,87,87,87,12,12,12,20,20] ##max force for each joint, fingers have lower max force found on urdf 
+        max_joint_force = [87,87,87,87,12,12,12,20,20] ##max force for each joint, fingers have lower max force found on urdf 
         
         start_pos = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
         
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
         alpha = 1
         if self.soft_tissue=='spring':
-           self.output_force, max_step_force,avg_force= utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=12)
+           self.output_force, max_step_force,avg_force= utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
            if self.filerted_force > self.output_force:
                 self.output_force = self.filerted_force
         elif self.soft_tissue=='soft':
-            self.output_force,max_step_force, avg_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=12)
+            self.output_force,max_step_force, avg_force = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
             self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
             if self.filerted_force > self.output_force:
                 self.output_force = self.filerted_force
         else: 
-            self.output_force,max_step_force, avg_force = utils.smooth_motion(self, jointPoses, start_pos, max_force, numsubsteps=12)
+            self.output_force,max_step_force, avg_force = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
             self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
             if self.filerted_force > self.output_force:
                 self.output_force = self.filerted_force
