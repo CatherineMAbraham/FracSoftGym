@@ -6,7 +6,7 @@
 				<mesh filename="proximal.obj" scale="1 1 1" />
 			</geometry>
 			<material name="texture">
-				<color rgba="1.0 1.0 1.0 1.0" />
+				<color rgba="0.0 0.0 0.0 1.0" />
 			</material>
 		</visual>
 		<collision>
@@ -24,7 +24,7 @@
   <joint name="leg" type="fixed">
     <parent link="proximal"/>
     <child link="patient"/>
-    <origin xyz="-0.009518 -0.048613 0.460867 " rpy="0 0 0"/>
+    <origin xyz="0.0009518 -0.0498613 0.4550867 " rpy="0 0 0"/>
   </joint>
 	
 	<link name="patient">

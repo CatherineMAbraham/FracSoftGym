@@ -80,7 +80,6 @@ class fracturesurgery_env(gym.Env):
         self.number_of_springs = number_of_springs
         self.young_modulus = youngs_modulus
         self.test= test
-
         ## Initialise variables to 0 
         self.episodes_done = 0
         self.force = np.float32(0)
@@ -159,15 +158,22 @@ class fracturesurgery_env(gym.Env):
         fracturestart, fractureorientationDeg = utils.getStarts(self)
         if isinstance(self.goal_type, str):
             utils.getGoal(self, fracturestart, fractureorientationDeg) ## do i want to increase the range of goals?
+            self.target_position = np.concatenate((self.goal_pos, self.goal_ori))
+            #print(self.target_position)
         else:
-            self.goal_pos = np.array(fracturestart.copy())
-            self.goal_ori = np.array(self.goal_type)
-            self.goal_range_low = fracturestart - [0.0125, 0.01, 0.003]
-            self.goal_range_high = fracturestart + [0.0125, 0.02, 0.003]
-            self.goal_ori_low = np.radians(fractureorientationDeg - [15, 5, 15])
-            self.goal_ori_high = np.radians(fractureorientationDeg + [15, 5, 15])
+            self.goal_pos = np.array(self.goal_type[0:3])
+            goal_ori = np.deg2rad(np.array(self.goal_type[3:6]))
+            self.goal_ori = np.array(p.getQuaternionFromEuler(goal_ori))
+            #print(self.goal_ori)
+            self.target_position = np.concatenate((self.goal_pos, self.goal_ori))
+            # self.goal_pos = np.array(fracturestart.copy())
+            # self.goal_ori = np.array(self.goal_type)
+            # self.goal_range_low = fracturestart - [0.0125, 0.01, 0.003]
+            # self.goal_range_high = fracturestart + [0.0125, 0.02, 0.003]
+            # self.goal_ori_low = np.radians(fractureorientationDeg - [15, 5, 15])
+            # self.goal_ori_high = np.radians(fractureorientationDeg + [15, 5, 15])
 
-        self.target_position = np.concatenate((self.goal_pos, self.goal_ori))
+        
         ##
 
         ##Load Objects
@@ -208,6 +214,7 @@ class fracturesurgery_env(gym.Env):
         #time.sleep(100)
         
         dynamics.change_leg_dynamics(self)
+        p.changeVisualShape(self.leg, -1, rgbaColor=[0.8, 0.8, 0.8, 1])  
         p.setCollisionFilterGroupMask(self.foot, 1, collisionFilterGroup=0, collisionFilterMask=0)
         p.setCollisionFilterGroupMask(self.leg, -1, collisionFilterGroup=0, collisionFilterMask=0)
         ##Settle
@@ -352,17 +359,17 @@ class fracturesurgery_env(gym.Env):
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
         alpha = 1
         if self.soft_tissue=='spring':
-           self.output_force, max_step_force,avg_force= utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
+           self.output_force, max_step_force,avg_force,all_mean= utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
            if self.filerted_force > self.output_force:
                 self.output_force = self.filerted_force
         elif self.soft_tissue=='soft':
-            self.output_force,max_step_force, avg_force = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
+            self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
             self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
             if self.filerted_force > self.output_force:
                 self.output_force = self.filerted_force
         else: 
-            self.output_force,max_step_force, avg_force = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
+            self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
             self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
             if self.filerted_force > self.output_force:
                 self.output_force = self.filerted_force
@@ -417,7 +424,7 @@ class fracturesurgery_env(gym.Env):
         #print('Capped Force: ', self.capped_force,)
         done = env_utils.check_done(self)
         
-        if self.test and self.filerted_force >= 100:
+        if self.test and (self.filerted_force >= 100 or self.isHolding ==0):
             print('Terminating episode due to excessive force during testing.')
             truncated = True
             reward = -100
@@ -431,15 +438,15 @@ class fracturesurgery_env(gym.Env):
         #        'Holding: ', self.isHolding, 
         #        'Contact: ', self.anycontact)
         
-        # if done:
-        #     print('yay')
-        # elif truncated:
-        #     print(f'truncated {capped_force},{self.pos_distance},{self.angle}')
+        if done:
+            print('yay')
+        elif truncated:
+            print(f'truncated {self.filerted_force},{self.pos_distance},{self.angle}')
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.filerted_force,'contact': self.anycontact,'stretch': stretch}#,'force_mag':self.force_magnitude}#,
+                'force': self.filerted_force,'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
         if (not self.test) or (self.filerted_force <= 100):

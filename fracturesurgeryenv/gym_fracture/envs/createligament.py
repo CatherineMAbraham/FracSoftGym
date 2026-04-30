@@ -113,7 +113,7 @@ class Ligament:
         name = name
         mid = 0.5 * (worldA + worldB)
         currentDir = os.path.dirname(os.path.abspath(__file__))
-        lig_path = os.path.join(currentDir, "Assets/recthigh.vtk")
+        lig_path = os.path.join(currentDir, "Assets/rect00125.vtk")
         
         E = youngs_modulus
         nu = 0.45
