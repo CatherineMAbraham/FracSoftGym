@@ -7,7 +7,7 @@ import os
 import time
 
 class Ligament:
-    def __init__(self, name, foot, leg, a, b, orientation, scale, youngs_modulus):
+    def __init__(self, name, foot, leg, a, b, orientation, scale, youngs_modulus,vtk_file=None):
         self.name = name
         self.foot = foot
         self.leg = leg
@@ -18,7 +18,7 @@ class Ligament:
         self.youngs_modulus = youngs_modulus
         self.ligament_id = None
         self.force = 0.0
-
+        self.vtk_file = vtk_file
     def world_from_local(self,body, local_point, link=-1):
         pos, orn = p.getBasePositionAndOrientation(body) if link==-1 else p.getLinkState(body, link)[:2]
         world, _ = p.multiplyTransforms(pos, orn, local_point, [0,0,0,1])
@@ -112,8 +112,11 @@ class Ligament:
         scale = scale
         name = name
         mid = 0.5 * (worldA + worldB)
+        #if self.vtk_file is not None:
+        vtk_file = self.vtk_file
+
         currentDir = os.path.dirname(os.path.abspath(__file__))
-        lig_path = os.path.join(currentDir, "Assets/rect00125.vtk")
+        lig_path = os.path.join(currentDir, f"Assets/{vtk_file}") 
         
         E = youngs_modulus
         nu = 0.45

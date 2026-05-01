@@ -32,6 +32,7 @@ class fracturesurgery_env(gym.Env):
         action_type='euler',
         horizon='variable',
         softtissue='spring',
+        vtk_file = None,
         start_pos = 'home',
         maxforce = 3.5,
         number_of_springs = 3,
@@ -72,6 +73,7 @@ class fracturesurgery_env(gym.Env):
         self.action_type = action_type
         self.horizon = horizon
         self.soft_tissue = softtissue
+        self.vtk_file = vtk_file
         self.distance_threshold_pos = distance_threshold_pos
         self.distance_threshold_ori = distance_threshold_ori
         self.start_pos = start_pos # 'home' or 'extended'
@@ -289,7 +291,7 @@ class fracturesurgery_env(gym.Env):
                                                 self.point_a, self.point_b,
                                                 orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi, 180/180*np.pi]), 
                                                 scale=1, 
-                                                youngs_modulus=self.young_modulus)
+                                                youngs_modulus=self.young_modulus,vtk_file=self.vtk_file)
             ligament.make_ligament(self, "cloth_Id2", self.foot, 
                           self.leg, self.point_a, 
                           self.point_b,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi , 
