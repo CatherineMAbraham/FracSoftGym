@@ -122,7 +122,7 @@ class Ligament:
         name = p.loadSoftBody(#"/home/catherine/FractureSoftGym/fracturesurgeryenv/gym_fracture/envs/Assets/ligacc.obj",
         lig_path,
             mass=0.1,
-            basePosition=mid,#-[-0.00,0.02,0],
+            basePosition=mid-[0.005,0.0,0],
             baseOrientation=p.getQuaternionFromEuler([90/180*np.pi, 0, 90/180*np.pi]),
             scale=1,
             useNeoHookean=1,
