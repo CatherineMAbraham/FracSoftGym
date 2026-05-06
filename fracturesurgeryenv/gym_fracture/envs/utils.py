@@ -119,6 +119,8 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
     #env.goal_pos = np.round(goal_pos,3)
     ori = np.array(env.np_random.uniform(env.goal_ori_low, env.goal_ori_high))
     goal_ori = np.array(p.getQuaternionFromEuler(ori))
+    
+
     #goal_ori = R.from_euler('xyz', ori).as_quat()
     env.goal_ori = np.round(goal_ori,3)
 
