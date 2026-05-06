@@ -440,10 +440,10 @@ class fracturesurgery_env(gym.Env):
         #        'Holding: ', self.isHolding, 
         #        'Contact: ', self.anycontact)
         
-        if done:
-            print('yay')
-        elif truncated:
-            print(f'truncated {self.filerted_force},{self.pos_distance},{self.angle}')
+        # if done:
+        #     print('yay')
+        # elif truncated:
+        #     print(f'truncated {self.filerted_force},{self.pos_distance},{self.angle}')
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
