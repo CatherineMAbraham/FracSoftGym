@@ -77,8 +77,8 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
     fracturestart = np.array(p.getLinkState(env.pandaUid, 11)[0] )
     #p.addUserDebugText('FS', fracturestart, textColorRGB=[1, 0, 0], textSize=1)
     #print('Fracture Start:', fracturestart)
-    limit_low = [0.0125,0.001,0.005]
-    limit_high = [0.0125,0.029,0.001]
+    limit_low = [0.0125,0.008,0.003]
+    limit_high = [0.0125,0.022,0.003]
     env.goal_range_low = fracturestart-limit_low #[0.0125,0.01,0.003]
     env.goal_range_high = fracturestart+ limit_high
     env.goal_ori_low= np.radians(fractureorientaionDeg - [15,5,15])
