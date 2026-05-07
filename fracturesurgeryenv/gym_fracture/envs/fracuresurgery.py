@@ -387,7 +387,7 @@ class fracturesurgery_env(gym.Env):
         if contact:
             if p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8] <0: ## check contact distance to avoid false positives from close proximity, currently set to -1mm
                 #print('Contact!!')
-                self.contact = 1
+                self.contact = contact
                 self.anycontact = 1
             else:
                 self.contact = 0
