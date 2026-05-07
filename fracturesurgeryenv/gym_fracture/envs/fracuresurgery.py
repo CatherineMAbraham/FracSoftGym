@@ -311,8 +311,8 @@ class fracturesurgery_env(gym.Env):
             
             pass  
        
-        
-         
+        #print(p.getClosestPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1,distance=0.5 ))
+        #utils.drawAABB(self,self.foot,1)
         p.setCollisionFilterPair(self.foot,self.leg,1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
         return self.state, {}
 
@@ -380,15 +380,21 @@ class fracturesurgery_env(gym.Env):
         #                                                     self.point_a, self.point_b)
         #     stretch = np.linalg.norm(worldA - worldB) 
         
-        
+        #print(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1))
         stretch = np.array(p.getLinkState(self.foot, 1)[0]) - np.array(p.getBasePositionAndOrientation(self.leg)[0])
         stretch = np.linalg.norm(stretch)
-        self.contact = int(bool(p.getContactPoints(self.foot, self.leg,1,-1))) 
-        
+        contact = int(bool(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1))) ## check for contact between foot and leg, can adjust distance threshold if needed, currently set to -1mm to avoid false positives from close proximity
+        if contact:
+            if p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8] <0: ## check contact distance to avoid false positives from close proximity, currently set to -1mm
+                #print('Contact!!')
+                self.contact = 1
+                self.anycontact = 1
+            else:
+                self.contact = 0
        
-        if self.contact==1:
-            #print('Contact detected between foot and leg!')
-            self.anycontact = 1
+        # if self.contact==1:
+        #     #p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8]}') ## print contact distance for debugging
+        #     self.anycontact = 1
             #print('Contact!')
         
         ## Observation Update

@@ -77,8 +77,8 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
     fracturestart = np.array(p.getLinkState(env.pandaUid, 11)[0] )
     #p.addUserDebugText('FS', fracturestart, textColorRGB=[1, 0, 0], textSize=1)
     #print('Fracture Start:', fracturestart)
-    limit_low = [0.0125,0.008,0.003]
-    limit_high = [0.0125,0.022,0.003]
+    limit_low = [0.0125,0.001,0.005]
+    limit_high = [0.0125,0.029,0.001]
     env.goal_range_low = fracturestart-limit_low #[0.0125,0.01,0.003]
     env.goal_range_high = fracturestart+ limit_high
     env.goal_ori_low= np.radians(fractureorientaionDeg - [15,5,15])
@@ -110,6 +110,8 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
     #     env.goal_pos = fracturestart.copy()
     # else:0
     env.goal_pos = np.array(env.np_random.uniform(env.goal_range_low, env.goal_range_high,))
+    ##choose the most extreme goal position for debugging purposes, can change to random within range later
+    #env.goal_pos = np.array([env.goal_range_low[0], env.goal_range_low[1], env.goal_range_low[2]])
     #print('Goal Position:', env.goal_pos)
     if env.action_type== 'fouractions':
         env.goal_pos[2] = fracturestart[2]

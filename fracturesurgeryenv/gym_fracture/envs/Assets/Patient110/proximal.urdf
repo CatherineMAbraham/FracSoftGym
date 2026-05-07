@@ -12,7 +12,7 @@
 		<collision>
 			<origin rpy="0.0 0.0 0.0" xyz="0 0 0" />
 			<geometry>
-				<mesh filename="proximal_vhacd.obj" scale="1 1 1" />
+				<mesh filename="proximal_decomp.obj" scale="1 1 1" />
 			</geometry>
 		</collision>
 		<inertial>

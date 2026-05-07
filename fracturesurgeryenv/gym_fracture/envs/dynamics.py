@@ -25,7 +25,7 @@ def change_foot_dynamics(env):
                      lateralFriction=0.5, # Lower this! 5.0 is causing the 50N spikes
                      contactStiffness=3000, 
                      contactDamping=300,
-                     collisionMargin=0.01)
+                     collisionMargin=0.0001)
    # print(p.getLinkState(env.foot, 1))
     
      

@@ -14,7 +14,7 @@ def set_observation_space(env):
     #     goal_shape = 10
     else:
         obs_shape = 36
-        goal_shape = 10 ## now we're going to add contact to the goal anyway as a 'dummy' variable, so we can keep the goal shape the same for both contact and non-contact environments
+        goal_shape = 9 ## now we're going to add contact to the goal anyway as a 'dummy' variable, so we can keep the goal shape the same for both contact and non-contact environments
     if env.obs_type == 'dict':
         env.observation_space = spaces.Dict({
             'observation': spaces.Box(low=-200, high=200, shape=(obs_shape,), dtype=np.float32),
