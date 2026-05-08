@@ -97,7 +97,8 @@ class fracturesurgery_env(gym.Env):
         self.anycontact = 0
         self.filerted_force = 0
         
-        
+        self.not_valid_count = 0
+        self.goal_gen_count = 0
         ## Rendering setup
          ## need to fix this and add a render function, keep getting a warning about it
         
@@ -158,16 +159,7 @@ class fracturesurgery_env(gym.Env):
         utils.make_scene(self)
         
         fracturestart, fractureorientationDeg = utils.getStarts(self)
-        if isinstance(self.goal_type, str):
-            utils.getGoal(self, fracturestart, fractureorientationDeg) ## do i want to increase the range of goals?
-            self.target_position = np.concatenate((self.goal_pos, self.goal_ori))
-            #print(self.target_position)
-        else:
-            self.goal_pos = np.array(self.goal_type[0:3])
-            goal_ori = np.deg2rad(np.array(self.goal_type[3:6]))
-            self.goal_ori = np.array(p.getQuaternionFromEuler(goal_ori))
-            #print(self.goal_ori)
-            self.target_position = np.concatenate((self.goal_pos, self.goal_ori))
+        
             # self.goal_pos = np.array(fracturestart.copy())
             # self.goal_ori = np.array(self.goal_type)
             # self.goal_range_low = fracturestart - [0.0125, 0.01, 0.003]
@@ -177,7 +169,8 @@ class fracturesurgery_env(gym.Env):
 
         
         ##
-
+        ## check targer for possible collision 
+        
         ##Load Objects
         current_dir = os.path.dirname(os.path.abspath(__file__))
         leg_path = os.path.join(current_dir, "Assets/Patient110/proximal.urdf")
@@ -227,7 +220,17 @@ class fracturesurgery_env(gym.Env):
         
         p.setGravity(0, 0, -9.81)
         
-        
+        #pose_valid = utils.is_goal_configuration_valid(self,self.goal_pos, self.goal_ori)
+        if isinstance(self.goal_type, str):
+            utils.getGoal(self, fracturestart, fractureorientationDeg) ## do i want to increase the range of goals?
+            self.target_position = np.concatenate((self.goal_pos, self.goal_ori))
+            #print(self.target_position)
+        else:
+            self.goal_pos = np.array(self.goal_type[0:3])
+            goal_ori = np.deg2rad(np.array(self.goal_type[3:6]))
+            self.goal_ori = np.array(p.getQuaternionFromEuler(goal_ori))
+            #print(self.goal_ori)
+            self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#l pose valid:', pose_valid)
         # Dummy visual shape for goal marker
         
         
@@ -312,7 +315,7 @@ class fracturesurgery_env(gym.Env):
             pass  
        
         #print(p.getClosestPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1,distance=0.5 ))
-        #utils.drawAABB(self,self.foot,1)
+        #utils.drawAABB(self,self.leg,-1)
         p.setCollisionFilterPair(self.foot,self.leg,1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
         return self.state, {}
 

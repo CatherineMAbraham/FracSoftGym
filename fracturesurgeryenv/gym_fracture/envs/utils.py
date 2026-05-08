@@ -73,12 +73,65 @@ def make_scene(env):
 
        return env.pandaUid
 
+def is_point_in_bone(env,point, bone_id):
+    # Check distance between a coordinate and the entire mesh
+    # distance > 0 means it is outside
+    goal = p.createVisualShape(p.GEOM_SPHERE, radius=0.005, rgbaColor=[1, 0, 0, 1], visualFramePosition=point)
+    closest_points = p.getClosestPoints(bodyA=-1, bodyB=bone_id, 
+                                        distance=0.01, # Search radius
+                                        linkIndexA=-1, 
+                                        positionA=point)
+    
+    if len(closest_points) > 0:
+        # If the shortest distance is 0 or negative, it's a collision
+        if closest_points[0][8] <= 0: 
+            print(f'Point {point} is inside the bone (distance: {closest_points[0][8]:.4f} m)')
+            return True
+    return False
+
+def is_goal_configuration_valid(env, goal_pos, goal_quat):
+    """Checks if the foot/gripper would collide with the leg at the goal pose."""
+    # 1. Save current real positions to restore them later
+    joint_states = [p.getJointState(env.pandaUid, j) for j in range(9)]
+    new_states  = p.calculateInverseKinematics(env.pandaUid, 11, targetPosition=goal_pos, 
+                                                      targetOrientation=goal_quat, maxNumIterations=100, residualThreshold=1e-6)
+    #p.setJointMotorControlArray(env.pandaUid, range(9), controlMode=p.POSITION_CONTROL, targetPositions=new_states[:9])
+    [p.resetJointState(env.pandaUid, i, new_states[i]) for i in range(9)]
+    
+    p.performCollisionDetection()
+    
+    # 4. Check for contact between the moved foot and the static leg
+    contacts = p.getContactPoints(bodyA=env.foot, bodyB=env.leg)
+    ## check how close it is to the goal to see if pose is physically possible
+    position = p.getLinkState(env.pandaUid, 11)[0]
+    orientation = p.getLinkState(env.pandaUid, 11)[1]
+    pos, ori = calculate_distances(env, goal_pos, goal_quat, position, orientation)
+    # print(f'Checking goal pose validity: Pos Dist={pos:.4f} m, Ori Dist={np.degrees(ori):.4f} deg, Contacts={len(contacts)}')
+    # #print(f'ori check: {np.rad2deg(p.getEulerFromQuaternion(goal_quat))}')
+    # if ori >0:
+    #     print(f'Orientation is not valid {goal_quat}')
+    # else:
+    #     print(f'Orientation is valid {goal_quat}')
+    # 5. Restore original position immediately
+    #p.resetBasePositionAndOrientation(env.foot, orig_foot_pos, orig_foot_ori)
+    for i in range(8):
+           p.resetJointState(env.pandaUid,i, joint_states[i][0])
+    #time.sleep(5)
+    if len(contacts) == 0 and ori <=env.distance_threshold_ori and pos <= env.distance_threshold_pos:
+        valid = True
+    else:
+        valid = False
+        #print(f'Goal pose is invalid due to contact(s) with the leg.')
+    # If len(contacts) > 0, the goal pose is physically impossible
+    return valid# also check if orientation is within 30 degrees of goal orientation
 def getGoal(env, fracturestart, fractureorientaionDeg):
+    env.goal_gen_count += 1
     fracturestart = np.array(p.getLinkState(env.pandaUid, 11)[0] )
     #p.addUserDebugText('FS', fracturestart, textColorRGB=[1, 0, 0], textSize=1)
     #print('Fracture Start:', fracturestart)
     limit_low = [0.0125,0.008,0.003]
     limit_high = [0.0125,0.022,0.003]
+    #print('Fracture Start:', fracturestart, 'Orientation:', fractureorientaionDeg)
     env.goal_range_low = fracturestart-limit_low #[0.0125,0.01,0.003]
     env.goal_range_high = fracturestart+ limit_high
     env.goal_ori_low= np.radians(fractureorientaionDeg - [15,5,15])
@@ -125,7 +178,19 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
 
     #goal_ori = R.from_euler('xyz', ori).as_quat()
     env.goal_ori = np.round(goal_ori,3)
-
+    valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)#
+    
+    while not valid:
+        env.not_valid_count += 1
+        print(f'Invalid Percentage: {env.not_valid_count/env.goal_gen_count:.2%} | Invalid Count: {env.not_valid_count} | Total Generated: {env.goal_gen_count}')
+        env.goal_pos = np.array(env.np_random.uniform(env.goal_range_low, env.goal_range_high,))
+        ori = np.array(env.np_random.uniform(env.goal_ori_low, env.goal_ori_high))
+        goal_ori = np.array(p.getQuaternionFromEuler(ori))
+        env.goal_ori = np.round(goal_ori,3)
+        valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)
+        env.goal_gen_count += 1 
+    
+    
 
 def getStarts(env):
     fracturestart= np.array(p.getLinkState(env.pandaUid, 11)[0] )
