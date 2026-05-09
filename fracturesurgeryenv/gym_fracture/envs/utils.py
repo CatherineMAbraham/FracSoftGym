@@ -5,6 +5,9 @@ import pybullet_data
 import os
 from scipy.spatial.transform import Rotation as R
 import wandb
+
+INVALID_GOALS_PATH = os.path.join(os.path.dirname(__file__), 'invalid_goals.npy')
+
 def make_scene(env):
     #Start Positions: Worked out previously
     
@@ -182,6 +185,18 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
     
     while not valid:
         env.not_valid_count += 1
+        invalid_goal = np.array(
+            [(np.asarray(env.goal_pos, dtype=float), np.asarray(env.goal_ori, dtype=float))],
+            dtype=[('pos', float, (3,)), ('ori', float, (4,))]
+        )
+
+        if os.path.exists(INVALID_GOALS_PATH):
+            existing_goals = np.load(INVALID_GOALS_PATH)
+            invalid_goals = np.concatenate((existing_goals, invalid_goal))
+        else:
+            invalid_goals = invalid_goal
+
+        np.save(INVALID_GOALS_PATH, invalid_goals)
         print(f'Invalid Percentage: {env.not_valid_count/env.goal_gen_count:.2%} | Invalid Count: {env.not_valid_count} | Total Generated: {env.goal_gen_count}')
         env.goal_pos = np.array(env.np_random.uniform(env.goal_range_low, env.goal_range_high,))
         ori = np.array(env.np_random.uniform(env.goal_ori_low, env.goal_ori_high))
