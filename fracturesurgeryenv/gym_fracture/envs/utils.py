@@ -8,11 +8,15 @@ import wandb
 
 INVALID_GOALS_PATH = os.path.join(os.path.dirname(__file__), 'invalid_goals.npy')
 
+# Compare your poses:
+# Pose A (Current): [0, -0.785, 0, -2.356, 0, 1.571, 0.785]
+# Pose B (Suggested): [0, -0.5, 0, -2.0, 0, 1.5, 0]
 def make_scene(env):
     #Start Positions: Worked out previously
     
        if env.start_pos == 'home':
          startposition = np.array([0,-0.785,0,-2.356,0,1.571,0.785,0.04,0.04])
+         #startposition = np.array([0.00, 0.41, 0.00, -1.85, 0.00, 2.26, 0.79,0.04,0.04])
        elif env.start_pos == 'extended':
          startposition = np.array([0.03, 0.2, 0, -1.6, 0, -3, 0.8, -0.04, 0.04]) #-1.802, -2.89
        #startposition = np.array([0.03, 0.2, 0, -1.6, 0, 1.571, 0.8, -0.04, 0.04])
@@ -56,7 +60,7 @@ def make_scene(env):
     #    p.changeDynamics(pad_body, -1, lateralFriction=1.5, restitution=0.0)
       
        env.pandaUid = p.loadURDF(os.path.join(urdfRootPath, "franka_panda/panda.urdf"),
-                                  basePosition=[0,-0.06,-0.33],#[-0.5,0,-0.65],
+                                  basePosition=[-0,-0.06,-0.33],#[-0.5,0,-0.65],
                                   useFixedBase=True, globalScaling = 1)
        
        #p.changeDynamics(env.pandaUid,9, lateralFriction= 5,spinningFriction= 0.001)#,jointLowerLimit=0.00, jointUpperLimit=0.01)
@@ -97,7 +101,7 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
     # 1. Save current real positions to restore them later
     joint_states = [p.getJointState(env.pandaUid, j) for j in range(9)]
     new_states  = p.calculateInverseKinematics(env.pandaUid, 11, targetPosition=goal_pos, 
-                                                      targetOrientation=goal_quat, maxNumIterations=100, residualThreshold=1e-6)
+                                                      targetOrientation=goal_quat, maxNumIterations=1000, residualThreshold=1e-9)
     #p.setJointMotorControlArray(env.pandaUid, range(9), controlMode=p.POSITION_CONTROL, targetPositions=new_states[:9])
     [p.resetJointState(env.pandaUid, i, new_states[i]) for i in range(9)]
     
@@ -117,14 +121,18 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
     #     print(f'Orientation is valid {goal_quat}')
     # 5. Restore original position immediately
     #p.resetBasePositionAndOrientation(env.foot, orig_foot_pos, orig_foot_ori)
-    for i in range(8):
+    for i in range(9):
            p.resetJointState(env.pandaUid,i, joint_states[i][0])
-    #time.sleep(5)
+    #       time.sleep(1)
+   # time.sleep(5)
+    print('Back at home')
     if len(contacts) == 0 and ori <=env.distance_threshold_ori and pos <= env.distance_threshold_pos:
         valid = True
     else:
         valid = False
+        #[print(f"Joint {i} attempted: {new_states[i]:.4f} rad") for i in range(9)]
         #print(f'Goal pose is invalid due to contact(s) with the leg.')
+        print(f'Goal pose is invalid: Pos Dist={pos:.4f} m, Ori Dist={np.degrees(ori):.4f} deg, Contacts={len(contacts)}')
     # If len(contacts) > 0, the goal pose is physically impossible
     return valid# also check if orientation is within 30 degrees of goal orientation
 def getGoal(env, fracturestart, fractureorientaionDeg):
@@ -205,7 +213,15 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
         valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)
         env.goal_gen_count += 1 
     
-    
+def get_youngs_modulus_and_width(env):
+    youngs_modulus_range = range(1000000, 100000000, 1000)
+    width_range = np.arange(0.001, 0.01, 0.001)
+
+    ## select random values from the ranges
+    youngs_modulus = env.np_random.choice(youngs_modulus_range) 
+    width = env.np_random.choice(width_range)
+    #print(f'Youngs Modulus: {youngs_modulus} Pa, Width: {width} m')
+    return youngs_modulus, width
 
 def getStarts(env):
     fracturestart= np.array(p.getLinkState(env.pandaUid, 11)[0] )

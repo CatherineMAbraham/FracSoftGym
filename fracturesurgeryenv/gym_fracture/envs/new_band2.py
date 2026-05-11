@@ -6,7 +6,7 @@ def vec(x): return np.array(x, dtype=float)
 
 class ElasticBand:
     def __init__(self, bodyA, linkA, bodyB, linkB,
-                 young_modulus, area,
+                 young_modulus, area,width,
                  damping_ratio=0.5, exponent=1.5,num_springs=3):
         self.bodyA = bodyA
         self.linkA = linkA
@@ -35,7 +35,7 @@ class ElasticBand:
 
         # Attachment offsets in circular pattern
         #angles = np.linspace(0, 2*np.pi, num_springs, endpoint=False)
-        width = 0.005 #5mm wide rectangle
+        #width = 0.005#width  #5mm wide rectangle
         #create 3 attachment points in a line across the width of the band
         
         # self.local_offsets_A = [np.array([-0.07402802, -0.02543187, -0.34601694]), np.array([-0.07401566, -0.02544761, -0.35315976])]
@@ -47,15 +47,21 @@ class ElasticBand:
         #self.local_offsets_A= [np.array([ 0.3769989,  -0.08445022,  0.07449624]),np.array([ 0.3769989,  -0.07730737,  0.07449624])]
         #self.local_offsets_B=[np.array([ 0.3769989,  -0.12016451,  0.07449624]),np.array([ 0.3769989,  -0.12016451,  0.07949624])]
         #[np.array([ 0.02000636, -0.00083421,  0.04432721]), [np.array([ 0.01999438, -0.00067805, -0.0100396 ]),
-        self.local_offsets_A=[np.array([ 0.02000484, -0.00081395,  0.03718438])]
-        self.local_offsets_B=  [np.array([ 0.01999438,  0.00432195, -0.0100396 ])]
-        ##start from offset_A and create a line of attachment points across the width of the band up to the number of springs
-        ## offset = width of the band/num springs * i - width/2 to center it around the original point
-        for i in range(1, num_springs):
-            offset_A = self.local_offsets_A[0] - np.array([0, width/num_springs * (i-1), 0])
-            offset_B = self.local_offsets_B[0] - np.array([0, width/num_springs * (i-1), 0])
-            self.local_offsets_A.append(offset_A)
-            self.local_offsets_B.append(offset_B)
+        base_offset_A = np.array([ 0.02000484, -0.00081395,  0.03718438])
+        base_offset_B = np.array([ 0.01999438,  0.00432195, -0.0100396 ])
+        self.local_offsets_A = []
+        self.local_offsets_B = []
+        ## Create evenly spaced attachment points centered on the base offset.
+        ## width is the full span; spacing shrinks as num_springs increases.
+        if num_springs <= 1:
+            offsets = [0.0]
+        else:
+            offsets = np.linspace(-width / 2.0, width / 2.0, num_springs)
+
+        for offset in offsets:
+            delta = np.array([0.0, offset, 0.0])
+            self.local_offsets_A.append(base_offset_A + delta)
+            self.local_offsets_B.append(base_offset_B + delta)
         posA = np.array(posA)
         posB = np.array(posB)
         velA = np.array(velA)

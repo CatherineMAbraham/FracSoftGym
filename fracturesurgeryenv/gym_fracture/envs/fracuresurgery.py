@@ -167,7 +167,7 @@ class fracturesurgery_env(gym.Env):
             # self.goal_ori_low = np.radians(fractureorientationDeg - [15, 5, 15])
             # self.goal_ori_high = np.radians(fractureorientationDeg + [15, 5, 15])
 
-        
+        print(f"Fracture start position: {fracturestart}, Fracture orientation (deg): {fractureorientationDeg}")
         ##
         ## check targer for possible collision 
         
@@ -282,7 +282,8 @@ class fracturesurgery_env(gym.Env):
                                   self.dist, 
                                   initial_isHolding)
         
-        
+        if self.young_modulus is None or self.width is None:
+            self.young_modulus, self.width = utils.get_youngs_modulus_and_width(self)
         p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=10)
         if self.soft_tissue=='soft':
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
@@ -306,6 +307,7 @@ class fracturesurgery_env(gym.Env):
                                          bodyB=self.leg, linkB= -1,
                                          young_modulus=self.young_modulus,
                                          area=5e-6,
+                                         width= self.width,
                                          num_springs=self.number_of_springs
                                          )
             
