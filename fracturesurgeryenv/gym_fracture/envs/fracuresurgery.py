@@ -289,7 +289,7 @@ class fracturesurgery_env(gym.Env):
                                   self.dist, 
                                   initial_isHolding)
         
-        if self.young_modulus_type is None :
+        if self.young_modulus_type == None :
             self.young_modulus, self.width = utils.get_youngs_modulus_and_width(self)
             print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
         elif self.young_modulus_type == 'eval_mode':
@@ -299,6 +299,7 @@ class fracturesurgery_env(gym.Env):
             width_options = np.arange(0.001, 0.01, 0.001)
             self.width = np.random.choice(width_options)
             print(f"Selected width for evaluation: {self.young_modulus:.2e},{self.width}")
+        print(f'Youngs Modulus Type: {self.young_modulus_type}')
         print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
         p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=10)
         if self.soft_tissue=='soft':
