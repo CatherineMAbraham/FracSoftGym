@@ -150,6 +150,7 @@ class fracturesurgery_env(gym.Env):
 
     ##Reset Function            
     def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
         ##Counters 
         # self.n += 1
         self.current_step = 0 ##THESE NEED TO BE RESET HERE 
@@ -288,10 +289,11 @@ class fracturesurgery_env(gym.Env):
                                   right_contact,
                                   self.dist, 
                                   initial_isHolding)
-        
-        if self.young_modulus_type is None :
+        #print(f"Youngs Modulus Type is {self.young_modulus_type}, not using soft tissue in this environment.")
+        if self.young_modulus_type =='None' :
+            
             self.young_modulus, self.width = utils.get_youngs_modulus_and_width(self)
-            print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
+            #print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
         elif self.young_modulus_type == 'eval_mode':
             young_modulus_options = [1e6 ,1e7,5e6, 1e8]
             ## Select a youngs modulus for the eval, making sure to use a different one each time 
