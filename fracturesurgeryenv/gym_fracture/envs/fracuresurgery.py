@@ -38,6 +38,7 @@ class fracturesurgery_env(gym.Env):
         number_of_springs = 3,
         contact_type = 0,
         youngs_modulus = 1e6,
+        width = 0.005,
         test = False
     ):
         """Gym Environment for training agents to perform fracture reduction surgery with a robotic manipulator.
@@ -99,6 +100,7 @@ class fracturesurgery_env(gym.Env):
         
         self.not_valid_count = 0
         self.goal_gen_count = 0
+        self.width = width
         ## Rendering setup
          ## need to fix this and add a render function, keep getting a warning about it
         
