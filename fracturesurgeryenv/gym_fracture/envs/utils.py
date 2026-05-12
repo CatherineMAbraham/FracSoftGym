@@ -67,7 +67,8 @@ def make_scene(env):
        #p.changeDynamics(env.pandaUid,10, lateralFriction= 5,spinningFriction= 0.001)#,jointLowerLimit=0.00, jointUpperLimit=0.01)
        p.resetJointState(env.pandaUid,9, 0.04)
        p.resetJointState(env.pandaUid,10, 0.04) 
-
+       #test = p.calculateInverseKinematics(env.pandaUid, 11, targetPosition=[0.35701957, -0.06,0.15526956], targetOrientation=p.getQuaternionFromEuler([0, 2.80671241e-10, 4.50000000e+01]), maxNumIterations=1000, residualThreshold=1e-9)
+      # test = np.concatenate([test[:9], [0.04, 0.04]])
        for i in range(8):
            p.resetJointState(env.pandaUid,i, startposition[i])
         
@@ -147,6 +148,9 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
     env.goal_range_high = fracturestart+ limit_high
     env.goal_ori_low= np.radians(fractureorientaionDeg - [15,5,15])
     env.goal_ori_high=np.radians(fractureorientaionDeg + [15,5,15])
+   # print(f'Fracture Start: {fracturestart}, Orientation: {fractureorientaionDeg}')
+    #print(f'Goal Pos Range Low: {env.goal_range_low}, High: {env.goal_range_high}')
+    #print(f'Goal Ori Low: {np.degrees(env.goal_ori_low)}, High: {np.degrees(env.goal_ori_high)}')
     #print('Goal Pos Range Low:', env.goal_range_low, 'High:', env.goal_range_high,'Goal Ori Low:', env.goal_ori_low, 'High:', env.goal_ori_high)
     fracturestart_end = np.array(fracturestart - np.array([-0.01,0.045,0]))
     a = fracturestart - limit_low#[0.0125,0.0,-0.003] 
@@ -184,13 +188,13 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
     
     #env.goal_pos = np.round(goal_pos,3)
     ori = np.array(env.np_random.uniform(env.goal_ori_low, env.goal_ori_high))
-    goal_ori = np.array(p.getQuaternionFromEuler(ori))
+    env.goal_ori = np.array(p.getQuaternionFromEuler(ori))
     
 
     #goal_ori = R.from_euler('xyz', ori).as_quat()
-    env.goal_ori = np.round(goal_ori,3)
+    #env.goal_ori = np.round(goal_ori,3)
     valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)#
-    
+    #print('Generated Goal Position:', env.goal_pos, 'Orientation (Euler):', np.degrees(ori), 'Valid:', valid)
     while not valid:
         env.not_valid_count += 1
         invalid_goal = np.array(
@@ -205,7 +209,7 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
             invalid_goals = invalid_goal
 
         np.save(INVALID_GOALS_PATH, invalid_goals)
-        #print(f'Invalid Percentage: {env.not_valid_count/env.goal_gen_count:.2%} | Invalid Count: {env.not_valid_count} | Total Generated: {env.goal_gen_count}')
+        print(f'Invalid Percentage: {env.not_valid_count/env.goal_gen_count:.2%} | Invalid Count: {env.not_valid_count} | Total Generated: {env.goal_gen_count}')
         env.goal_pos = np.array(env.np_random.uniform(env.goal_range_low, env.goal_range_high,))
         ori = np.array(env.np_random.uniform(env.goal_ori_low, env.goal_ori_high))
         goal_ori = np.array(p.getQuaternionFromEuler(ori))
@@ -241,7 +245,7 @@ def getStarts(env):
     #     leg = (fracturestart[i])-(difference[i])
     #     legstart.append(leg)
     #     i+=1
-    
+    #print(f'Fracture Start: {fracturestart}, Orientation: {fractureorientaionDeg}, {fractureorientaionRad}')
 
     return fracturestart, fractureorientaionDeg#, legstart
 
