@@ -211,8 +211,9 @@ class fracturesurgery_env(gym.Env):
 
         env_utils.set_observation(self, initialpos, initialor, 
                                                initialvel, initialJointPoses, 
-                                               initialJointVelocities, initial_force,left_contact,
-                                               self.dist, self.angle, right_contact, 
+                                               initialJointVelocities, initial_force,self.dist, self.angle,
+                                               left_contact,
+                                                right_contact, 
                                                self.dist, initialisHolding)
         p.changeDynamics(self.pandaUid, 9, jointLowerLimit=0.00, jointUpperLimit=0.004)
         p.changeDynamics(self.pandaUid, 10, jointLowerLimit=0.0, jointUpperLimit=0.0042)
@@ -294,8 +295,9 @@ class fracturesurgery_env(gym.Env):
         
         env_utils.set_observation(self, actualNewPosition, actualNewOrientation, 
                                                actualNewVelocity, jointPoses, 
-                                               jointVelocities,self.force, left_contact, 
-                                               dist, self.angle, right_contact, 
+                                               jointVelocities,self.force,dist, self.angle,
+                                                 left_contact, 
+                                                right_contact, 
                                                dist, self.isHolding)
         
         
