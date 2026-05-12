@@ -289,18 +289,18 @@ class fracturesurgery_env(gym.Env):
                                   self.dist, 
                                   initial_isHolding)
         
-        if self.young_modulus_type == None :
+        if self.young_modulus_type is None :
             self.young_modulus, self.width = utils.get_youngs_modulus_and_width(self)
             print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
         elif self.young_modulus_type == 'eval_mode':
             young_modulus_options = [1e6 ,1e7,5e6, 1e8]
             ## Select a youngs modulus for the eval, making sure to use a different one each time 
-            self.youngs_modulus = np.random.choice(young_modulus_options)
+            self.young_modulus = np.random.choice(young_modulus_options)
             width_options = np.arange(0.001, 0.01, 0.001)
             self.width = np.random.choice(width_options)
             print(f"Selected width for evaluation: {self.young_modulus:.2e},{self.width}")
-        print(f'Youngs Modulus Type: {self.young_modulus_type}')
-        print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
+        #print(f'Youngs Modulus Type: {self.young_modulus_type}')
+        #print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
         p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=10)
         if self.soft_tissue=='soft':
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
