@@ -132,7 +132,7 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
         valid = False
         #[print(f"Joint {i} attempted: {new_states[i]:.4f} rad") for i in range(9)]
         #print(f'Goal pose is invalid due to contact(s) with the leg.')
-        print(f'Goal pose is invalid: Pos Dist={pos:.4f} m, Ori Dist={np.degrees(ori):.4f} deg, Contacts={len(contacts)}')
+        #print(f'Goal pose is invalid: Pos Dist={pos:.4f} m, Ori Dist={np.degrees(ori):.4f} deg, Contacts={len(contacts)}')
     # If len(contacts) > 0, the goal pose is physically impossible
     return valid# also check if orientation is within 30 degrees of goal orientation
 def getGoal(env, fracturestart, fractureorientaionDeg):
@@ -205,7 +205,7 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
             invalid_goals = invalid_goal
 
         np.save(INVALID_GOALS_PATH, invalid_goals)
-        print(f'Invalid Percentage: {env.not_valid_count/env.goal_gen_count:.2%} | Invalid Count: {env.not_valid_count} | Total Generated: {env.goal_gen_count}')
+        #print(f'Invalid Percentage: {env.not_valid_count/env.goal_gen_count:.2%} | Invalid Count: {env.not_valid_count} | Total Generated: {env.goal_gen_count}')
         env.goal_pos = np.array(env.np_random.uniform(env.goal_range_low, env.goal_range_high,))
         ori = np.array(env.np_random.uniform(env.goal_ori_low, env.goal_ori_high))
         goal_ori = np.array(p.getQuaternionFromEuler(ori))

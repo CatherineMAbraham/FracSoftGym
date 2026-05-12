@@ -1,6 +1,8 @@
 ## Position and Orientation with Dictionary Observation
 
 ## Modules to Import
+from turtle import width
+
 import gymnasium as gym
 from gymnasium import spaces
 import os
@@ -286,6 +288,14 @@ class fracturesurgery_env(gym.Env):
         
         if self.young_modulus is None :
             self.young_modulus, self.width = utils.get_youngs_modulus_and_width(self)
+            print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
+        elif self.young_modulus is 'eval_mode':
+            young_modulus_options = [1e6 ,1e7,5e6, 1e8]
+            ## Select a youngs modulus for the eval, making sure to use a different one each time 
+            self.youngs_modulus = np.random.choice(young_modulus_options)
+            width_options = np.arange(0.001, 0.01, 0.001)
+            self.width = np.random.choice(width_options)
+            print(f"Selected width for evaluation: {self.young_modulus:.2e},{self.width}")
         p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=10)
         if self.soft_tissue=='soft':
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
