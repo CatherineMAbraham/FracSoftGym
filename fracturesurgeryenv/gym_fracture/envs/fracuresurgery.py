@@ -289,7 +289,7 @@ class fracturesurgery_env(gym.Env):
         if self.young_modulus is None :
             self.young_modulus, self.width = utils.get_youngs_modulus_and_width(self)
             print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
-        elif self.young_modulus is 'eval_mode':
+        elif self.young_modulus == 'eval_mode':
             young_modulus_options = [1e6 ,1e7,5e6, 1e8]
             ## Select a youngs modulus for the eval, making sure to use a different one each time 
             self.youngs_modulus = np.random.choice(young_modulus_options)
