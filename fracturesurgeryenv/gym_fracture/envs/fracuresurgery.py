@@ -167,7 +167,7 @@ class fracturesurgery_env(gym.Env):
             # self.goal_ori_low = np.radians(fractureorientationDeg - [15, 5, 15])
             # self.goal_ori_high = np.radians(fractureorientationDeg + [15, 5, 15])
 
-        print(f"Fracture start position: {fracturestart}, Fracture orientation (deg): {fractureorientationDeg}")
+        #print(f"Fracture start position: {fracturestart}, Fracture orientation (deg): {fractureorientationDeg}")
         ##
         ## check targer for possible collision 
         
@@ -282,7 +282,7 @@ class fracturesurgery_env(gym.Env):
                                   self.dist, 
                                   initial_isHolding)
         
-        if self.young_modulus is None or self.width is None:
+        if self.young_modulus is None :
             self.young_modulus, self.width = utils.get_youngs_modulus_and_width(self)
         p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=10)
         if self.soft_tissue=='soft':

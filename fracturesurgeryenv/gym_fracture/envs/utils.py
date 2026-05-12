@@ -125,7 +125,7 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
            p.resetJointState(env.pandaUid,i, joint_states[i][0])
     #       time.sleep(1)
    # time.sleep(5)
-    print('Back at home')
+    #print('Back at home')
     if len(contacts) == 0 and ori <=env.distance_threshold_ori and pos <= env.distance_threshold_pos:
         valid = True
     else:
