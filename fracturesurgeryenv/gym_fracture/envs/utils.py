@@ -214,7 +214,7 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
         env.goal_gen_count += 1 
     
 def get_youngs_modulus_and_width(env):
-    youngs_modulus_range = range(1000000, 100000000, 1000)
+    youngs_modulus_range =[1e6 ,1e7,5e6, 2e7]
     width_range = np.round(np.arange(0.001, 0.01, 0.001), 3)
 
     ## select random values from the ranges

@@ -102,7 +102,7 @@ class fracturesurgery_env(gym.Env):
         self.n = 0
         self.anycontact = 0
         self.filerted_force = 0
-        
+        self.eval_count = 0
         self.not_valid_count = 0
         self.goal_gen_count = 0
         self.width = width
@@ -291,16 +291,23 @@ class fracturesurgery_env(gym.Env):
                                   initial_isHolding)
         #print(f"Youngs Modulus Type is {self.young_modulus_type}, not using soft tissue in this environment.")
         if self.young_modulus_type =='None' :
-            
+            self.eval_count = 0
             self.young_modulus, self.width = utils.get_youngs_modulus_and_width(self)
             #print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
-        elif self.young_modulus_type == 'eval_mode':
-            young_modulus_options = [1e6 ,1e7,5e6, 1e8]
-            ## Select a youngs modulus for the eval, making sure to use a different one each time 
-            self.young_modulus = np.random.choice(young_modulus_options)
-            width_options = np.arange(0.001, 0.01, 0.001)
-            self.width = np.random.choice(width_options)
-            print(f"Selected width for evaluation: {self.young_modulus:.2e},{self.width}")
+        # elif self.young_modulus_type == 'eval_mode':
+        #     self.eval_count+=1
+        #     print(f"Evaluation count: {self.eval_count}")
+        #     if self.eval_count ==1:
+        #         young_modulus_options = [1e6 ,1e7,5e6, 1e8]
+        #         ## Select a youngs modulus for the eval, making sure to use a different one each time 
+        #         self.young_modulus = np.random.choice(young_modulus_options)
+        #         width_options = np.arange(0.001, 0.01, 0.001)
+        #         self.width = np.random.choice(width_options)
+        #         print(f"Selected width for evaluation: {self.young_modulus:.2e},{self.width}")
+        #     if self.eval_count >1:
+        #         self.young_modulus = self.young_modulus
+        #         self.width = self.width
+            
         #print(f'Youngs Modulus Type: {self.young_modulus_type}')
         #print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
         p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=10)
