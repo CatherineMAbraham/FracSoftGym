@@ -40,6 +40,7 @@ class fracturesurgery_env(gym.Env):
         number_of_springs = 3,
         contact_type = 0,
         youngs_modulus = 1e6,
+        youngs_modulus_type = 'testing', #None, 'eval_mode', 'testing'
         width = 0.005,
         test = False
     ):
@@ -62,6 +63,7 @@ class fracturesurgery_env(gym.Env):
             number_of_springs (int): The number of springs to use in the spring-based soft tissue model.
             contact_type (int): The type of contact modeling to use. Options are 0 (no contact), 1 (contact-based reward shaping).
             youngs_modulus (float): The Young's modulus to use for the soft tissue modeling.
+            youngs_modulus_type (str): The type of Young's modulus to use. Options are 'testing', 'eval_mode', or None.
             test (bool): Whether the environment is being used for testing (True) or training (False). During testing, episodes will"""
        
         metadata = {"render_modes": ["human", None]}
@@ -84,6 +86,7 @@ class fracturesurgery_env(gym.Env):
         self.contact_type = contact_type
         self.number_of_springs = number_of_springs
         self.young_modulus = youngs_modulus
+        self.young_modulus_type = youngs_modulus_type
         self.test= test
         ## Initialise variables to 0 
         self.episodes_done = 0
@@ -286,10 +289,10 @@ class fracturesurgery_env(gym.Env):
                                   self.dist, 
                                   initial_isHolding)
         
-        if self.young_modulus is None :
+        if self.young_modulus_type is None :
             self.young_modulus, self.width = utils.get_youngs_modulus_and_width(self)
             print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
-        elif self.young_modulus == 'eval_mode':
+        elif self.young_modulus_type == 'eval_mode':
             young_modulus_options = [1e6 ,1e7,5e6, 1e8]
             ## Select a youngs modulus for the eval, making sure to use a different one each time 
             self.youngs_modulus = np.random.choice(young_modulus_options)
