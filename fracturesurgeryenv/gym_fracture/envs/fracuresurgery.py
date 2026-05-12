@@ -299,6 +299,7 @@ class fracturesurgery_env(gym.Env):
             width_options = np.arange(0.001, 0.01, 0.001)
             self.width = np.random.choice(width_options)
             print(f"Selected width for evaluation: {self.young_modulus:.2e},{self.width}")
+        print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
         p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=10)
         if self.soft_tissue=='soft':
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
