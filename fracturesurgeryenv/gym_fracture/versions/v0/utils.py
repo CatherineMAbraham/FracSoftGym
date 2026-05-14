@@ -1,0 +1,374 @@
+import pybullet as p
+import numpy as np
+import time 
+import pybullet_data
+import os
+from scipy.spatial.transform import Rotation as R
+import wandb
+def make_scene(self):
+    #Start Positions: Worked out previously
+    
+       if self.start_pos == 'home':
+         startposition = np.array([0,-0.785,0,-2.356,0,1.571,0.785,0.04,0.04])
+       elif self.start_pos == 'extended':
+         startposition = np.array([0.03, 0.2, 0, -1.6, 0, -3, 0.8, -0.04, 0.04]) #-1.802, -2.89
+       #startposition = np.array([0.03, 0.2, 0, -1.6, 0, 1.571, 0.8, -0.04, 0.04])
+        #-1.802, -2.89  ##home position of franka 
+       #startposition = np.array([0,-0.785,0,-2.356,0,-3,0.785,0.04,0.04])
+    #([0.03, 0.2, 0, -1.805, 0, 2, 0.61, -0.04, 0.04])
+       #load scene
+       #Make Plane, Table, Cube       
+       plane_collision_shape = p.createCollisionShape(shapeType=p.GEOM_BOX,halfExtents=np.array([30.0, 30.0, 0.01]))
+       plane_visual_shape = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=np.array([30.0, 30.0, 0.01]),rgbaColor=[0.678, 0.847, 0.902, 1])
+       plane_id = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=plane_collision_shape, 
+                             baseVisualShapeIndex=plane_visual_shape,basePosition=[0, 0, -0.33])
+       
+       self.table =p.loadURDF("table/table.urdf", basePosition =[0.5,-0.35,-0.23] ,globalScaling =0.5);#[0.8, 0.4, -0.33]
+
+       self.visual_shape = p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[0.01,0.01,0.01], rgbaColor=[0.835, 0.7216, 1, 1])  # Purple Goal box - no collision properties
+
+       #Set up robot with calculated start positions
+       urdfRootPath=pybullet_data.getDataPath()
+                  # 🔹 Create the base surgical table (static)
+    #    table_collision = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.05, 0.1, 0.002])
+    #    table_visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.05, 0.1, 0.002], rgbaColor=[0.3, 0.3, 0.3, 1])
+    #    table_body = p.createMultiBody(
+    #         baseMass=0,
+    #         baseCollisionShapeIndex=table_collision,
+    #         baseVisualShapeIndex=table_visual,
+    #         basePosition=[0.65, 0.05, 0.005],
+    #     )
+    #    p.changeDynamics(table_body, -1, lateralFriction=0.1, restitution=0.0)
+
+    #     # 🔹 Create a soft pad (a smaller box resting on the table)
+    #    pad_collision = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.15, 0.1, 0.02])
+    #    pad_visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.15, 0.1, 0.02], rgbaColor=[0.8, 0.2, 0.2, 1])
+    #    pad_body = p.createMultiBody(
+    #         baseMass=0,  # static pad
+    #         baseCollisionShapeIndex=pad_collision,
+    #         baseVisualShapeIndex=pad_visual,
+    #         basePosition=[0.8, 0.15, 0.05],  # slightly above table
+    #     )
+    #    p.changeDynamics(pad_body, -1, lateralFriction=1.5, restitution=0.0)
+      
+       self.pandaUid = p.loadURDF(os.path.join(urdfRootPath, "franka_panda/panda.urdf"),
+                                  basePosition=[0,-0.06,-0.33],#[-0.5,0,-0.65],
+                                  useFixedBase=True, globalScaling = 1)
+       
+       p.changeDynamics(self.pandaUid,9, lateralFriction= 5,spinningFriction= 0.001)#,jointLowerLimit=0.00, jointUpperLimit=0.01)
+       p.changeDynamics(self.pandaUid,10, lateralFriction= 5,spinningFriction= 0.001)#,jointLowerLimit=0.00, jointUpperLimit=0.01)
+       p.resetJointState(self.pandaUid,9, 0.04)
+       p.resetJointState(self.pandaUid,10, 0.04) 
+
+       for i in range(8):
+           p.resetJointState(self.pandaUid,i, startposition[i])
+        
+       for _ in range(10):
+           p.stepSimulation()
+           time.sleep(0.002)
+        
+      # time.sleep(10)
+           
+
+       return self.pandaUid
+
+def getGoal(self, fracturestart, fractureorientaionDeg):
+    fracturestart = np.array(p.getLinkState(self.pandaUid, 11)[0] )
+    p.addUserDebugText('FS', fracturestart, textColorRGB=[1, 0, 0], textSize=1)
+    #print('Fracture Start:', fracturestart)
+    self.goal_range_low = fracturestart-[0.0125,0.01,0.003] #[0.0125,0.01,0.003]
+    self.goal_range_high = fracturestart+ [0.0125,0.02,0.003]
+    self.goal_ori_low= np.radians(fractureorientaionDeg - [15,5,15])
+    self.goal_ori_high=np.radians(fractureorientaionDeg + [15,5,15])
+    #print('Goal Pos Range Low:', self.goal_range_low, 'High:', self.goal_range_high,'Goal Ori Low:', self.goal_ori_low, 'High:', self.goal_ori_high)
+    a = fracturestart - [0.0125,0.01,-0.003] 
+    b = fracturestart + [-0.0125,0.02,0.003]
+    c = fracturestart + [0.0125,-0.01,0.003]
+    d = fracturestart + [0.0125,0.02,0.003]
+    e = fracturestart - [0.0125,0.01,0.003] 
+    f = fracturestart + [-0.0125,0.02,-0.003]
+    g = fracturestart + [0.0125,-0.01,-0.003]
+    h = fracturestart + [0.0125,0.02,-0.003]
+    p.addUserDebugLine(a, b, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(a, c, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(b, d, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(d, c, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(e, f, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(e, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(f, h, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(h, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(a, e, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(b, f, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(c, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    p.addUserDebugLine(d, h, lineColorRGB=[0, 1, 0], lineWidth=3)
+    #print(self.curriculum_phase)
+    # if self.curriculum_phase ==1:
+    #     self.goal_pos = fracturestart.copy()
+    # else:0
+    self.goal_pos = np.array(self.np_random.uniform(self.goal_range_low, self.goal_range_high,))
+    #print('Goal Position:', self.goal_pos)
+    if self.action_type == 'fiveactions' or self.action_type== 'fouractions':
+        self.goal_pos[2] = fracturestart[2]
+   
+    if self.action_type == 'fouractions':
+        self.goal_ori_low[1] =np.radians(fractureorientaionDeg[1] - 0)
+        self.goal_ori_high[1] =np.radians(fractureorientaionDeg[1]+0)    
+    
+    #self.goal_pos = np.round(goal_pos,3)
+    ori = np.array(self.np_random.uniform(self.goal_ori_low, self.goal_ori_high))
+    self.goal_ori = np.array(p.getQuaternionFromEuler(ori))
+    #goal_ori = R.from_euler('xyz', ori).as_quat()
+    #self.goal_ori = np.round(goal_ori,3)
+
+
+def getStarts(self):
+    fracturestart= np.array(p.getLinkState(self.pandaUid, 11)[0] )
+    fractureorientaionRad =p.getEulerFromQuaternion(p.getLinkState(self.pandaUid, 11)[1])
+    fractureorientaionDeg = np.degrees(np.array(fractureorientaionRad)) 
+    pin = [0.004462 ,-0.002332 , 0.046608  ]
+   # pin = [0.004462 ,-0.002332 , 0.049608  ]
+    #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
+    fracturestart = fracturestart - pin
+    #Calculated this difference from the object start position
+    #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
+    #difference = [0.011489 ,-0.045611 ,-0.006535  ]
+    difference = [0.02,0.07,0]
+    #difference = [-0.004493, 0.079895+0.005, 0.073322]
+    difference =np.array(difference)
+    #legstart=[]
+    # for i in range(len(difference)):
+    #     leg = (fracturestart[i])-(difference[i])
+    #     legstart.append(leg)
+    legstart=fracturestart - difference
+    #     i+=1
+    
+
+    return fracturestart, fractureorientaionDeg, legstart
+
+
+
+def get_new_pose(self, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
+        currentPose = p.getLinkState(self.pandaUid, 11, 1)
+        currentPosition = np.array(currentPose[0])
+        currentOrientation = np.array(currentPose[1])
+
+        if mode == 'rot_vec':
+            rotation_vector = np.array([qx, qy, qz])
+            angle = np.linalg.norm(rotation_vector)
+            if angle < 1e-6:
+                deltaOr = [0, 0, 0, 1]
+            else:
+                max_rotation = np.deg2rad(1)
+                clipped_angle = min(angle, max_rotation)
+                axis = rotation_vector / angle
+                deltaOr = p.getQuaternionFromAxisAngle(axis, clipped_angle)
+            deltaPos = [dx, dy, dz]
+            newPosition, newOrientation = p.multiplyTransforms(currentPosition, currentOrientation, deltaPos, deltaOr)
+            newPosition = np.clip(newPosition, self.goal_range_low, self.goal_range_high)
+            return newPosition, newOrientation
+
+        elif mode in ['euler', 'fouractions', 'fiveactions', 'ori_only']:
+            deltaorE = [qx, qy, qz]
+            deltaor = p.getQuaternionFromEuler(deltaorE)
+            if mode == 'ori_only':
+                newPosition = currentPosition
+            else:
+                newPosition = currentPosition + np.array([dx, dy, dz])
+            #newPosition = np.clip(newPosition, self.goal_range_low, self.goal_range_high)
+            newOrientation = np.array(p.multiplyTransforms([0, 0, 0], currentOrientation, [0, 0, 0], deltaor)[1])
+            #euler = p.getEulerFromQuaternion(newOrientation)
+            #newOrientationE = np.clip(euler, self.goal_ori_low, self.goal_ori_high)
+            #newOrientation = p.getQuaternionFromEuler(newOrientationE)
+            return newPosition, newOrientation
+
+        elif mode == 'quat':
+            deltaOr = np.array([qx, qy, qz, qw])
+            deltaOr /= np.linalg.norm(deltaOr)
+            axis, angle = p.getAxisAngleFromQuaternion(deltaOr)
+            max_rotation = np.deg2rad(3)
+            if angle > 0:
+                clipped_angle = min(angle, max_rotation)
+                deltaOr = p.getQuaternionFromAxisAngle(axis, clipped_angle)
+            else:
+                deltaOr = [0, 0, 0, 1]
+            deltaPos = [dx, dy, dz]
+            newPosition, newOrientation = p.multiplyTransforms(currentPosition, currentOrientation, deltaPos, deltaOr)
+            #newPosition = np.clip(newPosition, self.goal_range_low, self.goal_range_high)
+            return newPosition, newOrientation
+
+        elif mode == 'pos_only':
+            newPosition = currentPosition + np.array([qx, qy, qz])
+            #print(newPosition)
+            #p.addUserDebugText('NP', newPosition, textColorRGB=[0, 0, 1], textSize=1, lifeTime=0.5)
+            newOrientation = currentOrientation
+            #newPosition[2] = np.clip(newPosition[2], self.goal_range_low[2], self.goal_range_high[2])
+            #newPosition = np.clip(newPosition, (self.goal_range_low), (self.goal_range_high))
+            p.addUserDebugText('NP', newPosition, textColorRGB=[0, 1, 0], textSize=1, lifeTime=0.5)
+            return newPosition, newOrientation
+
+        elif mode == 'joint':
+            currentJointPoses = [p.getJointState(self.pandaUid, i)[0] for i in range(9)]
+            jointPoses = np.array(currentJointPoses) + np.array([dx, dy, dz, qx, qy, qz, 0, 0, 0])
+            return jointPoses, None
+
+        else:
+            newPosition = currentPosition + np.array([dx, dy, dz])
+            newPosition = np.clip(newPosition, self.goal_range_low, self.goal_range_high)
+            newOrientation = np.array([qx, qy, qz])
+            return newPosition, newOrientation
+
+def unpack_action(self, action, dv):
+    zeros = [0] * 10
+    if self.action_type in ['ori_only', 'pos_only']:
+        return [0, 0, 0, action[0] * dv, action[1] * dv, action[2] * dv, 0, 0, 0, 0]
+    elif self.action_type == 'quat':
+        return [action[0] * dv, action[1] * dv, action[2] * dv, action[3] * dv, action[4] * dv, action[5] * dv, action[6] * dv, 0, 0, 0]
+    elif self.action_type == 'joint':
+        return [action[0] * dv, action[1] * dv, action[2] * dv, action[3] * dv, action[4] * dv, action[5] * dv, action[6] * dv, action[6] * dv, action[7] * dv, action[8] * dv]
+    elif self.action_type == 'fiveactions':
+        return [action[0] * dv, action[1] * dv, 0, action[2] * dv, action[3] * dv, action[4] * dv, 0, 0, 0, 0]
+    elif self.action_type == 'fouractions':
+        return [action[0] * dv, action[1] * dv, 0, action[2] * dv*10, 0, action[3] * dv*10, 0, 0, 0, 0]
+    else:
+        return [action[0] * dv, action[1] * dv, action[2] * dv, action[3] * dv*10, action[4] * dv*10, action[5] * dv*10, 0, 0, 0, 0]
+
+
+def calculate_distances(self,new_pos,new_ori,goal_pos,goal_ori):
+    # Calculate positional distance (Euclidean distance)
+    self.pos_distance = (np.linalg.norm(np.array(new_pos) - np.array(goal_pos), axis=-1)) #the new distance
+    
+    # Calculate the dot product between the quaternions
+    dot_product = np.abs(np.sum(new_ori * goal_ori, axis=-1))
+    
+    
+    # Ensure the dot product is within the valid range for acos
+    dot_product = np.clip(dot_product, -1.0, 1.0)
+
+    # Calculate the angle (rotational distance) between the quaternions
+    self.angle = 2 * np.arccos(dot_product)
+    
+    return self.pos_distance, self.angle
+
+def constrain_quat(self, q):
+    q_rel = R.from_quat(q) * R.from_quat(self.goal_ori).inv()  # Relative rotation  
+    
+    angle = np.linalg.norm(q_rel.as_rotvec())  # Get angle in radians  
+
+    max_angle = np.deg2rad(30)  # 30-degree limit  
+    if angle > max_angle:
+        scale = max_angle / angle
+        q_rel = R.from_rotvec(q_rel.as_rotvec() * scale)  # Scale down rotation  
+        q = (q_rel * R.from_quat(self.goal_ori)).as_quat() 
+    
+    return q # Apply scaled rotation back  
+
+
+def visualize_contact_forces(self,bodyA, bodyB, scale=0.01, lifeTime=0.05, lineWidth=2):
+    """
+    Draw contact normal, friction vectors and total force for every contact between bodyA and bodyB.
+    - bodyA: robot (or the contacting body)
+    - bodyB: object (the body receiving force in c[...] interpretation used here)
+    - scale: visual scaling factor (1 meter per 1 N would be huge; use ~0.001-0.05)
+    """
+    contacts = p.getContactPoints(bodyA=bodyA, bodyB=bodyB, linkIndexB=-1)
+    #print(contacts)
+    for c in contacts:
+        # contact point in world frame (use the reported contact position)
+        #print('Contact Info:', c)
+        linkIndex = c[3]  # link index on body A (robot)
+        #print('Contact Link Index:', linkIndex)
+        contact_pos = c[6]  # commonly used in examples; point on body B
+        # normal on body B (unit vector), points away from B toward A
+        normal_dir = np.array(c[7], dtype=float)
+        normal_mag = float(c[9])    # normal force magnitude (N)
+        #print('Normal Mag:', normal_mag)
+        tan1_mag = float(c[10])
+        tan1_dir = np.array(c[11], dtype=float)
+        tan2_mag = float(c[12])
+        tan2_dir = np.array(c[13], dtype=float)
+
+        #print(normal_mag, tan1_mag, tan2_mag)
+        # compute vector contributions (force on object B)
+        f_normal = normal_mag * normal_dir
+        f_t1 = tan1_mag * tan1_dir
+        f_t2 = tan2_mag * tan2_dir
+        f_total = f_normal + f_t1 + f_t2
+        #print(f_normal, f_t1, f_t2, f_total)
+#        p.addUserDebugLine(normal_dir,)
+        forces = [p.getJointState(self.pandaUid, i)[3] for i in range(9)]
+        q_list = [p.getJointState(self.pandaUid, j)[0] for j in range(9)]
+        v_list = [p.getJointState(self.pandaUid, j)[1] for j in range(9)]
+        tau = np.array(forces)
+        # linkIndex = index of end-effector link
+        link_state = p.getLinkState(self.pandaUid, linkIndex, computeForwardKinematics=True)
+        link_world_pos = np.array(link_state[0])
+        link_world_orn = np.array(link_state[1])  # quaternion (x,y,z,w)
+
+        # convert contact world position to link local coordinates
+        # build rotation matrix from quaternion
+        rot_mat = np.array(p.getMatrixFromQuaternion(link_world_orn)).reshape(3,3)
+        local_pos = rot_mat.T.dot(contact_pos - link_world_pos)  # local coords in link frame
+
+        # calculate Jacobian at that local position
+        lin_jac, ang_jac = p.calculateJacobian(self.pandaUid, linkIndex,
+                                            localPosition=list(local_pos),
+                                            objPositions=q_list,
+                                            objVelocities=v_list,
+                                            objAccelerations=[0.0]*len(q_list))
+        J_lin = np.array(lin_jac)   # shape (3, n)
+        J_ang = np.array(ang_jac)   # shape (3, n)
+
+        # predicted joint torques from force only (tau = J^T * F)
+        tau_pred_from_force = J_lin.T.dot(f_total)   # (n,) vector, Nm
+
+        #print("contact f_total world (N):", f_total, "||mag||:", np.linalg.norm(f_total))
+        #print("predicted tau from linear force (Nm):", tau_pred_from_force)
+
+        # optionally also include any contact moment (if you have it) via angular jacobian
+        # compare to measured joint torques:
+        measured_taus = np.array([p.getJointState(self.pandaUid, j)[3] for j in range(9)])
+        #print("measured joint torques (Nm):", measured_taus)
+        #print("difference (meas - predicted):", measured_taus - tau_pred_from_force)
+        f_total = np.linalg.norm(f_total)
+        f_total = np.float32(f_total)
+        #print('Total Contact Force:', f_total)
+        return f_total
+    
+def fingertip_distance(body_id, left_idx, right_idx, physicsClientId=0):
+    # getLinkState(...)[0] is world position of link frame
+    left_pos = p.getLinkState(body_id, left_idx, physicsClientId=physicsClientId)[0]
+    right_pos = p.getLinkState(body_id, right_idx, physicsClientId=physicsClientId)[0]
+    left_pos = np.array(left_pos)
+    right_pos = np.array(right_pos)
+    return np.linalg.norm(left_pos - right_pos)
+
+def contact_flag(self, link_index: int) -> int:
+        """Return 1 if there is at least one contact between the given panda
+        link (link_index) and the currently loaded object, otherwise 0.
+        """
+        return int(bool(p.getContactPoints(self.pandaUid, self.objectUid, linkIndexA=link_index)))
+
+def is_holding(self, left_flag: int, right_flag: int, dist: float, threshold: float = 0.02) -> int:
+    """Return 1 when both fingers have contact and the fingertip distance
+    exceeds threshold; otherwise 0.
+    """
+    return int(bool(left_flag and right_flag and dist > threshold))
+
+
+def world_to_local(body_id, link_index, world_pos):
+    if link_index == -1:
+        body_pos, body_ori = p.getBasePositionAndOrientation(body_id)
+    else:
+        body_pos, body_ori = p.getLinkState(body_id, link_index)[:2]
+    inv_pos, inv_ori = p.invertTransform(body_pos, body_ori)
+    local_pos, _ = p.multiplyTransforms(inv_pos, inv_ori, world_pos, [0, 0, 0, 1])
+    return local_pos
+
+def local_coords(self,link):
+    parent_pos, parent_orn = p.getLinkState(self.pandaUid, link)[0:2]
+    child_pos, child_orn = p.getBasePositionAndOrientation(self.objectUid)
+    parent_inv_pos, parent_inv_orn = p.invertTransform(parent_pos, parent_orn)
+    child_in_parent_pos, child_in_parent_orn = p.multiplyTransforms(
+        parent_inv_pos, parent_inv_orn, child_pos, child_orn
+    )
+    return child_in_parent_pos, child_in_parent_orn
