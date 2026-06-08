@@ -1,6 +1,6 @@
 import math
 from symtable import Class
-from gym_fracture.envs.dynamics import change_ligament_dynamics
+from gym_fracture.versions.v1.dynamics import change_ligament_dynamics
 import numpy as np
 import pybullet as p
 import os

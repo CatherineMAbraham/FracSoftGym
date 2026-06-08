@@ -1,6 +1,6 @@
 import numpy as np 
 from gymnasium import spaces
-from gym_fracture.envs import utils
+from gym_fracture.versions.v1 import utils
 
 def set_observation_space(env):
     if env.action_type == 'ori_only':
@@ -9,12 +9,12 @@ def set_observation_space(env):
     elif env.action_type == "pos_only":
         obs_shape = 35  
         goal_shape = 4
-    # elif env.contact_type == True:
-    #     obs_shape = 36
-    #     goal_shape = 10
+    elif env.contact_type == True:
+        obs_shape = 36
+        goal_shape = 10
     else:
         obs_shape = 36
-        goal_shape = 10 ## now we're going to add contact to the goal anyway as a 'dummy' variable, so we can keep the goal shape the same for both contact and non-contact environments
+        goal_shape = 9 ## now we're going to add contact to the goal anyway as a 'dummy' variable, so we can keep the goal shape the same for both contact and non-contact environments
     if env.obs_type == 'dict':
         env.observation_space = spaces.Dict({
             'observation': spaces.Box(low=-200, high=200, shape=(obs_shape,), dtype=np.float32),
@@ -222,8 +222,8 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
         env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+[env.anycontact])#+[env.contact])
         env.desired_goal = np.array(list(env.target_position) + [1]+desired_force +object_contact)
     else:
-        env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+object_contact)#we're going to set this as 'success' so we don't really look for it but it keeps the shape the same.
-        env.desired_goal = np.array(list(env.target_position) + [1]+desired_force+object_contact)
+        env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force])
+        env.desired_goal = np.array(list(env.target_position) + [1]+desired_force)
 
     if env.obs_type == 'dict':
         observation_dict = {

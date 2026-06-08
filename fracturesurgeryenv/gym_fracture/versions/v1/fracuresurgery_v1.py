@@ -144,12 +144,10 @@ class fracturesurgery_env_v1(gym.Env):
     ##Reset Function            
     def reset(self, seed=None, options=None):
         ##Counters 
-        # self.n += 1
         self.current_step = 0 ##THESE NEED TO BE RESET HERE 
-        #self.force = 0
         self.output_force = 0
         self.anycontact = 0
-        #   ##This is in init? Check in test 
+        
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
         
         self.band_id = None
@@ -159,25 +157,13 @@ class fracturesurgery_env_v1(gym.Env):
         utils.make_scene(self)
         
         fracturestart, fractureorientationDeg = utils.getStarts(self)
-        
-            # self.goal_pos = np.array(fracturestart.copy())
-            # self.goal_ori = np.array(self.goal_type)
-            # self.goal_range_low = fracturestart - [0.0125, 0.01, 0.003]
-            # self.goal_range_high = fracturestart + [0.0125, 0.02, 0.003]
-            # self.goal_ori_low = np.radians(fractureorientationDeg - [15, 5, 15])
-            # self.goal_ori_high = np.radians(fractureorientationDeg + [15, 5, 15])
-
-        print(f"Fracture start position: {fracturestart}, Fracture orientation (deg): {fractureorientationDeg}")
-        ##
-        ## check targer for possible collision 
-        
+               
         ##Load Objects
         current_dir = os.path.dirname(os.path.abspath(__file__))
         leg_path = os.path.join(current_dir, "Assets/Patient110/proximal.urdf")
         foot_path = os.path.join(current_dir, "Assets/Patient110/distal.urdf")
         
-        #footorientation = p.getQuaternionFromEuler([90/180*np.pi, 0, 0])
-       
+              
         leg_orientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
         
         self.foot = p.loadURDF(foot_path, basePosition=fracturestart, 
@@ -193,7 +179,7 @@ class fracturesurgery_env_v1(gym.Env):
             p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=finger_force_n)
             p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=finger_force_n)
             p.stepSimulation()
-            #time.sleep(1./240)  # Remove for speed
+            
         
         ##
         difference = np.array([0.0,0.09,0])
@@ -206,34 +192,31 @@ class fracturesurgery_env_v1(gym.Env):
                         baseOrientation = leg_orientation,
                         globalScaling = 1.0,
                         useFixedBase = 1)
-        #time.sleep(100)
+        
         
         dynamics.change_leg_dynamics(self)
         p.changeVisualShape(self.leg, -1, rgbaColor=[0.8, 0.8, 0.8, 1])  
         p.setCollisionFilterGroupMask(self.foot, 1, collisionFilterGroup=0, collisionFilterMask=0)
         p.setCollisionFilterGroupMask(self.leg, -1, collisionFilterGroup=0, collisionFilterMask=0)
         ##Settle
-        #print('Settling the simulation...') 
         for _ in range(10):
             p.stepSimulation()
         
         
         p.setGravity(0, 0, -9.81)
         
-        #pose_valid = utils.is_goal_configuration_valid(self,self.goal_pos, self.goal_ori)
+        
         if isinstance(self.goal_type, str):
             utils.getGoal(self, fracturestart, fractureorientationDeg) ## do i want to increase the range of goals?
             self.target_position = np.concatenate((self.goal_pos, self.goal_ori))
-            #print(self.target_position)
+            
         else:
             self.goal_pos = np.array(self.goal_type[0:3])
             goal_ori = np.deg2rad(np.array(self.goal_type[3:6]))
             self.goal_ori = np.array(p.getQuaternionFromEuler(goal_ori))
-            #print(self.goal_ori)
             self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#l pose valid:', pose_valid)
+        
         # Dummy visual shape for goal marker
-        
-        
         # goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
         #                    basePosition=self.goal_pos, baseOrientation=self.goal_ori)
  
@@ -248,7 +231,6 @@ class fracturesurgery_env_v1(gym.Env):
         ##Initial Observation
         initial_pos = p.getLinkState(self.pandaUid, 11)[0]
         initial_or = p.getLinkState(self.pandaUid, 11)[1]
-        #initialholdObject = len(p.getContactPoints(self.pandaUid, self.foot))
         self.dist = utils.fingertip_distance(self.pandaUid, 9, 10)
         # use helper to get 0/1 contact flags
         left_contact = utils.contact_flag(self, 9)
@@ -282,15 +264,14 @@ class fracturesurgery_env_v1(gym.Env):
                                   self.dist, 
                                   initial_isHolding)
         
-        if self.young_modulus is None or self.width is None:
-            self.young_modulus, self.width = utils.get_youngs_modulus_and_width(self)
+        
         p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=10)
         if self.soft_tissue=='soft':
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
             self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.foot, 1,local_offset=[0.01,-0.0015,0.04]) ##trial and error to place them 
             self.point_c,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[-0.03,0.0,-0.01])
             self.point_d,_ = new_band.ElasticBand._get_pose_vel(self,self.foot, 1,local_offset=[-0.03,-0.0015,0.04])
-            #make_ligament(self,"cloth_Id1", self.foot, self.leg, self.point_c, self.point_d,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi,180/180*np.pi]), scale =1,youngs_modulus=self.young_modulus)
+            
             ligament = createligament.Ligament("cloth_Id2", self.foot, self.leg, 
                                                 self.point_a, self.point_b,
                                                 orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi, 180/180*np.pi]), 
@@ -307,7 +288,7 @@ class fracturesurgery_env_v1(gym.Env):
                                          bodyB=self.leg, linkB= -1,
                                          young_modulus=self.young_modulus,
                                          area=5e-6,
-                                         width= self.width,
+                                         width= 0.005,
                                          num_springs=self.number_of_springs
                                          )
             
@@ -316,8 +297,7 @@ class fracturesurgery_env_v1(gym.Env):
             
             pass  
        
-        #print(p.getClosestPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1,distance=0.5 ))
-        #utils.drawAABB(self,self.leg,-1)
+        
         p.setCollisionFilterPair(self.foot,self.leg,1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
         return self.state, {}
 
@@ -380,12 +360,9 @@ class fracturesurgery_env_v1(gym.Env):
             self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
             if self.filerted_force > self.output_force:
                 self.output_force = self.filerted_force
-        # if self.soft_tissue=='soft':
-        #     worldA, worldB = createligament.Ligament.radius_spring(self.foot, self.leg,
-        #                                                     self.point_a, self.point_b)
-        #     stretch = np.linalg.norm(worldA - worldB) 
         
-        #print(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1))
+        
+        
         stretch = np.array(p.getLinkState(self.foot, 1)[0]) - np.array(p.getBasePositionAndOrientation(self.leg)[0])
         stretch = np.linalg.norm(stretch)
         self.contact = int(bool(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1))) ## check for contact between foot and leg, can adjust distance threshold if needed, currently set to -1mm to avoid false positives from close proximity
@@ -396,10 +373,7 @@ class fracturesurgery_env_v1(gym.Env):
                 self.anycontact = 1
             
        
-        # if self.contact==1:
-        #     #p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8]}') ## print contact distance for debugging
-        #     self.anycontact = 1
-            #print('Contact!')
+       
         
         ## Observation Update
         actual_New_Position = p.getLinkState(self.pandaUid, 11)[0]
@@ -415,9 +389,7 @@ class fracturesurgery_env_v1(gym.Env):
         joint_Poses = np.array([js[0] for js in joint_states])        # positions
         joint_Velocities = np.array([js[1] for js in joint_states])   # velocities
         self.pos_distance, self.angle = utils.calculate_distances(self, actual_New_Position, actual_New_Orientation, self.goal_pos, self.goal_ori)
-        #self.capped_force = min(self.filerted_force,200)
-        #normalise force instead of cap 
-        #self.normalised_force = self.filerted_force / self.maxforce ## for visualization only
+        
         env_utils.set_observation(self, 
                                   actual_New_Position, 
                                   actual_New_Orientation, 
@@ -443,30 +415,18 @@ class fracturesurgery_env_v1(gym.Env):
         else:
             truncated = self.current_step >= self.max_steps and not done
         
-        # if done:
-        #     print('MaxForce: ', self.output_force, 
-        #        'Pos Distance: ', self.pos_distance, 
-        #        'Angle: ', self.angle, 
-        #        'Holding: ', self.isHolding, 
-        #        'Contact: ', self.anycontact)
         
-        # if done:
-        #     print('yay')
-        # elif truncated:
-        #     print(f'truncated {self.filerted_force},{self.pos_distance},{self.angle}')
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
                 'force': self.filerted_force,'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean}#,'force_mag':self.force_magnitude}#,
-        #print(stretch,self.output_force)
-                #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
+        
         if (not self.test) or (self.filerted_force <= 100):
             reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
-        # else: keep the earlier penalty reward (-100)
+        
         reward = np.float32(reward)
-        #print('force: ', self.force, reward)
-        #print(self.anycontact)
+        
         return self.state, reward, done, truncated, info
 
     def render(self) :
