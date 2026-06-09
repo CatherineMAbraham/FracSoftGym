@@ -97,6 +97,10 @@ class fracturesurgery_env_v0(gym.Env):
        
 
     def reset(self, seed=None, options=None):
+        # IMPORTANT: Must call this first to seed the random number generator
+        super().reset(seed=seed)
+        active_seed = options.get("seed", seed) if options else seed
+        np.random.seed(active_seed)
         self.n += 1
         self.output_force = np.float32(0)
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD)
