@@ -177,7 +177,7 @@ class fracturesurgery_env_v0(gym.Env):
         
         
         
-        p.changeDynamics(self.objectUid, -1, mass=0.276, lateralFriction=1)
+        p.changeDynamics(self.objectUid, -1, mass=0.1, lateralFriction=1)
         #print('On to Stepping')
         initialpos = p.getLinkState(self.pandaUid, 11)[0]
         initialor = p.getLinkState(self.pandaUid, 11)[1]
