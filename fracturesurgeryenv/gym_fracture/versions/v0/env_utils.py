@@ -4,13 +4,13 @@ from gym_fracture.versions.v0 import utils
 
 def set_observation_space(self):
     if self.action_type == 'ori_only':
-        obs_shape = 34  
+        obs_shape = 33  
         goal_shape = 5
     elif self.action_type == "pos_only":
-        obs_shape = 34  
+        obs_shape = 33  
         goal_shape = 4
     else:
-        obs_shape = 35
+        obs_shape = 34
         goal_shape = 8
     if self.obs_type == 'dict':
         self.observation_space = spaces.Dict({
@@ -134,7 +134,7 @@ def compute_reward_dense(self, achieved_goal, desired_goal, info):
     elif self.reward_type == 'dense_1' and self.horizon == 'fixed':
         return -d1 + e
     
-def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, force,left_contact,position, angle, right_contact, dist, isHolding):
+def set_observation(self, pos, ori, vel, jointPoses, jointVelocities,position, angle, left_contact, right_contact, dist, isHolding):
     if self.action_type == 'ori_only':
         observation = np.concatenate([
         np.array(pos),
@@ -142,11 +142,10 @@ def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, force,left
         np.array(vel),
         np.array(jointPoses),
         np.array(jointVelocities),
-        np.array([force]),
         np.array([self.angle]),
-        np.array([self.left_contact]),
-        np.array([self.right_contact]),
-        np.array([self.dist]),
+        np.array([left_contact]),
+        np.array([right_contact]),
+        np.array([dist]),
         np.array([isHolding])
     ])  # Total: 31 elements
     elif self.action_type == 'pos_only':
@@ -156,7 +155,6 @@ def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, force,left
                 np.array(vel),
                 np.array(jointPoses),
                 np.array(jointVelocities),
-                np.array([force]),
                 np.array([position]),
                 np.array([left_contact]),
                 np.array([right_contact]),
@@ -170,7 +168,6 @@ def set_observation(self, pos, ori, vel, jointPoses, jointVelocities, force,left
             np.array(vel),
             np.array(jointPoses),
             np.array(jointVelocities),
-            np.array([force]),
             np.array([position]),
             np.array([angle]),
             np.array([left_contact]),

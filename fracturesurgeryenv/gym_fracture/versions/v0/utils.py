@@ -12,10 +12,7 @@ def make_scene(self):
          startposition = np.array([0,-0.785,0,-2.356,0,1.571,0.785,0.04,0.04])
        elif self.start_pos == 'extended':
          startposition = np.array([0.03, 0.2, 0, -1.6, 0, -3, 0.8, -0.04, 0.04]) #-1.802, -2.89
-       #startposition = np.array([0.03, 0.2, 0, -1.6, 0, 1.571, 0.8, -0.04, 0.04])
-        #-1.802, -2.89  ##home position of franka 
-       #startposition = np.array([0,-0.785,0,-2.356,0,-3,0.785,0.04,0.04])
-    #([0.03, 0.2, 0, -1.805, 0, 2, 0.61, -0.04, 0.04])
+      
        #load scene
        #Make Plane, Table, Cube       
        plane_collision_shape = p.createCollisionShape(shapeType=p.GEOM_BOX,halfExtents=np.array([30.0, 30.0, 0.01]))
@@ -30,26 +27,7 @@ def make_scene(self):
        #Set up robot with calculated start positions
        urdfRootPath=pybullet_data.getDataPath()
                   # 🔹 Create the base surgical table (static)
-    #    table_collision = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.05, 0.1, 0.002])
-    #    table_visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.05, 0.1, 0.002], rgbaColor=[0.3, 0.3, 0.3, 1])
-    #    table_body = p.createMultiBody(
-    #         baseMass=0,
-    #         baseCollisionShapeIndex=table_collision,
-    #         baseVisualShapeIndex=table_visual,
-    #         basePosition=[0.65, 0.05, 0.005],
-    #     )
-    #    p.changeDynamics(table_body, -1, lateralFriction=0.1, restitution=0.0)
-
-    #     # 🔹 Create a soft pad (a smaller box resting on the table)
-    #    pad_collision = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.15, 0.1, 0.02])
-    #    pad_visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.15, 0.1, 0.02], rgbaColor=[0.8, 0.2, 0.2, 1])
-    #    pad_body = p.createMultiBody(
-    #         baseMass=0,  # static pad
-    #         baseCollisionShapeIndex=pad_collision,
-    #         baseVisualShapeIndex=pad_visual,
-    #         basePosition=[0.8, 0.15, 0.05],  # slightly above table
-    #     )
-    #    p.changeDynamics(pad_body, -1, lateralFriction=1.5, restitution=0.0)
+   
       
        self.pandaUid = p.loadURDF(os.path.join(urdfRootPath, "franka_panda/panda.urdf"),
                                   basePosition=[0,-0.06,-0.33],#[-0.5,0,-0.65],
@@ -65,7 +43,7 @@ def make_scene(self):
         
        for _ in range(10):
            p.stepSimulation()
-           time.sleep(0.002)
+           #time.sleep(0.002)
         
       # time.sleep(10)
            
@@ -74,33 +52,32 @@ def make_scene(self):
 
 def getGoal(self, fracturestart, fractureorientaionDeg):
     fracturestart = np.array(p.getLinkState(self.pandaUid, 11)[0] )
-    p.addUserDebugText('FS', fracturestart, textColorRGB=[1, 0, 0], textSize=1)
-    #print('Fracture Start:', fracturestart)
+        #print('Fracture Start:', fracturestart)
     self.goal_range_low = fracturestart-[0.0125,0.01,0.003] #[0.0125,0.01,0.003]
     self.goal_range_high = fracturestart+ [0.0125,0.02,0.003]
     self.goal_ori_low= np.radians(fractureorientaionDeg - [15,5,15])
     self.goal_ori_high=np.radians(fractureorientaionDeg + [15,5,15])
     #print('Goal Pos Range Low:', self.goal_range_low, 'High:', self.goal_range_high,'Goal Ori Low:', self.goal_ori_low, 'High:', self.goal_ori_high)
-    a = fracturestart - [0.0125,0.01,-0.003] 
-    b = fracturestart + [-0.0125,0.02,0.003]
-    c = fracturestart + [0.0125,-0.01,0.003]
-    d = fracturestart + [0.0125,0.02,0.003]
-    e = fracturestart - [0.0125,0.01,0.003] 
-    f = fracturestart + [-0.0125,0.02,-0.003]
-    g = fracturestart + [0.0125,-0.01,-0.003]
-    h = fracturestart + [0.0125,0.02,-0.003]
-    p.addUserDebugLine(a, b, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(a, c, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(b, d, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(d, c, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(e, f, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(e, g, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(f, h, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(h, g, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(a, e, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(b, f, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(c, g, lineColorRGB=[0, 1, 0], lineWidth=3)
-    p.addUserDebugLine(d, h, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # a = fracturestart - [0.0125,0.01,-0.003] 
+    # b = fracturestart + [-0.0125,0.02,0.003]
+    # c = fracturestart + [0.0125,-0.01,0.003]
+    # d = fracturestart + [0.0125,0.02,0.003]
+    # e = fracturestart - [0.0125,0.01,0.003] 
+    # f = fracturestart + [-0.0125,0.02,-0.003]
+    # g = fracturestart + [0.0125,-0.01,-0.003]
+    # h = fracturestart + [0.0125,0.02,-0.003]
+    # p.addUserDebugLine(a, b, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(a, c, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(b, d, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(d, c, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(e, f, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(e, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(f, h, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(h, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(a, e, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(b, f, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(c, g, lineColorRGB=[0, 1, 0], lineWidth=3)
+    # p.addUserDebugLine(d, h, lineColorRGB=[0, 1, 0], lineWidth=3)
     #print(self.curriculum_phase)
     # if self.curriculum_phase ==1:
     #     self.goal_pos = fracturestart.copy()
@@ -117,8 +94,7 @@ def getGoal(self, fracturestart, fractureorientaionDeg):
     #self.goal_pos = np.round(goal_pos,3)
     ori = np.array(self.np_random.uniform(self.goal_ori_low, self.goal_ori_high))
     self.goal_ori = np.array(p.getQuaternionFromEuler(ori))
-    #goal_ori = R.from_euler('xyz', ori).as_quat()
-    #self.goal_ori = np.round(goal_ori,3)
+    
 
 
 def getStarts(self):

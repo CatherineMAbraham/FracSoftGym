@@ -139,14 +139,13 @@ class fracturesurgery_env_v0(gym.Env):
         #p.stepSimulation()
         target_positions = np.array([0.0, 0.0])
         forces = [10,10]
-        for _ in range(100):
+        for _ in range(10):
             p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=5)
             p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=5)
 
             p.stepSimulation()
             #time.sleep(1./500)  # Remove for speed
-        pos_9 = p.getJointState(self.pandaUid, 9)[0]
-        pos_10 = p.getJointState(self.pandaUid, 10)[0]
+        
         p.setJointMotorControl2(self.pandaUid, 9, p.POSITION_CONTROL, targetPosition=0, force=1)
         p.setJointMotorControl2(self.pandaUid, 10, p.POSITION_CONTROL, targetPosition=0, force=1)
         p.stepSimulation()
@@ -171,26 +170,10 @@ class fracturesurgery_env_v0(gym.Env):
         # goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
         #                   basePosition=self.goal_pos, baseOrientation=self.goal_ori)
 
-        point_a = [0.029166, 0.051439, 0.003369]
-        point_b= [-0.048064,-0.012,-0.007159]
-        point_c = [ 0.027233,-0.040717,-0.011423]
-        point_d = [-0.065358,-0.023195,-0.005576]
         
-        #point_a = [0.019166, 0.051439, 0.003369]
-        #point_b= [-0.068064,-0.03,-0.007159]
-        #point_c = [ 0.027233,-0.040717,-0.011423]
-        #point_d = [-0.065358,-0.023195,-0.005576]
         
-        [p.enableJointForceTorqueSensor(self.pandaUid, joint, enableSensor=True) for joint in range(p.getNumJoints(self.pandaUid))]
-        p.enableJointForceTorqueSensor(self.objectUid, 0, enableSensor=True)
         
-            #print(f"Joint {i}: {joint_info}")
-        max_vel = [2.1750,2.1750,2.1750,2.1750,2.6100,2.6100,2.6100,0.2,0.2]
-        if self.softtissue:
-            make_ligament(self,"cloth_Id1", self.objectUid, self.leg, point_c, point_d,orientation=p.getQuaternionFromEuler([0, 0, 90/180*np.pi]), scale =0.9)
-            make_ligament(self, "cloth_Id2", self.objectUid, self.leg, point_a, point_b,orientation=p.getQuaternionFromEuler([0, 0, 298/180*np.pi]), scale =0.75)
-        
-        p.changeDynamics(self.objectUid, -1, mass=0.1, lateralFriction=1)
+        p.changeDynamics(self.objectUid, -1, mass=0.276, lateralFriction=1)
         #print('On to Stepping')
         initialpos = p.getLinkState(self.pandaUid, 11)[0]
         initialor = p.getLinkState(self.pandaUid, 11)[1]
@@ -207,16 +190,20 @@ class fracturesurgery_env_v0(gym.Env):
         initialJointVelocities = [p.getJointState(self.pandaUid, i)[1] for i in range(9)]
         self.pos_distance, self.angle = utils.calculate_distances(self, initialpos, initialor, self.goal_pos, self.goal_ori)
         initialisHolding = int(initialisHolding)
-        initial_force = utils.visualize_contact_forces(self,self.pandaUid, self.objectUid)
+        
 
         env_utils.set_observation(self, initialpos, initialor, 
-                                               initialvel, initialJointPoses, 
-                                               initialJointVelocities, initial_force,self.dist, self.angle,
+                                               initialvel, 
+                                               initialJointPoses, 
+                                               initialJointVelocities,
+                                               self.pos_distance, 
+                                               self.angle,
                                                left_contact,
-                                                right_contact, 
-                                               self.dist, initialisHolding)
-        p.changeDynamics(self.pandaUid, 9, jointLowerLimit=0.00, jointUpperLimit=0.004)
-        p.changeDynamics(self.pandaUid, 10, jointLowerLimit=0.0, jointUpperLimit=0.0042)
+                                               right_contact, 
+                                               self.dist, 
+                                               initialisHolding)
+        # p.changeDynamics(self.pandaUid, 9, jointLowerLimit=0.00, jointUpperLimit=0.004)
+        # p.changeDynamics(self.pandaUid, 10, jointLowerLimit=0.0, jointUpperLimit=0.0042)
 
         
         return self.state, {}
@@ -270,15 +257,7 @@ class fracturesurgery_env_v0(gym.Env):
         for _ in range(20):
             p.stepSimulation()
       
-        self.force = utils.visualize_contact_forces(self,self.pandaUid, self.objectUid, scale=0.01, lifeTime=5)
-       
-        if self.force != None:
-            self.output_force+=self.force 
-        else :
-            self.output_force+=0
-            self.force = 0 # without this, force in the obs is nan and then that messes everything up 
-        
-        
+                
         actualNewPosition = p.getLinkState(self.pandaUid, 11)[0]
         actualNewOrientation = p.getLinkState(self.pandaUid, 11)[1]
         actualNewVelocity = p.getLinkState(self.pandaUid, 11, 1)[6]
@@ -293,13 +272,18 @@ class fracturesurgery_env_v0(gym.Env):
         jointVelocities = np.array([js[1] for js in joint_states])   # velocities
         self.pos_distance, self.angle = utils.calculate_distances(self, actualNewPosition, actualNewOrientation, self.goal_pos, self.goal_ori)
         
-        env_utils.set_observation(self, actualNewPosition, actualNewOrientation, 
-                                               actualNewVelocity, jointPoses, 
-                                               jointVelocities,self.force,dist, self.angle,
-                                                 left_contact, 
-                                                right_contact, 
-                                               dist, self.isHolding)
-        
+        env_utils.set_observation(self, actualNewPosition, 
+                                  actualNewOrientation, 
+                                  actualNewVelocity, 
+                                  jointPoses, 
+                                  jointVelocities,
+                                  self.pos_distance, 
+                                  self.angle,
+                                  left_contact, 
+                                  right_contact, 
+                                  dist, 
+                                  self.isHolding)
+
         
         done = env_utils.check_done(self)
         truncated = self.current_step >= self.max_steps and not done
@@ -308,7 +292,7 @@ class fracturesurgery_env_v0(gym.Env):
         
         if done or truncated:
             self.output_force = self.output_force / self.current_step 
-        info = {'is_success': done, 'current_step': self.current_step, 'pos_distance': self.pos_distance, 'angle': self.angle, 'avg_force': self.output_force, 'Holding': self.isHolding}
+        info = {'is_success': done, 'current_step': self.current_step, 'pos_distance': self.pos_distance, 'angle': self.angle, 'Holding': self.isHolding}
         reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
         #print('force: ', self.force, reward)
         
