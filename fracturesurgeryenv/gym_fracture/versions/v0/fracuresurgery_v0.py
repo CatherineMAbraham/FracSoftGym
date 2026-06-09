@@ -143,7 +143,7 @@ class fracturesurgery_env_v0(gym.Env):
         #p.stepSimulation()
         target_positions = np.array([0.0, 0.0])
         forces = [10,10]
-        for _ in range(100):
+        for _ in range(10):
             p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=5)
             p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=5)
 
