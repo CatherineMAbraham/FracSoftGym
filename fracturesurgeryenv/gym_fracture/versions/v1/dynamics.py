@@ -38,9 +38,9 @@ def change_robot_dynamics(env):
                          collisionMargin=0.001)
 
 def change_ligament_dynamics(name):
-    p.changeDynamics(name, -1, mass=0.1, linearDamping=0.5, angularDamping=0.5)
-    p.setPhysicsEngineParameter(contactERP=0.1,useSplitImpulse=1,
-                                splitImpulsePenetrationThreshold=0.01)#, CFM=0.0011)#, cfm=0.5)#, 
+    p.changeDynamics(name, -1, mass=0.1, linearDamping=0.7, angularDamping=0.7)
+    p.setPhysicsEngineParameter(contactERP=0.4,useSplitImpulse=1,
+                                splitImpulsePenetrationThreshold=0.001)#, CFM=0.0011)#, cfm=0.5)#, 
     p.setCollisionFilterGroupMask(name, -1, collisionFilterGroup=0, collisionFilterMask=0) # Disable collisions for soft body to prevent explosion during tuning
    
        

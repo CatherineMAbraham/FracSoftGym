@@ -265,7 +265,7 @@ class fracturesurgery_env_v1(gym.Env):
                                   initial_isHolding)
         
         
-        p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=10)
+        p.setPhysicsEngineParameter(numSolverIterations=200, numSubSteps=5)
         if self.soft_tissue=='soft':
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
             self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.foot, 1,local_offset=[0.01,-0.0015,0.04]) ##trial and error to place them 
