@@ -105,7 +105,7 @@ class fracturesurgery_env_v1(gym.Env):
         self.render()
 
         
-        p.setTimeStep(1/240)
+        p.setTimeStep(1/500)
 
         ##Obs and Action Space setup
         if self.action_type not in ['euler', 'fouractions','ori_only', 'pos_only']: 
@@ -297,6 +297,8 @@ class fracturesurgery_env_v1(gym.Env):
             
             pass  
        
+        for i in range(100):
+            p.stepSimulation()
         
         p.setCollisionFilterPair(self.foot,self.leg,1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
         return self.state, {}
@@ -408,7 +410,7 @@ class fracturesurgery_env_v1(gym.Env):
         #print('Capped Force: ', self.capped_force,)
         done = env_utils.check_done(self)
         
-        if self.test and (self.filerted_force >= 100 or self.isHolding ==0):
+        if self.test and (self.filerted_force >= 10 or self.isHolding ==0):
             print('Terminating episode due to excessive force during testing.')
             truncated = True
             reward = -100
