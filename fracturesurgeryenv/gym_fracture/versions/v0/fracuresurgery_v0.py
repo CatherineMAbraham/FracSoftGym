@@ -299,7 +299,7 @@ class fracturesurgery_env_v0(gym.Env):
         info = {'is_success': done, 'current_step': self.current_step, 'pos_distance': self.pos_distance, 'angle': self.angle, 'Holding': self.isHolding}
         reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
         #print('force: ', self.force, reward)
-        
+        reward = np.float32(reward)
         return self.state, reward, done, truncated, info
 
     
