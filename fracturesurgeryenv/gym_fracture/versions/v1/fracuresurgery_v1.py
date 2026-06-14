@@ -143,6 +143,9 @@ class fracturesurgery_env_v1(gym.Env):
 
     ##Reset Function            
     def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
+        active_seed = options.get("seed", seed) if options else seed
+        np.random.seed(active_seed)
         ##Counters 
         self.current_step = 0 ##THESE NEED TO BE RESET HERE 
         self.output_force = 0
@@ -297,8 +300,8 @@ class fracturesurgery_env_v1(gym.Env):
             
             pass  
        
-        for i in range(100):
-            p.stepSimulation()
+        # for i in range(100):
+        #     p.stepSimulation()
         
         p.setCollisionFilterPair(self.foot,self.leg,1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
         return self.state, {}
