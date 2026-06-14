@@ -151,6 +151,8 @@ class fracturesurgery_env_v2(gym.Env):
     ##Reset Function            
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
+        active_seed = options.get("seed", seed) if options else seed
+        np.random.seed(active_seed)
         ##Counters 
         # self.n += 1
         self.current_step = 0 ##THESE NEED TO BE RESET HERE 
