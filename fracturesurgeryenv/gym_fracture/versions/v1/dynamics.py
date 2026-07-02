@@ -32,10 +32,10 @@ def change_foot_dynamics(env):
 def change_robot_dynamics(env):
     for i in [9, 10]:
         p.changeDynamics(env.pandaUid, i, 
-                         lateralFriction=2.0, # Enough to grip, but not 'glued'
+                         lateralFriction=5.0, # Enough to grip, but not 'glued'
                          contactStiffness=5000, 
                          contactDamping=100,
-                         collisionMargin=0.001)
+                         collisionMargin=0.0001)
 
 def change_ligament_dynamics(name):
     p.changeDynamics(name, -1, mass=0.1, linearDamping=0.7, angularDamping=0.7)

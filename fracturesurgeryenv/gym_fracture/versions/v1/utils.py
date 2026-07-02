@@ -34,7 +34,7 @@ def make_scene(env):
 
        #Set up robot with calculated start positions
        urdfRootPath=pybullet_data.getDataPath()
-                  # 🔹 Create the base surgical table (static)
+                  # Create the base surgical table (static)
    
       
        env.pandaUid = p.loadURDF(os.path.join(urdfRootPath, "franka_panda/panda.urdf"),
@@ -58,21 +58,6 @@ def make_scene(env):
 
        return env.pandaUid
 
-def is_point_in_bone(env,point, bone_id):
-    # Check distance between a coordinate and the entire mesh
-    # distance > 0 means it is outside
-    goal = p.createVisualShape(p.GEOM_SPHERE, radius=0.005, rgbaColor=[1, 0, 0, 1], visualFramePosition=point)
-    closest_points = p.getClosestPoints(bodyA=-1, bodyB=bone_id, 
-                                        distance=0.01, # Search radius
-                                        linkIndexA=-1, 
-                                        positionA=point)
-    
-    if len(closest_points) > 0:
-        # If the shortest distance is 0 or negative, it's a collision
-        if closest_points[0][8] <= 0: 
-            print(f'Point {point} is inside the bone (distance: {closest_points[0][8]:.4f} m)')
-            return True
-    return False
 
 def is_goal_configuration_valid(env, goal_pos, goal_quat):
     """Checks if the foot/gripper would collide with the leg at the goal pose."""
@@ -252,7 +237,12 @@ def get_new_pose(env, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
                 newPosition = currentPosition
             else:
                 newPosition = currentPosition + np.array([dx, dy, dz])
-            #newPosition = np.clip(newPosition, env.goal_range_low, env.goal_range_high)
+                ## clamp to goal space 
+                #newPosition = np.clip(newPosition, env.goal_range_low, env.goal_range_high)
+            #print(newPosition)
+            #print(env.goal_range_low, env.goal_range_high)
+            newPosition = np.clip(newPosition, env.goal_range_low, env.goal_range_high)
+            #print(newPosition)
             newOrientation = np.array(p.multiplyTransforms([0, 0, 0], currentOrientation, [0, 0, 0], deltaor)[1])
             #ensure normalised quaternion
             #check if quat is normalised 
@@ -260,10 +250,10 @@ def get_new_pose(env, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
             norm = newOrientation[0]**2 + newOrientation[1]**2 + newOrientation[2]**2 + newOrientation[3]**2
             if norm > 1+1e-6 or norm < 1-1e-6:
                 print(f'not normalised! {norm}')
-            #newOrientation = newOrientation / np.linalg.norm(newOrientation)
-            #euler = p.getEulerFromQuaternion(newOrientation)
-            #newOrientationE = np.clip(euler, env.goal_ori_low, env.goal_ori_high)
-            #newOrientation = p.getQuaternionFromEuler(newOrientationE)
+            newOrientation = newOrientation / np.linalg.norm(newOrientation)
+            euler = p.getEulerFromQuaternion(newOrientation)
+            newOrientationE = np.clip(euler, env.goal_ori_low, env.goal_ori_high)
+            newOrientation = p.getQuaternionFromEuler(newOrientationE)
             return newPosition, newOrientation
 
         
@@ -287,15 +277,15 @@ def get_new_pose(env, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
 def unpack_action(env, action):
     zeros = [0] * 10
     if env.action_type in ['ori_only', 'pos_only']:
-        return [0, 0, 0, action[0] * dv, action[1] * dv, action[2] * dv, 0, 0, 0, 0]
+        return [0, 0, 0, action[0] * env.dt, action[1] * env.dt, action[2] * env.dt, 0, 0, 0, 0]
     elif env.action_type == 'quat':
-        return [action[0] * dv, action[1] * dv, action[2] * dv, action[3] * dv, action[4] * dv, action[5] * dv, action[6] * dv, 0, 0, 0]
+        return [action[0] * env.dt, action[1] * env.dt, action[2] * env.dt, action[3] * env.dt, action[4] * env.dt, action[5] * env.dt, action[6] * env.dt, 0, 0, 0]
     elif env.action_type == 'joint':
-        return [action[0] * dv, action[1] * dv, action[2] * dv, action[3] * dv, action[4] * dv, action[5] * dv, action[6] * dv, action[6] * dv, action[7] * dv, action[8] * dv]
+        return [action[0] * env.dt, action[1] * env.dt, action[2] * env.dt, action[3] * env.dt, action[4] * env.dt, action[5] * env.dt, action[6] * env.dt, action[6] * env.dt, action[7] * env.dt, action[8] * env.dt]
     elif env.action_type == 'fiveactions':
-        return [action[0] * dv, action[1] * dv, 0, action[2] * dv, action[3] * dv, action[4] * dv, 0, 0, 0, 0]
+        return [action[0] * env.dt, action[1] * env.dt, 0, action[2] * env.dt, action[3] * env.dt, action[4] * env.dt, 0, 0, 0, 0]
     elif env.action_type == 'fouractions':
-        return [action[0] * dv, action[1] * dv, 0, action[2] * dv*10, 0, action[3] * dv*10, 0, 0, 0, 0]
+        return [action[0] * env.dt, action[1] * env.dt, 0, action[2] * env.dr, 0, action[3] * env.dr, 0, 0, 0, 0]
     else:
         return [action[0] * env.dt, action[1] * env.dt, action[2] * env.dt, action[3] * env.dr, action[4] * env.dr, action[5] * env.dr, 0, 0, 0, 0]
 
@@ -376,6 +366,7 @@ def smooth_motion(env, joint_targets, joint_current, maxforce,numsubsteps):
             env.band.step()
         #print('stepping')
         p.stepSimulation()
+        #time.sleep(0.1)
         joint_current = np.array([p.getJointState(env.pandaUid, j)[0] for j in range(9)])
         force = p.getJointState(env.foot, 0)[2]  # Joint index 0 is the fixed joint
         all_forces.append(force)

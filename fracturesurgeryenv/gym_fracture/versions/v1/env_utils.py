@@ -8,7 +8,7 @@ def set_observation_space(env):
         goal_shape = 5
     elif env.action_type == "pos_only":
         obs_shape = 35  
-        goal_shape = 4
+        goal_shape = 5
     elif env.contact_type == True:
         obs_shape = 36
         goal_shape = 10
