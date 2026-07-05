@@ -178,7 +178,7 @@ class fracturesurgery_env_v1(gym.Env):
         dynamics.change_foot_dynamics(self)
         dynamics.change_robot_dynamics(self)
         
-        finger_force_n = 5 if self.soft_tissue=='soft' else 5 ##
+        finger_force_n = 5 if self.soft_tissue=='soft' else 2 ##
         for _ in range(100):
             p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=finger_force_n)
             p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=finger_force_n)
@@ -186,7 +186,7 @@ class fracturesurgery_env_v1(gym.Env):
             
         
         ##
-        difference = np.array([0.0,0.1,0.0])
+        difference = np.array([0.0,0.09,0.0])
         foot = p.getLinkState(self.foot, 1)[0]
         leg_start=foot - difference
     
@@ -270,7 +270,7 @@ class fracturesurgery_env_v1(gym.Env):
                                   initial_isHolding)
         
         
-        p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=5)
+        p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=10)
 
         
         if self.soft_tissue=='soft':
