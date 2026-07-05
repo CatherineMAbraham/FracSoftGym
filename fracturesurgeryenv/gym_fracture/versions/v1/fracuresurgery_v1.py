@@ -270,7 +270,7 @@ class fracturesurgery_env_v1(gym.Env):
                                   initial_isHolding)
         
         
-        p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=10)
+        p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=5)
 
         
         if self.soft_tissue=='soft':
