@@ -105,7 +105,7 @@ class fracturesurgery_env_v1(gym.Env):
         self.render()
 
         
-        p.setTimeStep(1/500)
+        p.setTimeStep(1/240)
 
         ##Obs and Action Space setup
         if self.action_type not in ['euler', 'fouractions','ori_only', 'pos_only']: 
@@ -178,7 +178,7 @@ class fracturesurgery_env_v1(gym.Env):
         dynamics.change_foot_dynamics(self)
         dynamics.change_robot_dynamics(self)
         
-        finger_force_n = 5 if self.soft_tissue=='soft' else 5
+        finger_force_n = 5 if self.soft_tissue=='soft' else 5 ##
         for _ in range(100):
             p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=finger_force_n)
             p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=finger_force_n)
@@ -307,7 +307,7 @@ class fracturesurgery_env_v1(gym.Env):
         # for i in range(100):
         #     p.stepSimulation()
         
-        #p.setCollisionFilterPair(self.foot,self.leg,1,-1,0) ## Allow collision between foot and leg but not between the soft object, very unstable 
+        p.setCollisionFilterPair(self.foot,self.leg,1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
         #p.setCollisionFilterPair(self.foot,self.leg,1,0,0)
         return self.state, {}
 
