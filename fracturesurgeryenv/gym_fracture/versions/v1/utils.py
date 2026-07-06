@@ -88,7 +88,7 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
            p.resetJointState(env.pandaUid,i, joint_states[i][0])
     #       time.sleep(1)
    # time.sleep(5)
-    print('Back at home')
+    #print('Back at home')
     if len(contacts) == 0 and ori <=env.distance_threshold_ori and pos <= env.distance_threshold_pos:
         valid = True
     else:
@@ -241,7 +241,7 @@ def get_new_pose(env, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
                 #newPosition = np.clip(newPosition, env.goal_range_low, env.goal_range_high)
             #print(newPosition)
             #print(env.goal_range_low, env.goal_range_high)
-            newPosition = np.clip(newPosition, env.goal_range_low, env.goal_range_high)
+            #newPosition = np.clip(newPosition, env.goal_range_low, env.goal_range_high)
             #print(newPosition)
             newOrientation = np.array(p.multiplyTransforms([0, 0, 0], currentOrientation, [0, 0, 0], deltaor)[1])
             #ensure normalised quaternion
@@ -251,9 +251,9 @@ def get_new_pose(env, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
             if norm > 1+1e-6 or norm < 1-1e-6:
                 print(f'not normalised! {norm}')
             newOrientation = newOrientation / np.linalg.norm(newOrientation)
-            euler = p.getEulerFromQuaternion(newOrientation)
-            newOrientationE = np.clip(euler, env.goal_ori_low, env.goal_ori_high)
-            newOrientation = p.getQuaternionFromEuler(newOrientationE)
+            #euler = p.getEulerFromQuaternion(newOrientation)
+            #newOrientationE = np.clip(euler, env.goal_ori_low, env.goal_ori_high)
+            #newOrientation = p.getQuaternionFromEuler(newOrientationE)
             return newPosition, newOrientation
 
         
