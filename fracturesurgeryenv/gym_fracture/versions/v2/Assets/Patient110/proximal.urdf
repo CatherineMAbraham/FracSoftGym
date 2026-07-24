@@ -3,7 +3,7 @@
 		<visual>
 			<origin rpy="0.0 0.0 0.0" xyz="0 0 0" />
 			<geometry>
-				<mesh filename="proximal1022.obj" scale="1 1 1" />
+				<mesh filename="proximal.obj" scale="1 1 1" />
 			</geometry>
 			<material name="texture">
 				<color rgba="0.0 0.0 0.0 1.0" />
@@ -12,7 +12,7 @@
 		<collision>
 			<origin rpy="0.0 0.0 0.0" xyz="0 0 0" />
 			<geometry>
-				<mesh filename="proximal102_vhacd.obj" scale="0.1 0.1 0.1" />
+				<mesh filename="proximal_decomp.obj" scale="1 1 1" />
 			</geometry>
 		</collision>
 		<inertial>
@@ -24,7 +24,7 @@
   <joint name="leg" type="fixed">
     <parent link="proximal"/>
     <child link="patient"/>
-    <origin xyz="0.0009518 -0.1498613 0.4550867" rpy="0 0 0"/>
+    <origin xyz="0.0009518 -0.0498613 0.4550867" rpy="0 0 0"/>
   </joint>
 	
 	<link name="patient">

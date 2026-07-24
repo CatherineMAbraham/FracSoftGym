@@ -41,6 +41,7 @@ class fracturesurgery_env_v2(gym.Env):
         contact_type = 0,
         youngs_modulus = 1e6,
         youngs_modulus_type = 'testing', #None, 'eval_mode', 'testing'
+        patient = 110,
         width = 0.005,
         test = False
     ):
@@ -87,7 +88,10 @@ class fracturesurgery_env_v2(gym.Env):
         self.number_of_springs = number_of_springs
         self.young_modulus = youngs_modulus
         self.young_modulus_type = youngs_modulus_type
+        self.patient = patient
         self.test= test
+        self.width = width
+        
         ## Initialise variables to 0 
         self.episodes_done = 0
         self.force = np.float32(0)
@@ -105,14 +109,14 @@ class fracturesurgery_env_v2(gym.Env):
         self.eval_count = 0
         self.not_valid_count = 0
         self.goal_gen_count = 0
-        self.width = width
+        
         ## Rendering setup
          ## need to fix this and add a render function, keep getting a warning about it
         
         self.render()
 
         
-        p.setTimeStep(1/240)
+        #p.setTimeStep(1/240)
 
         ##Obs and Action Space setup
         if self.action_type not in ['euler', 'fouractions','ori_only', 'pos_only']: 
@@ -183,22 +187,22 @@ class fracturesurgery_env_v2(gym.Env):
         
         ##Load Objects
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        leg_path = os.path.join(current_dir, "Assets/Patient110/proximal.urdf")
-        foot_path = os.path.join(current_dir, "Assets/Patient110/distal.urdf")
-        
+        leg_path = os.path.join(current_dir, f"Assets/Patient{self.patient}/proximal.urdf")
+        foot_path = os.path.join(current_dir, f"Assets/Patient{self.patient}/distal.urdf")
+
         #footorientation = p.getQuaternionFromEuler([90/180*np.pi, 0, 0])
        
         leg_orientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
         
         self.foot = p.loadURDF(foot_path, basePosition=fracturestart, 
-                                   # baseOrientation=footorientation, 
+         #                          baseOrientation=footorientation, 
                                     useFixedBase=0,
                                      globalScaling=1)
         
         dynamics.change_foot_dynamics(self)
         dynamics.change_robot_dynamics(self)
         
-        finger_force_n = 2 if self.soft_tissue=='soft' else 2
+        finger_force_n = 5 if self.soft_tissue=='soft' else 5
         for _ in range(100):
             p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=finger_force_n)
             p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=finger_force_n)
@@ -213,8 +217,27 @@ class fracturesurgery_env_v2(gym.Env):
         #print('Foot position:', foot)
         #print('Foot orientation (quaternion):', foot_ori)
         leg_start=foot - difference
-        leg_start = np.array([0.35736772418022156, -0.11651839315891266, 0.07902605086565018])
-        leg_orientation = np.array([0.7066577672958374, 0.0034424655605107546, 0.003453752724453807, 0.7075387239456177])
+        if self.patient == 102:
+            leg_start = np.array([0.35736772418022156, -0.11651839315891266, 0.07902605086565018])
+            leg_orientation = np.array([0.7066577672958374, 0.0034424655605107546, 0.003453752724453807, 0.7075387239456177])
+        elif self.patient == 126:
+            leg_start = np.array([0.374905, -0.059665, 0.051185])#np.array([0.33901602029800415, -0.050294697284698486, 0.09938723593950272])
+            leg_orientation = np.array([0.062514, 0.683191, -0.725171, 0.058895])#np.array([0.6844638586044312, 0.06375731527805328, -0.0574415884912014, 0.7239784002304077])
+            ninety_deg = p.getQuaternionFromEuler([90/180*np.pi,np.pi, 0])
+            _,leg_orientation = p.multiplyTransforms(
+                            positionA=[0, 0, 0], orientationA=ninety_deg,        # Apply 90 deg first (or on left)
+                            positionB=[0, 0, 0], orientationB=leg_orientation   # Existing rotation
+                        )
+        elif self.patient == 198:
+            leg_start = np.array([0.3223761320114136, -0.106806, 0.058319])#([0.3228972852230072, -0.10798908770084381, 0.057827770709991455])
+            leg_orientation = np.array([0.00022264904691837728, 3.8162688724696636e-05, 0.004301907029002905, 0.999990701675415])#([-0.00017769925761967897, 2.267319541715551e-05, 0.003869270207360387, 0.9999924898147583]) #0.7087432742118835, 0.004880446940660477, 0.0048079658299684525, 0.7054332494735718])
+        elif self.patient == 132:
+            leg_start = foot-np.array([-0.000852,-0.001007,0.023137])#np.array([0.3382095694541931, -0.054506316781044006, 0.095221608877182])#0.3379322588443756, -0.039989080280065536, 0.07018909603357315])#0.33799970149993896, -0.03988508880138397, 0.07011495530605316])
+            #leg_orientation = np.array([0.002232487080618739, -2.0870984371867962e-06, 0.006996737327426672, 0.9999729990959167])#([0.002232487080618739, -2.0870984371867962e-06, 0.006996737327426672, 0.9999729990959167])#0.7071067690849304, 6.547016262459238e-10, -6.624191195570006e-10, 0.7071067690849304])
+            #ninety_deg = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
+        else:
+            leg_start = foot - difference
+            leg_orientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
         ##Load Leg
         self.leg = p.loadURDF(leg_path,
                         basePosition =leg_start,
@@ -248,7 +271,7 @@ class fracturesurgery_env_v2(gym.Env):
             self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#l pose valid:', pose_valid)
         # Dummy visual shape for goal marker
         
-        utils.is_goal_configuration_valid(self,self.goal_pos, self.goal_ori)
+        #utils.is_goal_configuration_valid(self,self.goal_pos, self.goal_ori)
         goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
                             basePosition=self.goal_pos, baseOrientation=self.goal_ori)
  
@@ -297,9 +320,12 @@ class fracturesurgery_env_v2(gym.Env):
                                   self.dist, 
                                   initial_isHolding)
         #print(f"Youngs Modulus Type is {self.young_modulus_type}, not using soft tissue in this environment.")
-        if self.young_modulus_type =='None' :
+        if self.young_modulus_type =='testing' :
             self.eval_count = 0
             self.young_modulus, self.width = utils.get_youngs_modulus_and_width(self)
+        elif self.young_modulus_type == 'None':
+            self.young_modulus = 1e6
+            self.width = 0.005
             #print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
         # elif self.young_modulus_type == 'eval_mode':
         #     self.eval_count+=1
@@ -383,7 +409,7 @@ class fracturesurgery_env_v2(gym.Env):
             # Avoid passing NaNs/invalid targets into PyBullet (can segfault)
             # Fallback: use current joint positions for all 9 joints so
             # `setJointMotorControlArray` receives valid targets of the
-            # expected length and dtype. Alternatively one could `continue`
+            # expected length and dtype. alternatively one could `continue`
             # or return early here depending on desired behaviour.
             try:
                 jointPoses = [p.getJointState(self.pandaUid, i)[0] for i in range(9)]

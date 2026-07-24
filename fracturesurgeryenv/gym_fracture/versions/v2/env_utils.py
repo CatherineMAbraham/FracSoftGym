@@ -1,6 +1,6 @@
 import numpy as np 
 from gymnasium import spaces
-from gym_fracture.envs import utils
+from gym_fracture.versions.v2 import utils
 
 def set_observation_space(env):
     if env.action_type == 'ori_only':
