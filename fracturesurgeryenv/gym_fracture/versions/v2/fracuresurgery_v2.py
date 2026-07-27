@@ -41,6 +41,7 @@ class fracturesurgery_env_v2(gym.Env):
         contact_type = 0,
         youngs_modulus = 1e6,
         youngs_modulus_type = 'testing', #None, 'eval_mode', 'testing'
+        randomise_ligs = True,
         patient = 110,
         width = 0.005,
         test = False
@@ -91,7 +92,8 @@ class fracturesurgery_env_v2(gym.Env):
         self.patient = patient
         self.test= test
         self.width = width
-        
+        self.randomise_ligs = randomise_ligs
+
         ## Initialise variables to 0 
         self.episodes_done = 0
         self.force = np.float32(0)
@@ -367,7 +369,8 @@ class fracturesurgery_env_v2(gym.Env):
                                          young_modulus=self.young_modulus,
                                          area=5e-6,
                                          width= self.width,
-                                         num_springs=self.number_of_springs, randomize_position=True,randomize_num_ligaments=True,
+                                         num_springs=self.number_of_springs, randomize_position=self.randomise_ligs,
+                                         randomize_num_ligaments=self.randomise_ligs
                                          )
             
             
