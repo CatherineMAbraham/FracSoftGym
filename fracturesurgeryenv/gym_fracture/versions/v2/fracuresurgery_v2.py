@@ -42,6 +42,7 @@ class fracturesurgery_env_v2(gym.Env):
         youngs_modulus = 1e6,
         youngs_modulus_type = 'testing', #None, 'eval_mode', 'testing'
         randomise_ligs = True,
+        randomise_start = False,
         patient = 110,
         width = 0.005,
         test = False
@@ -93,7 +94,8 @@ class fracturesurgery_env_v2(gym.Env):
         self.test= test
         self.width = width
         self.randomise_ligs = randomise_ligs
-
+        self.randomise_start = randomise_start
+        
         ## Initialise variables to 0 
         self.episodes_done = 0
         self.force = np.float32(0)
