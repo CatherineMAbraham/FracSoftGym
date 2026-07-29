@@ -74,7 +74,7 @@ def make_scene(env):
 
        
        if env.randomise_start==True:
-           end_effector_pos = p.getLinkState(env.pandaUid, 11)[0] + np.random.uniform(-0.009, 0.01, size=3)  # small random offset
+           end_effector_pos = p.getLinkState(env.pandaUid, 11)[0] + np.random.uniform(-0.005, 0.005, size=3)  # small random offset
            random_joint_positions = p.calculateInverseKinematics(env.pandaUid, 11, targetPosition=end_effector_pos, maxNumIterations=1000, residualThreshold=1e-9)
            for i in range(9):
                p.resetJointState(env.pandaUid, i, random_joint_positions[i])
