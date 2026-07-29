@@ -95,7 +95,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.width = width
         self.randomise_ligs = randomise_ligs
         self.randomise_start = randomise_start
-        
+
         ## Initialise variables to 0 
         self.episodes_done = 0
         self.force = np.float32(0)
@@ -347,7 +347,7 @@ class fracturesurgery_env_v2(gym.Env):
             
         #print(f'Youngs Modulus Type: {self.young_modulus_type}')
         #print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
-        p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=10)
+        p.setPhysicsEngineParameter(numSolverIterations=10, numSubSteps=5)
         if self.soft_tissue=='soft':
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
             self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.foot, 1,local_offset=[0.01,-0.0015,0.04]) ##trial and error to place them 
