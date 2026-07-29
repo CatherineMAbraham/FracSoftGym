@@ -41,7 +41,7 @@ class fracturesurgery_env_v2(gym.Env):
         contact_type = 0,
         youngs_modulus = 1e6,
         youngs_modulus_type = 'testing', #None, 'eval_mode', 'testing'
-        randomise_ligs = True,
+        randomise_ligs = False,
         randomise_start = False,
         patient = 110,
         width = 0.005,
@@ -328,7 +328,7 @@ class fracturesurgery_env_v2(gym.Env):
             self.eval_count = 0
             self.young_modulus, self.width = utils.get_youngs_modulus_and_width(self)
         elif self.young_modulus_type == 'None':
-            self.young_modulus = 1e6
+            self.young_modulus = self.young_modulus
             self.width = 0.005
             #print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
         # elif self.young_modulus_type == 'eval_mode':
