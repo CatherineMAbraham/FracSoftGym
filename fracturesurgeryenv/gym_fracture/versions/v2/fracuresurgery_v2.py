@@ -557,7 +557,7 @@ class fracturesurgery_env_v2(gym.Env):
             p.connect(p.DIRECT)
         self.connected = True
         p.configureDebugVisualizer(p.COV_ENABLE_GUI,0)
-        p.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME,1)
+        #p.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME,1)
         
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.resetDebugVisualizerCamera(cameraDistance=1.1, cameraYaw=87, cameraPitch=-20, cameraTargetPosition=[0, 0, 0])
