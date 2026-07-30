@@ -309,9 +309,15 @@ class fracturesurgery_env_v2(gym.Env):
         #get initial force without normalization
         #initial_f = np.linalg.norm(force)#utils.visualize_contact_forces(self,self.pandaUid, self.foot)
 
-        self.contact = int(bool(p.getContactPoints(self.foot, self.leg,1,-1)))
-        if int(bool(p.getContactPoints(self.foot, self.leg,1,-1))) == 1:
-            self.contact = 1 if (p.getContactPoints(self.foot, self.leg,1,-1))[8]>self.distance_threshold_pos else 0
+        # self.contact = int(bool(p.getContactPoints(self.foot, self.leg,1,-1)))
+        # if int(bool(p.getContactPoints(self.foot, self.leg,1,-1))) == 1:
+        #     self.contact = 1 if (p.getContactPoints(self.foot, self.leg,1,-1))[8]<self.distance_threshold_pos else 0
+        # Query PyBullet once and store the tuple of contact points
+        contacts = p.getContactPoints(self.foot, self.leg, 1, -1)
+
+        # Check if contacts exist AND if any contact distance is below your threshold
+        self.contact = 1 if (contacts and any(pt[8] < 0 for pt in contacts)) else 0
+        if self.contact ==1:
             print(f"Contact detected with distance: {(p.getContactPoints(self.foot, self.leg,1,-1))[8]:.4f} m")
         #print((p.getContactPoints(self.foot, self.leg,1,-1)))
         env_utils.set_observation(self, 
