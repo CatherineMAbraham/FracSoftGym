@@ -314,17 +314,17 @@ def get_new_pose(env, dx, dy, dz, qx, qy, qz, qw=None, mode=None):
 def unpack_action(env, action):
     zeros = [0] * 10
     if env.action_type in ['ori_only', 'pos_only']:
-        return [0, 0, 0, action[0] * dv, action[1] * dv, action[2] * dv, 0, 0, 0, 0]
+        return [0, 0, 0, action[0] * env.dv, action[1] * env.dv, action[2] * env.dv, 0, 0, 0, 0]
     elif env.action_type == 'quat':
-        return [action[0] * dv, action[1] * dv, action[2] * dv, action[3] * dv, action[4] * dv, action[5] * dv, action[6] * dv, 0, 0, 0]
+        return [action[0] * env.dv, action[1] * env.dv, action[2] * env.dv, action[3] * env.dv, action[4] * env.dv, action[5] * env.dv, action[6] * env.dv, 0, 0, 0]
     elif env.action_type == 'joint':
-        return [action[0] * dv, action[1] * dv, action[2] * dv, action[3] * dv, action[4] * dv, action[5] * dv, action[6] * dv, action[6] * dv, action[7] * dv, action[8] * dv]
+        return [action[0] * env.dv, action[1] * env.dv, action[2] * env.dv, action[3] * env.dv, action[4] * env.dv, action[5] * env.dv, action[6] * env.dv, action[6] * env.dv, action[7] * env.dv, action[8] * env.dv]
     elif env.action_type == 'fiveactions':
-        return [action[0] * dv, action[1] * dv, 0, action[2] * dv, action[3] * dv, action[4] * dv, 0, 0, 0, 0]
+        return [action[0] * env.dv, action[1] * env.dv, 0, action[2] * env.dv, action[3] * env.dv, action[4] * env.dv, 0, 0, 0, 0]
     elif env.action_type == 'fouractions':
-        return [action[0] * dv, action[1] * dv, 0, action[2] * dv*10, 0, action[3] * dv*10, 0, 0, 0, 0]
+        return [action[0] * env.dv, action[1] * env.dv, 0, action[2] * env.dv*10, 0, action[3] * env.dv*10, 0, 0, 0, 0]
     else:
-        return [action[0] * env.dt, action[1] * env.dt, action[2] * env.dt, action[3] * env.dr, action[4] * env.dr, action[5] * env.dr, 0, 0, 0, 0]
+        return [action[0] * env.dt, action[1] *	env.dt, action[2] *	env.dt,	action[3] *	env.dr,	action[4] *	env.dr,	action[5] *	env.dr,	0,	0,	0,	0]
 
 
 def calculate_distances(env, new_pos, new_ori, goal_pos, goal_ori):
