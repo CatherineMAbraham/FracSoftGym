@@ -465,7 +465,7 @@ class fracturesurgery_env_v2(gym.Env):
         stretch = np.linalg.norm(stretch)
         self.contact = int(bool(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1))) ## check for contact between foot and leg, can adjust distance threshold if needed, currently set to -1mm to avoid false positives from close proximity
         if self.contact:
-            if p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8] <0: ## check contact distance to avoid false positives from close proximity, currently set to -1mm
+            if p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8] <-0.002: ## check contact distance to avoid false positives from close proximity, currently set to -1mm
                 #print('Contact!!, goal distance: ', self.pos_distance, 'angle: ', self.angle, 'goal:', self.target_position)
                # self.contact = contact
                 self.anycontact = 1
@@ -557,7 +557,7 @@ class fracturesurgery_env_v2(gym.Env):
             p.connect(p.DIRECT)
         self.connected = True
         p.configureDebugVisualizer(p.COV_ENABLE_GUI,0)
-        #p.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME,1)
+        p.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME,1)
         
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.resetDebugVisualizerCamera(cameraDistance=1.1, cameraYaw=87, cameraPitch=-20, cameraTargetPosition=[0, 0, 0])
