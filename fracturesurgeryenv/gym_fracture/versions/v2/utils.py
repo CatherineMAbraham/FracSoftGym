@@ -111,7 +111,7 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
     p.performCollisionDetection()
     
     # 4. Check for contact between the moved foot and the static leg
-    contacts = p.getContactPoints(bodyA=env.foot, bodyB=env.leg)
+    contacts = p.getContactPoints(bodyA=env.foot, bodyB=env.leg, linkIndexA=1, linkIndexB=-1)
     ## check how close it is to the goal to see if pose is physically possible
     position = p.getLinkState(env.pandaUid, 11)[0]
     orientation = p.getLinkState(env.pandaUid, 11)[1]
