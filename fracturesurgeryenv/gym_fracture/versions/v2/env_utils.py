@@ -154,7 +154,7 @@ def compute_reward_dense(env, achieved_goal, desired_goal, info):
     if env.reward_type == 'dense' and env.action_type == 'pos_only':
         return -d_pos
     elif env.reward_type == 'dense_1' and env.horizon == 'variable':
-        print(f'Pos Distance: {env.pos_distance}, Angle: {env.angle}, Holding Penalty: {hold}, Reward: {-d1}')
+        #print(f'Pos Distance: {env.pos_distance}, Angle: {env.angle}, Holding Penalty: {hold}, Reward: {-d1}')
         return -d1
     elif env.reward_type == 'dense_2':
         return -(d2 + hold)
