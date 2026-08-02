@@ -467,11 +467,33 @@ class fracturesurgery_env_v2(gym.Env):
         # if self.contact:
         #     print('Contact within {0:.4f} mm'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8] * 1000))
         if self.contact:
-            if p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8] <-0.0005: ## check contact distance to avoid false positives from close proximity, currently set to -1mm
+            contact_points = p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)
+            if contact_points and contact_points[0][8] < -0.0005: ## check contact distance to avoid false positives from close proximity, currently set to -1mm
                 #print('Contact within {}'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8]))
                 #print('Contact!!, goal distance: ', self.pos_distance, 'angle: ', self.angle, 'goal:', self.target_position)
                # self.contact = contact
-                self.anycontact = 1
+                total_normal_force = sum(pt[9] for pt in contact_points)  # Sum of normal forces at all contact points
+
+                # 2. Maximum collision force at any single contact point
+                max_contact_force = max(pt[9] for pt in contact_points)
+
+                # 3. Complete force vector accounting for normal and friction forces
+                total_force_magnitude = 0.0
+                for pt in contact_points:
+                    fn = pt[9]   # Normal force
+                    f_fric1 = pt[10] # Friction force 1
+                    f_fric2 = pt[12] # Friction force 2
+                    # Resultant 3D force magnitude for this point
+                    f_point = np.sqrt(fn**2 + f_fric1**2 + f_fric2**2)
+                    total_force_magnitude += f_point
+                if max_contact_force > 1:  # Threshold to avoid false positives
+                #print(f"Total Normal Force: {total_normal_force:.2f} N")
+                #print(f"Max Point Force: {max_contact_force:.2f} N")
+                    self.anycontact = 1
+                    self.contact = 1
+                else:
+                    self.anycontact = 0
+                    self.contact = 0
             
        
         # if self.contact==1:
