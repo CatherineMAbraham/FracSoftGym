@@ -107,7 +107,17 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
                                                       targetOrientation=goal_quat, maxNumIterations=1000, residualThreshold=1e-9)
     #p.setJointMotorControlArray(env.pandaUid, range(9), controlMode=p.POSITION_CONTROL, targetPositions=new_states[:9])
     [p.resetJointState(env.pandaUid, i, new_states[i]) for i in range(9)]
-    #time.sleep(5)  # Allow physics to update after moving the foot
+    # p.setJointMotorControlArray(
+    #             env.pandaUid,
+    #             jointIndices=range(9),
+    #             controlMode=p.POSITION_CONTROL,
+    #             targetPositions=new_states[:9],
+    #             #forces=maxforce
+    #         )
+    # for _ in range(10):
+    #     p.stepSimulation()
+        #time.sleep(1)
+    time.sleep(5)  # Allow physics to update after moving the foot
     p.performCollisionDetection()
     
     # 4. Check for contact between the moved foot and the static leg
@@ -127,7 +137,7 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
     for i in range(9):
            p.resetJointState(env.pandaUid,i, joint_states[i][0])
           # time.sleep(1)
-   # time.sleep(5)
+    #time.sleep(5)
     #print('Back at home')
     if len(contacts) == 0 and ori <=env.distance_threshold_ori and pos <= env.distance_threshold_pos:
         valid = True
@@ -235,11 +245,11 @@ def getStarts(env):
     #pin = [0.004462 ,-0.002332 , 0.046608  ]
    # pin = [0.004462 ,-0.002332 , 0.049608  ]
     #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
-    fracturestart = fracturestart - [-0.05,0,0]
+    fracturestart = fracturestart - [-0.04,0,0.08]
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]
-    difference = [0.0,0.005,0]
+    difference = [0.05,0,-0.08]
     difference =np.array(difference)
     #legstart=[]
     # for i in range(len(difference)):
@@ -247,7 +257,7 @@ def getStarts(env):
     #     legstart.append(leg)
     #     i+=1
     #print(f'Fracture Start: {fracturestart}, Orientation: {fractureorientaionDeg}, {fractureorientaionRad}')
-
+    #fracturestart = np.array([0.37791427969932556, -0.14127257466316223, 0.06339067965745926])
     return fracturestart, fractureorientaionDeg#, legstart
 
 
@@ -557,6 +567,7 @@ def smooth_motion(env, joint_targets, joint_current, maxforce,numsubsteps):
             env.band.step()
         #print('stepping')
         p.stepSimulation()
+        time.sleep(0.01)
         joint_current = np.array([p.getJointState(env.pandaUid, j)[0] for j in range(9)])
         force = p.getJointState(env.foot, 0)[2]  # Joint index 0 is the fixed joint
         all_forces.append(force)

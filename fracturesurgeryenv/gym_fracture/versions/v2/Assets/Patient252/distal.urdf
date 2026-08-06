@@ -42,7 +42,7 @@
   <joint name="ankle_mount_joint" type="fixed">
     <parent link="pin_link"/>
     <child link="moving_link"/>
-    <origin xyz="-0.0 0.01 -0.1" rpy="1.57 0 0"/>
+    <origin xyz="-0.0 -0.01 -0.08" rpy="1.57 0 0"/>
   </joint>
 
   <link name="moving_link">
@@ -53,12 +53,12 @@
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0" />
-      <geometry><mesh filename="distal102.obj" scale="1 1 1" /></geometry>
+      <geometry><mesh filename="distal_252.obj" scale="1 1 1" /></geometry>
       <material name="grey"><color rgba="0.7 0.7 0.7 1"/></material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0" />
-      <geometry><mesh filename="distal1022_vhacd.obj" scale="0.5 0.5 0.5" /></geometry>
+      <geometry><mesh filename="distal_252.obj" scale="1 1 1" /></geometry>
     </collision>
   </link>
 </robot>

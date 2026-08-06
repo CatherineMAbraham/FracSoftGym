@@ -15,6 +15,7 @@ from gym_fracture.versions.v2 import env_utils, utils
 from gym_fracture.versions.v2 import dynamics, new_band,new_band2,createligament
 from scipy.spatial.transform import Rotation as R
 import wandb
+from gym_fracture.versions.v2.Assets.transformation_matrices import get_goal_from_proximal_pose
 #from gym_fracture.envs.spring_damper import SpringDamper
 #from gym_fracture.envs.createligament import make_ligament,radius_spring
 #from gym_fracture.envs.multispring import create_ligament_chain, apply_axial_springs
@@ -40,10 +41,10 @@ class fracturesurgery_env_v2(gym.Env):
         number_of_springs = 3,
         contact_type = 0,
         youngs_modulus = 1e6,
-        youngs_modulus_type = 'testing', #None, 'eval_mode', 'testing'
+        youngs_modulus_type = 'None', #None, 'eval_mode', 'testing'
         randomise_ligs = False,
         randomise_start = False,
-        patient = 110,
+        patient = None,
         width = 0.005,
         test = False
     ):
@@ -120,7 +121,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.render()
 
         
-        #p.setTimeStep(1/240)
+        #p.setTimeStep(1/500)
 
         ##Obs and Action Space setup
         if self.action_type not in ['euler', 'fouractions','ori_only', 'pos_only']: 
@@ -177,7 +178,8 @@ class fracturesurgery_env_v2(gym.Env):
         utils.make_scene(self)
         
         fracturestart, fractureorientationDeg = utils.getStarts(self)
-        
+        #fracturestart = np.array([0.3618006205558777, -0.102467754304409027, 0.07800002501010895]) #252
+        #([0.3518006205558777, -0.10467754304409027, 0.07190002501010895])
             # self.goal_pos = np.array(fracturestart.copy())
             # self.goal_ori = np.array(self.goal_type)
             # self.goal_range_low = fracturestart - [0.0125, 0.01, 0.003]
@@ -192,21 +194,23 @@ class fracturesurgery_env_v2(gym.Env):
         ##Load Objects
         current_dir = os.path.dirname(os.path.abspath(__file__))
         leg_path = os.path.join(current_dir, f"Assets/Patient{self.patient}/proximal.urdf")
-        foot_path = os.path.join(current_dir, f"Assets/Patient{self.patient}/distal.urdf")
+        foot_path = os.path.join(current_dir, f"Assets/Patient{self.patient}/distal_copy.urdf")
 
-        #footorientation = p.getQuaternionFromEuler([90/180*np.pi, 0, 0])
+        footorientation = p.getQuaternionFromEuler([90/180*np.pi, 0, 0])
        
-        leg_orientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
-        
+        #leg_orientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
+        #footorientation = np.array([0.6992329955101013, 0.3331104815006256, 0.29179978370666504, 0.5612159967422485])
         self.foot = p.loadURDF(foot_path, basePosition=fracturestart, 
-         #                          baseOrientation=footorientation, 
+                                   baseOrientation=footorientation, 
                                     useFixedBase=0,
                                      globalScaling=1)
-        
+        p.setCollisionFilterGroupMask(self.foot, 1, collisionFilterGroup=0, collisionFilterMask=0)
         dynamics.change_foot_dynamics(self)
         dynamics.change_robot_dynamics(self)
-        
+        #time.sleep(10)
         finger_force_n = 5 if self.soft_tissue=='soft' else 5
+        p.setCollisionFilterPair(self.pandaUid, self.foot, 9,1, 1)
+        p.setCollisionFilterPair(self.pandaUid, self.foot, 10,1, 1)
         for _ in range(100):
             p.setJointMotorControl2(self.pandaUid, 9, p.VELOCITY_CONTROL, targetVelocity=-1, force=finger_force_n)
             p.setJointMotorControl2(self.pandaUid, 10, p.VELOCITY_CONTROL, targetVelocity=-1, force=finger_force_n)
@@ -215,33 +219,69 @@ class fracturesurgery_env_v2(gym.Env):
         
         ##
         #print(p.getLinkState(self.pandaUid, 11))
-        difference = np.array([0.0,0.09,0])
-        foot = p.getLinkState(self.foot, 1)[0]
-        foot_ori = p.getLinkState(self.foot, 1)[1]
-        #print('Foot position:', foot)
-        #print('Foot orientation (quaternion):', foot_ori)
-        leg_start=foot - difference
-        if self.patient == 102:
-            leg_start = np.array([0.35736772418022156, -0.11651839315891266, 0.07902605086565018])
-            leg_orientation = np.array([0.7066577672958374, 0.0034424655605107546, 0.003453752724453807, 0.7075387239456177])
-        elif self.patient == 126:
-            leg_start = np.array([0.374905, -0.059665, 0.051185])#np.array([0.33901602029800415, -0.050294697284698486, 0.09938723593950272])
-            leg_orientation = np.array([0.062514, 0.683191, -0.725171, 0.058895])#np.array([0.6844638586044312, 0.06375731527805328, -0.0574415884912014, 0.7239784002304077])
-            ninety_deg = p.getQuaternionFromEuler([90/180*np.pi,np.pi, 0])
-            _,leg_orientation = p.multiplyTransforms(
-                            positionA=[0, 0, 0], orientationA=ninety_deg,        # Apply 90 deg first (or on left)
-                            positionB=[0, 0, 0], orientationB=leg_orientation   # Existing rotation
-                        )
-        elif self.patient == 198:
-            leg_start = np.array([0.3223761320114136, -0.106806, 0.058319])#([0.3228972852230072, -0.10798908770084381, 0.057827770709991455])
-            leg_orientation = np.array([0.00022264904691837728, 3.8162688724696636e-05, 0.004301907029002905, 0.999990701675415])#([-0.00017769925761967897, 2.267319541715551e-05, 0.003869270207360387, 0.9999924898147583]) #0.7087432742118835, 0.004880446940660477, 0.0048079658299684525, 0.7054332494735718])
-        elif self.patient == 132:
-            leg_start = foot-np.array([-0.000852,-0.001007,0.023137])#np.array([0.3382095694541931, -0.054506316781044006, 0.095221608877182])#0.3379322588443756, -0.039989080280065536, 0.07018909603357315])#0.33799970149993896, -0.03988508880138397, 0.07011495530605316])
-            #leg_orientation = np.array([0.002232487080618739, -2.0870984371867962e-06, 0.006996737327426672, 0.9999729990959167])#([0.002232487080618739, -2.0870984371867962e-06, 0.006996737327426672, 0.9999729990959167])#0.7071067690849304, 6.547016262459238e-10, -6.624191195570006e-10, 0.7071067690849304])
-            #ninety_deg = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
-        else:
-            leg_start = foot - difference
-            leg_orientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
+        #difference = np.array([0.03,0.00,0.0]) 132
+        #difference = np.array([0.01,0.07,0.01]) #102
+        difference = np.array([0,0.09,0])
+        # don't overwrite `self.foot` (body id); read link state into local vars
+        foot = np.array(p.getLinkState(self.foot, 1,computeForwardKinematics=True)[0])
+        print('Foot position:', foot)
+        foot_ori = np.array(p.getLinkState(self.foot, 1,computeForwardKinematics=True)[1])
+        print('Foot position:', foot)
+        print('Foot orientation (quaternion):', foot_ori)
+        #leg_start = foot - difference
+    #     if self.patient == 102:
+    #         #leg_start = np.array([0.35736772418022156, -0.11651839315891266, 0.07902605086565018])
+    #         #leg_orientation = np.array([0.7066577672958374, 0.0034424655605107546, 0.003453752724453807, 0.7075387239456177])
+    #         leg_start = np.array([0.3572990596294403,-0.11652351915836334 , 0.0789283737540245]) #
+    #         leg_start = leg_start - [0,0.008,0]
+    #         leg_orientation = np.array([0.7071092128753662, 0.0030444269068539143, 0.003227325389161706, 0.7070903182029724])
+    #         #leg_start = ([0.36055922508239746, -0.03996943682432175, -0.0015069395303726196])
+    #         #leg_orientation = ([0.7071092128753662, 0.0030444269068539143, 0.003227325389161706, 0.7070903182029724])
+    #     elif self.patient == 126:
+    #         #leg_start = np.array([0.374905, -0.059665, 0.051185])#np.array([0.33901602029800415, -0.050294697284698486, 0.09938723593950272])
+    #         leg_start = np.array([0.33908429741859436, -0.03595512732863426, 0.06553331017494202])
+    #         leg_orientation = np.array([-0.02957511693239212, -0.0026056983042508364, -0.08343382924795151, 0.9960709810256958 ])
+    #         #leg_orientation = np.array([0.062514, 0.683191, -0.725171, 0.058895])#np.array([0.6844638586044312, 0.06375731527805328, -0.0574415884912014, 0.7239784002304077])
+    #         ninety_deg = p.getQuaternionFromEuler([90/180*np.pi,np.pi, 0])
+    #         #_,leg_orientation = p.multiplyTransforms(
+    #          #               positionA=[0, 0, 0], orientationA=ninety_deg,        # Apply 90 deg first (or on left)
+    #           #              positionB=[0, 0, 0], orientationB=leg_orientation   # Existing rotation
+    #            #         )
+    #     elif self.patient == 198:
+    # #         leg_start = np.array([0.3223761320114136, -0.106806, 0.058319])#([0.3228972852230072, -0.10798908770084381, 0.057827770709991455])
+    # #         leg_start = [0.3229373097419739, -0.10821224749088287, 0.057968251407146454]#foot - np.array([0.079925,-5.1e-4,0.092568])
+    # #         leg_orientation = np.array([0.0006749040330760181, -0.00021293869940564036, 0.006133391056209803, 0.9999809265136719])#([-0.00017769925761967897, 2.267319541715551e-05, 0.003869270207360387, 0.9999924898147583]) #0.7087432742118835, 0.004880446940660477, 0.0048079658299684525, 0.7054332494735718])
+    #         T_matrix = np.array([[ 1.        ,  0.        ,  0.        , -0.03472044],
+    #    [ 0.        ,  1.        ,  0.        , -0.04793354],
+    #    [ 0.        ,  0.        ,  1.        , -0.01723594],
+    #    [ 0.        ,  0.        ,  0.        ,  1.        ]])
+
+
+    # #         position = T_matrix[0:3, 3].tolist()
+            
+    # #         # 2. Extract 3x3 Rotation Sub-matrix
+    # #         rotation_matrix = T_matrix[0:3, 0:3]
+    # #         # pybullet.multiplyTransforms expects orientations as quaternions [x,y,z,w]
+    # #         # convert the 3x3 rotation matrix to a quaternion using scipy Rotation
+    # #         quat_b = R.from_matrix(rotation_matrix).as_quat().tolist()
+    # #         pos_a, ori_a = foot, foot_ori
+    # #         new_pos, new_ori = p.multiplyTransforms(pos_a, ori_a, position, quat_b)
+    # #         leg_start = np.array(new_pos)
+    # #         leg_orientation = np.array(new_ori)
+    #         self.target_position, leg_start, leg_orientation = get_goal_and_proximal_transforms(self, self.patient,foot,foot_ori)
+    #     elif self.patient == 132:
+    #         leg_start = foot-np.array([-0.000852,-0.001007,0.023137])#np.array([0.3382095694541931, -0.054506316781044006, 0.095221608877182])#0.3379322588443756, -0.039989080280065536, 0.07018909603357315])#0.33799970149993896, -0.03988508880138397, 0.07011495530605316])
+    #         #leg_orientation = np.array([0.002232487080618739, -2.0870984371867962e-06, 0.006996737327426672, 0.9999729990959167])#([0.002232487080618739, -2.0870984371867962e-06, 0.006996737327426672, 0.9999729990959167])#0.7071067690849304, 6.547016262459238e-10, -6.624191195570006e-10, 0.7071067690849304])
+    #         #ninety_deg = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
+        #if self.patient is not None:
+         #   self.target_position, leg_start, leg_orientation = get_goal_from_proximal_pose(self, self.patient, foot, foot_ori)
+        #else:
+        #leg_start = foot - difference
+        leg_orientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
+        leg_start = fracturestart-np.array([0.0,0.09,0])#np.array([0.35706788301467896, -0.1598062852025032, 0.07526329159736633])
+        ##rotate foot by 90 deg too
+        foot_ori = p.multiplyTransforms([0, 0, 0], leg_orientation, [0, 0, 0], foot_ori)[1]
+        #new_foot = p.resetBasePositionAndOrientation(self.foot, foot, foot_ori)
         ##Load Leg
         self.leg = p.loadURDF(leg_path,
                         basePosition =leg_start,
@@ -249,36 +289,75 @@ class fracturesurgery_env_v2(gym.Env):
                         globalScaling = 1.0,
                         useFixedBase = 1)
         #time.sleep(100)
-        
+        leg_orientation = p.getBasePositionAndOrientation(self.leg)[1]
+        leg_start = p.getBasePositionAndOrientation(self.leg)[0]
+       # print('Leg position:', leg_start)
+        #print('Leg orientation (quaternion):', np.rad2deg(p.getEulerFromQuaternion(leg_orientation)))
         dynamics.change_leg_dynamics(self)
         p.changeVisualShape(self.leg, -1, rgbaColor=[0.8, 0.8, 0.8, 1])  
         p.setCollisionFilterGroupMask(self.foot, 1, collisionFilterGroup=0, collisionFilterMask=0)
         p.setCollisionFilterGroupMask(self.leg, -1, collisionFilterGroup=0, collisionFilterMask=0)
         ##Settle
         #print('Settling the simulation...') 
+        #time.sleep(100)
         for _ in range(10):
             p.stepSimulation()
         
         
         p.setGravity(0, 0, -9.81)
-        
+        initial_or = p.getLinkState(self.pandaUid, 11)[1]
+        #print('Initial end-effector orientation (quaternion):', initial_or)
         #pose_valid = utils.is_goal_configuration_valid(self,self.goal_pos, self.goal_ori)
         if isinstance(self.goal_type, str):
             utils.getGoal(self, fracturestart, fractureorientationDeg) ## do i want to increase the range of goals?
             self.target_position = np.concatenate((self.goal_pos, self.goal_ori))
             #print(self.target_position)
         else:
-            self.goal_pos = np.array(self.goal_type[0:3])
+            #self.goal_pos = np.array(self.goal_type[0:3])
             goal_ori = np.array(self.goal_type[3:7])
-            self.goal_ori = goal_ori#np.array(p.getQuaternionFromEuler(goal_ori))
+            #self.goal_ori = goal_ori#np.array(p.getQuaternionFromEuler(goal_ori))
+            ori_change = p.getQuaternionFromEuler([9.08/180*np.pi,0, 0])#np.array([0.99999994124027, 0.0003417183131417258, 2.7327058643906894e-05, -1.132662577527209e-06])
+           # self.goal_ori = np.array(p.multiplyTransforms([0, 0, 0], ori_change, [0, 0, 0], p.getLinkState(self.pandaUid, 11)[1])[1])
+            # self.target_position, pos, orientation = get_goal_from_proximal_pose(self, 
+            #                                                                      self.patient,
+            #                                                                      leg_start,
+            #                                                                      leg_orientation,
+            #                                                                      foot,
+            #                                                                      foot_ori)
+            self.goal_pos = np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])#([0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,0.005,0.005])#np.array([0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,0.005,0.005])
+            self.goal_ori = np.array([0.9999999728200057, 0.00023313980271510995, -8.89660707914592e-08, 2.4108688676344187e-06])#([2.81656109e-04, -2.81431908e-04,  7.06825125e-01,  7.07388213e-01])
+            self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#np.array([ 0.32180062,-0.09246775, 0.15800003,0.9999999728200057, 0.00023313980271510995, -8.89660707914592e-08, 2.4108688676344187e-06])#2.81656109e-04, -2.81431908e-04,  7.06825125e-01,  7.07388213e-01])
+            #self.target_position = np.array([0.3148845586806017, -0.06000234856812478, 0.16351743256405377,0.0008761560662228061, 0.0010616809069047318, 0.6413949793268746, 0.7672096100013853])
             #print(self.goal_ori)
-            self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#l pose valid:', pose_valid)
+            # 4x4 transformation matrix: wrap rows in an outer list
+            # T = np.array([[0.999459, -0.017879, -0.027606, -0.003794],
+            #               [0.017331, 0.999650, -0.019972, 0.000030],
+            #               [0.027953, 0.019482, 0.999419, 0.002779],
+            #               [0.000000, 0.000000, 0.000000, 1.000000]])
+            # position = T[0:3, 3].tolist()
+
+            # # 2. Extract 3x3 Rotation Sub-matrix
+            # rotation_matrix = T[0:3, 0:3]
+            # # pybullet.multiplyTransforms expects orientations as quaternions [x,y,z,w]
+            # # convert the 3x3 rotation matrix to a quaternion using scipy Rotation
+            # quat_b = R.from_matrix(rotation_matrix).as_quat().tolist()
+            # pos_a, ori_a = p.getLinkState(self.pandaUid, 11)[0], p.getLinkState(self.pandaUid, 11)[1]
+            # new_pos, new_ori = p.multiplyTransforms(pos_a, ori_a, position, quat_b)
+            # self.goal_pos = np.array(new_pos)
+            # self.goal_ori = np.array(new_ori)
+            #print('robot start pos',p.getLinkState(self.pandaUid, 11)[0])
+            #print('Goal Position:', self.goal_pos)
+            #self.goal_pos = p.getLinkState(self.pandaUid, 11)[0] - np.array([0,0,0.0062299])
+            #self.goal_pos = np.array([0.3528081774711609, -0.10790444910526276, 0.1682744324207306])
+            #self.goal_ori = np.array([np.float64(0.999999941240567), np.float64(0.0003417174451147411), np.float64(2.732704526842606e-05), np.float64(-1.1326338845288588e-06)])
+            #self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#l pose valid:', pose_valid)
         # Dummy visual shape for goal marker
-        
+            valid = utils.is_goal_configuration_valid(self,self.goal_pos, self.goal_ori)
+           # time.sleep(10)
         #utils.is_goal_configuration_valid(self,self.goal_pos, self.goal_ori)
         goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
                             basePosition=self.goal_pos, baseOrientation=self.goal_ori)
- 
+        #time.sleep(1)
         
        ## Enable force/torque sensors
         [p.enableJointForceTorqueSensor(self.pandaUid, joint, enableSensor=True) for joint in range(p.getNumJoints(self.pandaUid))]
@@ -286,7 +365,19 @@ class fracturesurgery_env_v2(gym.Env):
         
         ##
         
-        
+        # 1. Print visual frame vs base frame position in PyBullet
+        # Draw RGB coordinate axes at the base frame of the proximal bone
+        p.addUserDebugParameter("show_axes", 0) # optional GUI trigger
+
+        # Draw axis for Distal
+        p.addUserDebugLine([0,0,0], [0.05, 0, 0], [1, 0, 0], parentObjectUniqueId=self.foot, parentLinkIndex=1)
+        p.addUserDebugLine([0,0,0], [0, 0.05, 0], [0, 1, 0], parentObjectUniqueId=self.foot, parentLinkIndex=1)
+        p.addUserDebugLine([0,0,0], [0, 0, 0.05], [0, 0, 1], parentObjectUniqueId=self.foot, parentLinkIndex=1)
+
+        # Draw axis for Proximal
+        p.addUserDebugLine([0,0,0], [0.05, 0, 0], [1, 0, 0], parentObjectUniqueId=self.leg)
+        p.addUserDebugLine([0,0,0], [0, 0.05, 0], [0, 1, 0], parentObjectUniqueId=self.leg)
+        p.addUserDebugLine([0,0,0], [0, 0, 0.05], [0, 0, 1], parentObjectUniqueId=self.leg)
         ##Initial Observation
         initial_pos = p.getLinkState(self.pandaUid, 11)[0]
         initial_or = p.getLinkState(self.pandaUid, 11)[1]
@@ -308,7 +399,7 @@ class fracturesurgery_env_v2(gym.Env):
         #print('Initial Force:', initial_force)
         #get initial force without normalization
         #initial_f = np.linalg.norm(force)#utils.visualize_contact_forces(self,self.pandaUid, self.foot)
-
+        #print(initial_or)
         # self.contact = int(bool(p.getContactPoints(self.foot, self.leg,1,-1)))
         # if int(bool(p.getContactPoints(self.foot, self.leg,1,-1))) == 1:
         #     self.contact = 1 if (p.getContactPoints(self.foot, self.leg,1,-1))[8]<self.distance_threshold_pos else 0
@@ -358,6 +449,43 @@ class fracturesurgery_env_v2(gym.Env):
             
         #print(f'Youngs Modulus Type: {self.young_modulus_type}')
         #print(f'Youngs Modulus: {self.young_modulus} Pa, Width: {self.width} m')
+        # pos_range = 0.2
+        # ori_range = np.deg2rad(360)
+        # foot_pos = p.getLinkState(self.foot, 0, computeForwardKinematics=True)[0]
+        # foot_ori = p.getEulerFromQuaternion(p.getLinkState(self.foot, 0, computeForwardKinematics=True)[1])
+        # x_slider = p.addUserDebugParameter("X", foot_pos[0] - pos_range, foot_pos[0] + pos_range, foot_pos[0])
+        # y_slider = p.addUserDebugParameter("Y", foot_pos[1] - pos_range, foot_pos[1] + pos_range, foot_pos[1])
+        # z_slider = p.addUserDebugParameter("Z", foot_pos[2] - pos_range, foot_pos[2] + pos_range, foot_pos[2])
+        # yaw_slider = p.addUserDebugParameter("Yaw", foot_ori[2] - ori_range, foot_ori[2] + ori_range, foot_ori[2])
+        # roll_slider = p.addUserDebugParameter("Roll", foot_ori[0] - ori_range, foot_ori[0] + ori_range, foot_ori[0])
+        # pitch_slider = p.addUserDebugParameter("Pitch", foot_ori[1] - ori_range, foot_ori[1] + ori_range, foot_ori[1])
+        # print("Adjust the sliders in the PyBullet GUI. Press Ctrl+C in terminal to output values.")
+
+        # try:
+        #     while True:
+        #         # Read current slider values
+        #         x = p.readUserDebugParameter(x_slider)
+        #         y = p.readUserDebugParameter(y_slider)
+        #         z = p.readUserDebugParameter(z_slider)
+        #         yaw = p.readUserDebugParameter(yaw_slider)
+        #         roll = p.readUserDebugParameter(roll_slider)
+        #         pitch = p.readUserDebugParameter(pitch_slider)
+        #         # Update object orientation/position
+        #         orn = p.getQuaternionFromEuler([roll, pitch, yaw])
+        #         p.resetBasePositionAndOrientation(self.foot, [x, y, z], orn)
+                
+        #         p.stepSimulation()
+        #         time.sleep(1/240.)
+
+        # except KeyboardInterrupt:
+        #     # Extract final position & quaternion
+        #     pos, orn = p.getBasePositionAndOrientation(self.foot)
+        #     euler = p.getEulerFromQuaternion(orn)
+            
+        #     print("\n--- Extracted Pose ---")
+        #     print(f"Position (x, y, z): {pos}")
+        #     print(f"Quaternion (x, y, z, w): {orn}")
+        #     print(f"Euler (roll, pitch, yaw): {euler}")
         p.setPhysicsEngineParameter(numSolverIterations=10, numSubSteps=5)
         if self.soft_tissue=='soft':
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
@@ -377,7 +505,7 @@ class fracturesurgery_env_v2(gym.Env):
                                                     scale =1, 
                                                     youngs_modulus=self.young_modulus) #0.75
         elif self.soft_tissue=='spring':
-            self.band = new_band2.ElasticBand(bodyA=self.foot, linkA= 1,
+            self.band = new_band2.ElasticBand(bodyA=self.foot, linkA= -1,
                                          bodyB=self.leg, linkB= -1,
                                          young_modulus=self.young_modulus,
                                          area=5e-6,
@@ -413,6 +541,9 @@ class fracturesurgery_env_v2(gym.Env):
 
         
         new_Position, new_Orientation = utils.get_new_pose(self,dx, dy, dz, qx, qy, qz, qw, mode)
+        #print(f"New Position: {new_Position}, New Orientation: {new_Orientation}")
+        #new_Position = np.array([0.32091317, -0.07630774,  0.15682939])
+        #new_Orientation = np.array([0.98674402,  0.09496498, -0.13048336,  0.01708737])
         if self.action_type == 'pos_only':
             jointPoses = p.calculateInverseKinematics(self.pandaUid, 11, targetPosition=new_Position, maxNumIterations=10, residualThreshold=1e-4)
         else:
@@ -536,7 +667,7 @@ class fracturesurgery_env_v2(gym.Env):
         #print('Capped Force: ', self.capped_force,)
         done = env_utils.check_done(self)
         
-        if self.test and (self.filerted_force >= 100 or self.isHolding ==0):
+        if self.test and (self.filerted_force >= self.max_force or self.isHolding ==0):
             print('Terminating episode due to excessive force during testing.')
             truncated = True
             reward = -100
@@ -550,10 +681,10 @@ class fracturesurgery_env_v2(gym.Env):
         #        'Holding: ', self.isHolding, 
         #        'Contact: ', self.anycontact)
         
-        # if done:
-        #     print('yay')
-        # elif truncated:
-        #     print(f'truncated {self.filerted_force},{self.pos_distance},{self.angle}')
+        if done:
+            print('yay')
+        elif truncated:
+            print(f'truncated {self.filerted_force},{self.pos_distance},{self.angle}')
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
@@ -581,11 +712,11 @@ class fracturesurgery_env_v2(gym.Env):
         else:
             p.connect(p.DIRECT)
         self.connected = True
-        p.configureDebugVisualizer(p.COV_ENABLE_GUI,0)
-        #p.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME,1)
+        p.configureDebugVisualizer(p.COV_ENABLE_GUI,1)
+        p.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME,1)
         
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
-        p.resetDebugVisualizerCamera(cameraDistance=1.1, cameraYaw=87, cameraPitch=-20, cameraTargetPosition=[0, 0, 0])
+        #p.resetDebugVisualizerCamera(cameraDistance=1.1, cameraYaw=87, cameraPitch=-20, cameraTargetPosition=[0, 0, 0])
         ##
         #p.computeProjectionMatrixFOV(fov=60, aspect=1, nearVal=0.01, farVal=100)
         matrix=p.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=[0, 0, 0], distance=1.1, yaw=87, pitch=-20, roll=0, upAxisIndex=2)
