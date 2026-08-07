@@ -117,7 +117,7 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
     # for _ in range(10):
     #     p.stepSimulation()
         #time.sleep(1)
-    time.sleep(5)  # Allow physics to update after moving the foot
+    #time.sleep(5)  # Allow physics to update after moving the foot
     p.performCollisionDetection()
     
     # 4. Check for contact between the moved foot and the static leg
@@ -245,7 +245,7 @@ def getStarts(env):
     #pin = [0.004462 ,-0.002332 , 0.046608  ]
    # pin = [0.004462 ,-0.002332 , 0.049608  ]
     #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
-    fracturestart = fracturestart - [-0.04,0,0.08]
+    fracturestart = fracturestart - [-0.04,0,0.08]#[-0.05,0,0]#
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]

@@ -58,7 +58,7 @@
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0" />
-      <geometry><mesh filename="distal1022_vhacd.obj" scale="0.5 0.5 0.5" /></geometry>
+      <geometry><mesh filename="distal1022_vhacd.obj" scale="1 1 1" /></geometry>
     </collision>
   </link>
 </robot>

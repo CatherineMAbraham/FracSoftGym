@@ -14,10 +14,24 @@ def get_proximal_to_distal_matrix(patient_id):
        [ 0.        ,  0.        ,  0.        ,  1.        ]])
 ,
         
-        102: np.array([[ 0.999459, -0.017879, -0.027606, -0.003794],
-                       [ 0.017331,  0.999650, -0.019972,  0.00030 ],
-                       [ 0.027953,  0.019482,  0.999419, 0.002779 ],
-                       [ 0.000000,  0.000000,  0.000000,  1.000000]]),
+        102: np.array([[ 0.99945903, -0.01787941, -0.02760598, 0.00794629],
+       [ 0.01733119,  0.9996503 , -0.01997166,  -0.00371645 ],
+       [ 0.02795341,  0.01948241,  0.99941933, -0.06337698],
+       [ 0.        ,  0.        ,  0.        ,  1.        ]])
+, 
+    #    np.array([[ 1.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    #     -3.66778672e-03],
+    #    [ 0.00000000e+00,  1.00000000e+00,  0.00000000e+00,
+    #      7.67704993e-02],
+    #    [ 0.00000000e+00,  0.00000000e+00,  1.00000000e+00,
+    #     -2.50449404e-04],
+    #    [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    #      1.00000000e+00]]),
+
+        # np.array([[ 0.999459, -0.017879, -0.027606, -0.003794],
+        #                [ 0.017331,  0.999650, -0.019972,  0.00030 ],
+        #                [ 0.027953,  0.019482,  0.999419, 0.002779 ],
+        #                [ 0.000000,  0.000000,  0.000000,  1.000000]]),
 
         # 132: np.array([[ 0.946846, -0.196342,  0.254819, -0.002213],
         #                [ 0.187996,  0.980517,  0.056956,  0.003661],
@@ -122,15 +136,15 @@ def get_goal_from_proximal_pose(env, patient_id, leg_start_pos, leg_start_ori, d
     env.goal_pos = np.array(robot_goal_pos) #- [0.00, -0.01, -0.01]  # Slightly lower to avoid collision
     env.goal_ori = np.array(robot_goal_ori)
     env.target_position = np.concatenate((env.goal_pos, env.goal_ori))
-    #print(leg_start_pos, leg_start_ori)
-    #print('Bone Goal Position:', distal_goal_pos)
-    #print('Bone Goal Orientation:', np.rad2deg(np.array(p.getEulerFromQuaternion(distal_goal_ori))))
-    # print('Bone Goal Orientation:', distal_goal_ori)
-    # print("Robot Goal Position:", env.goal_pos)
-    # print("Robot Goal Orientation:", np.rad2deg(np.array(p.getEulerFromQuaternion(env.goal_ori))))
-    # print("Robot Goal Orientation:", env.goal_ori)
-    # print('Current Robot Hand Position:', p.getLinkState(env.pandaUid, 11)[0])
-    # print('Current Robot Hand Orientation:', np.rad2deg(np.array(p.getEulerFromQuaternion(p.getLinkState(env.pandaUid, 11)[1]))))
+    print(leg_start_pos, leg_start_ori)
+    print('Bone Goal Position:', distal_goal_pos)
+    print('Bone Goal Orientation:', np.rad2deg(np.array(p.getEulerFromQuaternion(distal_goal_ori))))
+    print('Bone Goal Orientation:', distal_goal_ori)
+    print("Robot Goal Position:", env.goal_pos)
+    print("Robot Goal Orientation:", np.rad2deg(np.array(p.getEulerFromQuaternion(env.goal_ori))))
+    print("Robot Goal Orientation:", env.goal_ori)
+    print('Current Robot Hand Position:', p.getLinkState(env.pandaUid, 11)[0])
+    print('Current Robot Hand Orientation:', np.rad2deg(np.array(p.getEulerFromQuaternion(p.getLinkState(env.pandaUid, 11)[1]))))
     return env.target_position, distal_goal_pos, distal_goal_ori
 
 
@@ -138,8 +152,16 @@ def get_patient_goal(env, patient_id):
     """
     Returns the distal bone goal position and orientation based on the patient ID.
     """
+    #252 leg and foot ori 90 deg on x
+    leg = {
+        102: (np.array([0.3470195700516103, -0.15000000000594865, 0.07526955827664446]),
+              np.array([p.getQuaternionFromEuler([90/180*np.pi,0, 0])])),
+
+    }
     goals = {
-        198: (np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00]),
+        252: (np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00]),
               np.array([0.9999999728200057, 0.00023313980271510995, -8.89660707914592e-08, 2.4108688676344187e-06])),
+        102: (np.array([ 0.30383321, -0.0970693,   0.15603161])-np.array([0.01,-0.022,0.001]),
+              np.array([0.9999999728200057, 0.00023313980271510995, -8.89660707914592e-08, 2.4108688676344187e-06]))
     }
     return goals.get(patient_id, (np.zeros(3), np.array([0, 0, 0, 1])))
