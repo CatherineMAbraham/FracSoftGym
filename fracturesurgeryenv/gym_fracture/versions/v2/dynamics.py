@@ -3,28 +3,28 @@ import pybullet as p
 def change_leg_dynamics(env):
     p.changeDynamics(env.leg, 0, 
                      mass=0, 
-                     contactStiffness=5000, 
-                     contactDamping=1000, 
+                     contactStiffness=500, 
+                     contactDamping=150, 
                      lateralFriction=0.5,
                      linearDamping=0.01,
                      angularDamping=0.01,
                      collisionMargin=0.0001)
-    p.setPhysicsEngineParameter(contactSlop=0.0005)
+    #p.setPhysicsEngineParameter(contactSlop=0.0005)
     #p.setCollisionFilterGroupMask(env.leg, -1, collisionFilterGroup=0, collisionFilterMask=0) 
  
 def change_foot_dynamics(env):
     
-    p.changeDynamics(env.foot, -1, 
+    p.changeDynamics(env.foot, 1, 
                      mass=0.001, 
                      lateralFriction=2, # Lower this! 5.0 is causing the 50N spikes
                      contactStiffness=5000, 
                      contactDamping=100,
-                     collisionMargin=0.001)
-    p.changeDynamics(env.foot, 1, 
+                     collisionMargin=0.1)
+    p.changeDynamics(env.foot,-1, 
                      mass=0.276, 
                      lateralFriction=0.5, # Lower this! 5.0 is causing the 50N spikes
-                     contactStiffness=3000, 
-                     contactDamping=300,
+                     contactStiffness=300, 
+                     contactDamping=100,
                      collisionMargin=0.0001)
    # print(p.getLinkState(env.foot, 1))
     

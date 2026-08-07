@@ -114,9 +114,9 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
     #             targetPositions=new_states[:9],
     #             #forces=maxforce
     #         )
-    # for _ in range(10):
+    # for _ in range(100):
     #     p.stepSimulation()
-        #time.sleep(1)
+    #     time.sleep(0.1)
     #time.sleep(5)  # Allow physics to update after moving the foot
     p.performCollisionDetection()
     

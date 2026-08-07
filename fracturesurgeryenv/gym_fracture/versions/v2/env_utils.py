@@ -9,9 +9,9 @@ def set_observation_space(env):
     elif env.action_type == "pos_only":
         obs_shape = 35  
         goal_shape = 4
-    # elif env.contact_type == True:
-    #     obs_shape = 36
-    #     goal_shape = 10
+    elif env.contact_type == True:
+        obs_shape = 36
+        goal_shape = 10
     else:
         obs_shape = 36
         goal_shape = 10 ## now we're going to add contact to the goal anyway as a 'dummy' variable, so we can keep the goal shape the same for both contact and non-contact environments
