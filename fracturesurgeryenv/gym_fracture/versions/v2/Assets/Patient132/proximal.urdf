@@ -1,16 +1,16 @@
 <robot name="proximal_132.obj">
 	<link name="proximal_132">
 		<visual>
-			<origin rpy="0.0 0.0 1.57" xyz="0.0029500470484979053 -0.004135595598496846 -0.022145461725495138" />
+			<origin rpy="1.57 0.0 0" xyz="0 0 0" />
 			<geometry>
-				<mesh filename="proximal_132.obj" scale="1 1 1" />
+				<mesh filename="proximal132.obj" scale="1 1 1" />
 			</geometry>
 			<material name="texture">
 				<color rgba="1.0 1.0 1.0 1.0" />
 			</material>
 		</visual>
 		<collision>
-			<origin rpy="0.0 0.0 0.0" xyz="0.0029500470484979053 -0.004135595598496846 -0.022145461725495138" />
+			<origin rpy="1.57 0.0 0.0" xyz="0 0 0" />
 			<geometry>
 				<mesh filename="proximal_132_vhacd.obj" scale="1 1 1" />
 			</geometry>
@@ -23,7 +23,7 @@
 	<joint name="leg" type="fixed">
     <parent link="proximal_132"/>
     <child link="patient"/>
-    <origin xyz="0.0009518 -0.5498613 0.04550867" rpy="0 0 0"/>
+    <origin xyz="0.0109518 -0.4898613 -0.051850867" rpy="1.57 0 0"/>
   </joint>
 	
 	<link name="patient">

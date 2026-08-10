@@ -195,15 +195,17 @@ class fracturesurgery_env_v2(gym.Env):
         #print(f"Fracture start position: {fracturestart}, Fracture orientation (deg): {fractureorientationDeg}")
         ##
         ## check targer for possible collision 
-        
+       # fracturestart = np.array([0.3379683792591095, -0.0786883607506752, 0.06340644508600235])- np.array([0.,-0.005,-0.01])
         ##Load Objects
         current_dir = os.path.dirname(os.path.abspath(__file__))
         leg_path = os.path.join(current_dir, f"Assets/Patient{self.patient}/proximal.urdf")
         foot_path = os.path.join(current_dir, f"Assets/Patient{self.patient}/distal_copy.urdf")
 
-        footorientation = np.array([-0.07917334884405136, 0.0, 0.0, 0.9968608617782593])#p.getQuaternionFromEuler([90/180*np.pi, 0, 0])
+        #footorientation = np.array([-0.07917334884405136, 0.0, 0.0, 0.9968608617782593])#p.getQuaternionFromEuler([90/180*np.pi, 0, 0])
         #footorientation = np.array([0.7139526009559631, -0.016048969700932503, -0.0035978537052869797, 0.7000008821487427])
-        footorientation = p.getQuaternionFromEuler([-9/180*np.pi,0, 0])
+        orientation = np.array([89/180*np.pi, 15/180*np.pi, 11/180*np.pi])
+        footorientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])#p.getQuaternionFromEuler([orientation[0], orientation[1], orientation[2]])
+        #p.getQuaternionFromEuler([90/180*np.pi,0, 0])
         #footorientation = np.array([0.6992329955101013, 0.3331104815006256, 0.29179978370666504, 0.5612159967422485])
         self.foot = p.loadURDF(foot_path, basePosition=fracturestart, 
                                    baseOrientation=footorientation, 
@@ -212,7 +214,7 @@ class fracturesurgery_env_v2(gym.Env):
         #p.setCollisionFilterGroupMask(self.foot, 1, collisionFilterGroup=0, collisionFilterMask=0)
         dynamics.change_foot_dynamics(self)
         dynamics.change_robot_dynamics(self)
-        #time.sleep(10)
+        #time.sleep(100)
         finger_force_n = 5 if self.soft_tissue=='soft' else 5
         #p.setCollisionFilterPair(self.pandaUid, self.foot, 9,1, 1)
         #p.setCollisionFilterPair(self.pandaUid, self.foot, 10,1, 1)
@@ -238,8 +240,9 @@ class fracturesurgery_env_v2(gym.Env):
         leg_start = np.array([0.3470195700516103, -0.15000000000594865, 0.07526955827664446])#fracturestart-np.array([0.0,0.09,0])#np.array([0.35706788301467896, -0.1598062852025032, 0.07526329159736633])
 
         #leg_start =np.array([0.3370195700516103, -0.16000000000594865, 0.07526955827664446])#
-        #leg_start = fracturestart-np.array([0.0,0.09,0])
-        leg_start = np.array([0.3470195700516103, -0.13000000000594865, 0.07526955827664446])
+        leg_start = fracturestart-np.array([0.02,0.008,0.01])
+        leg_start = np.array([0.3050195700516103, -0.06000000000594865, 0.07526955827664446])- np.array([-0.005,-0.005,-0.005])
+        #leg_start = np.array([0.3470195700516103, -0.13000000000594865, 0.07526955827664446])
         ##rotate foot by 90 deg too
         foot_ori = p.multiplyTransforms([0, 0, 0], leg_orientation, [0, 0, 0], foot_ori)[1]
         #new_foot = p.resetBasePositionAndOrientation(self.foot, foot, foot_ori)
@@ -285,10 +288,17 @@ class fracturesurgery_env_v2(gym.Env):
                                                                                  leg_orientation,
                                                                                  foot,
                                                                                  foot_ori)
-            self.goal_pos = np.array([0.34174003, -0.08506263,  0.16001045]) - np.array([0.,-0.02,-0.005])#np.array([0.34174003, -0.08506263,  0.16001045]) - np.array([0.01,0.01,0.005])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])
-            goal_ori = p.getEulerFromQuaternion(p.getLinkState(self.pandaUid, 11)[1])-np.array([9.08/180*np.pi,0, 0])
+            self.goal_pos = np.array([0.3121838, -0.08800575, 0.15520251]) - np.array([0.01,-0.03,-0.01])#pos
+            #([0.33048725, -0.07570115, 0.06105522])
+            #np.array([0.3379683792591095, -0.0786883607506752, 0.06340644508600235])- np.array([0.,-0.005,-0.01])
+            #np.array([0.34174003, -0.08506263,  0.16001045]) - np.array([0.,-0.02,-0.005])#np.array([0.34174003, -0.08506263,  0.16001045]) - np.array([0.01,0.01,0.005])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])
+            goal_ori = p.getEulerFromQuaternion(p.getLinkState(self.pandaUid, 11)[1])-np.array([1/180*np.pi,-11/180*np.pi, -15/180*np.pi])
+
             #np.array([ 0.30383321, -0.0970693,   0.15603161])-np.array([0.01,-0.022,0.001])#np.array([0.35496586561203003, -0.08662302792072296, 0.07155311107635498])-np.array([0.01,-0.01,-0.005])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])#([0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,0.005,0.005])#np.array([0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,0.005,0.005])
-            self.goal_ori = np.array(p.getQuaternionFromEuler(goal_ori))
+            self.goal_ori = np.array(p.getQuaternionFromEuler(goal_ori))#np.array([0.07660838, 0.10599642, 0.76543734, 0.63008062])
+            print('Goal position:', self.goal_pos, 'Goal orientation (quaternion):', self.goal_ori) 
+            #p.getQuaternionFromEuler(np.array([89/180*np.pi, 15/180*np.pi, 11/180*np.pi]))
+            #np.array(p.getQuaternionFromEuler(goal_ori))
            # print('Goal position:', self.goal_ori)
             self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#np.array([ 0.32180062,-0.09246775, 0.15800003,0.9999999728200057, 0.00023313980271510995, -8.89660707914592e-08, 2.4108688676344187e-06])#2.81656109e-04, -2.81431908e-04,  7.06825125e-01,  7.07388213e-01])
             
@@ -589,13 +599,13 @@ class fracturesurgery_env_v2(gym.Env):
         else:
             p.connect(p.DIRECT)
         self.connected = True
-        p.configureDebugVisualizer(p.COV_ENABLE_GUI,1)
+        p.configureDebugVisualizer(p.COV_ENABLE_GUI,0)
         #p.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME,1)
         
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
-        #p.resetDebugVisualizerCamera(cameraDistance=1.1, cameraYaw=87, cameraPitch=-20, cameraTargetPosition=[0, 0, 0])
+        p.resetDebugVisualizerCamera(cameraDistance=1.1, cameraYaw=87, cameraPitch=-20, cameraTargetPosition=[0, 0, 0])
         ##
-        #p.computeProjectionMatrixFOV(fov=60, aspect=1, nearVal=0.01, farVal=100)
+        p.computeProjectionMatrixFOV(fov=60, aspect=1, nearVal=0.01, farVal=100)
         matrix=p.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=[0, 0, 0], distance=1.1, yaw=87, pitch=-20, roll=0, upAxisIndex=2)
         projection = p.computeProjectionMatrixFOV(fov=60, aspect=1, nearVal=0.01, farVal=100)
         p.getCameraImage(10, 10,viewMatrix=matrix,projectionMatrix=projection)  # Warm up the renderer to prevent first-step lag

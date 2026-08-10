@@ -44,16 +44,16 @@
   </joint>
 	<link name="moving_link">
 		<visual>
-			<origin rpy="0 0.0 1.57" xyz="-0.0006900103180783035 0.0003126147056763121 0.0001285883267115764" />
+			<origin rpy="1.57 0.0 0" xyz="0 0 0" />
 			<geometry>
-				<mesh filename="distal_132.obj" scale="1 1 1" />
+				<mesh filename="distal1322.obj" scale="1 1 1" />
 			</geometry>
 			<material name="texture">
 				<color rgba="1.0 1.0 1.0 1.0" />
 			</material>
 		</visual>
 		<collision>
-			<origin rpy="0.0 0.0 0.0" xyz="-0.0006900103180783035 0.0003126147056763121 0.0001285883267115764" />
+			<origin rpy="1.57 0.0 0.0" xyz="0 0 0" />
 			<geometry>
 				<mesh filename="distal_132_vhacd.obj" scale="1 1 1" />
 			</geometry>
