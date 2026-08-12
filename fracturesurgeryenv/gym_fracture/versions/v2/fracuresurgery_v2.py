@@ -15,7 +15,7 @@ from gym_fracture.versions.v2 import env_utils, utils
 from gym_fracture.versions.v2 import dynamics, new_band,new_band2,createligament
 from scipy.spatial.transform import Rotation as R
 import wandb
-from gym_fracture.versions.v2.Assets.transformation_matrices import get_goal_from_proximal_pose
+from gym_fracture.versions.v2.Assets.transformation_matrices import get_goal_from_proximal_pose, get_patient_goal
 #from gym_fracture.envs.spring_damper import SpringDamper
 #from gym_fracture.envs.createligament import make_ligament,radius_spring
 #from gym_fracture.envs.multispring import create_ligament_chain, apply_axial_springs
@@ -191,7 +191,7 @@ class fracturesurgery_env_v2(gym.Env):
             # self.goal_range_high = fracturestart + [0.0125, 0.02, 0.003]
             # self.goal_ori_low = np.radians(fractureorientationDeg - [15, 5, 15])
             # self.goal_ori_high = np.radians(fractureorientationDeg + [15, 5, 15])
-
+        #fracturestart = np.array([0.3484595715999603, -0.07589279115200043, 0.03660069406032562]) +np.array([0,0,0.025])
         #print(f"Fracture start position: {fracturestart}, Fracture orientation (deg): {fractureorientationDeg}")
         ##
         ## check targer for possible collision 
@@ -203,12 +203,13 @@ class fracturesurgery_env_v2(gym.Env):
 
         #footorientation = np.array([-0.07917334884405136, 0.0, 0.0, 0.9968608617782593])#p.getQuaternionFromEuler([90/180*np.pi, 0, 0])
         #footorientation = np.array([0.7139526009559631, -0.016048969700932503, -0.0035978537052869797, 0.7000008821487427])
+        #fracturestart = np.array([0.3484595715999603, -0.1658927947282791, 0.06660069525241852])
         orientation = np.array([89/180*np.pi, 15/180*np.pi, 11/180*np.pi])
-        footorientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])#p.getQuaternionFromEuler([orientation[0], orientation[1], orientation[2]])
+        footorientation = p.getQuaternionFromEuler([90/180*np.pi,-0/180*np.pi, 0])#p.getQuaternionFromEuler([orientation[0], orientation[1], orientation[2]])
         #p.getQuaternionFromEuler([90/180*np.pi,0, 0])
         #footorientation = np.array([0.6992329955101013, 0.3331104815006256, 0.29179978370666504, 0.5612159967422485])
         self.foot = p.loadURDF(foot_path, basePosition=fracturestart, 
-                                   baseOrientation=footorientation, 
+                                  baseOrientation=footorientation, 
                                     useFixedBase=0,
                                      globalScaling=1)
         #p.setCollisionFilterGroupMask(self.foot, 1, collisionFilterGroup=0, collisionFilterMask=0)
@@ -231,32 +232,39 @@ class fracturesurgery_env_v2(gym.Env):
         difference = np.array([0,0.09,0])
         # don't overwrite `self.foot` (body id); read link state into local vars
         foot = np.array(p.getLinkState(self.foot, 1,computeForwardKinematics=True)[0])
-        print('Foot position:', foot)
+        #print('Foot position:', foot)
         foot_ori = np.array(p.getLinkState(self.foot, 1,computeForwardKinematics=True)[1])
-        print('Foot position:', foot)
-        print('Foot orientation (quaternion):', foot_ori)
+        #print('Foot position:', foot)
+        #print('Foot orientation (quaternion):', foot_ori)
       
         leg_orientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
-        leg_start = np.array([0.3470195700516103, -0.15000000000594865, 0.07526955827664446])#fracturestart-np.array([0.0,0.09,0])#np.array([0.35706788301467896, -0.1598062852025032, 0.07526329159736633])
-
+        #leg_start = np.array([0.3470195700516103, -0.15000000000594865, 0.07526955827664446])#fracturestart-np.array([0.0,0.09,0])#np.array([0.35706788301467896, -0.1598062852025032, 0.07526329159736633])
+        #goal, leg_start = get_patient_goal(self, self.patient)
+        #print('Leg start position:', leg_start)
         #leg_start =np.array([0.3370195700516103, -0.16000000000594865, 0.07526955827664446])#
-        leg_start = fracturestart-np.array([0.02,0.008,0.01])
-        leg_start = np.array([0.3050195700516103, -0.06000000000594865, 0.07526955827664446])- np.array([-0.005,-0.005,-0.005])
+        #leg_start = np.array([ 0.34701957,-0.06,0.04526956])-np.array([-0.00,-0.005,0.01])
+        #leg_start = np.array([0.3050195700516103, -0.06000000000594865, 0.07526955827664446])- np.array([-0.005,-0.005,-0.005])
         #leg_start = np.array([0.3470195700516103, -0.13000000000594865, 0.07526955827664446])
         ##rotate foot by 90 deg too
-        foot_ori = p.multiplyTransforms([0, 0, 0], leg_orientation, [0, 0, 0], foot_ori)[1]
+        #foot_ori = p.multiplyTransforms([0, 0, 0], leg_orientation, [0, 0, 0], foot_ori)[1]
         #new_foot = p.resetBasePositionAndOrientation(self.foot, foot, foot_ori)
+        #leg_pos = leg_start[0]
+        #leg_orientation = leg_start[1][0]
+        #print('Leg start position:', leg_pos)
+        leg_start = fracturestart - np.array([0,0.09,0])
+        #leg_orientation = np.array([0.7044160264027587, -0.06162841671621936, 0.06162841671621935, 0.7044160264027588])
+        #print('Leg start orientation (quaternion):', leg_orientation)
         ##Load Leg
         self.leg = p.loadURDF(leg_path,
                         basePosition =leg_start,
-                      #  baseOrientation = leg_orientation,
+                     baseOrientation = leg_orientation,
                         globalScaling = 1.0,
                         useFixedBase = 1)
         #time.sleep(100)
-        leg_orientation = p.getBasePositionAndOrientation(self.leg)[1]
-        leg_start = p.getBasePositionAndOrientation(self.leg)[0]
-        print('Leg position:', leg_start)
-        print('Leg orientation (quaternion):', np.rad2deg(p.getEulerFromQuaternion(leg_orientation)))
+        #leg_orientation = p.getBasePositionAndOrientation(self.leg)[1]
+        #leg_start = p.getBasePositionAndOrientation(self.leg)[0]
+        #print('Leg position:', leg_start)
+       # print('Leg orientation (quaternion):', np.rad2deg(p.getEulerFromQuaternion(leg_orientation)))
         dynamics.change_leg_dynamics(self)
         p.changeVisualShape(self.leg, -1, rgbaColor=[0.8, 0.8, 0.8, 1])  
         p.setCollisionFilterGroupMask(self.foot, -1, collisionFilterGroup=0, collisionFilterMask=0)
@@ -266,7 +274,7 @@ class fracturesurgery_env_v2(gym.Env):
        # time.sleep(100)
         for _ in range(10):
             p.stepSimulation()
-        
+        time.sleep(0.1)
         
         p.setGravity(0, 0, -9.81)
         initial_or = p.getLinkState(self.pandaUid, 11)[1]
@@ -277,29 +285,34 @@ class fracturesurgery_env_v2(gym.Env):
             self.target_position = np.concatenate((self.goal_pos, self.goal_ori))
             #print(self.target_position)
         else:
-            #self.goal_pos = np.array(self.goal_type[0:3])
-            goal_ori = np.array(self.goal_type[3:7])
-            #self.goal_ori = goal_ori#np.array(p.getQuaternionFromEuler(goal_ori))
-            ori_change = p.getQuaternionFromEuler([9.08/180*np.pi,0, 0])#np.array([0.99999994124027, 0.0003417183131417258, 2.7327058643906894e-05, -1.132662577527209e-06])
-           # self.goal_ori = np.array(p.multiplyTransforms([0, 0, 0], ori_change, [0, 0, 0], p.getLinkState(self.pandaUid, 11)[1])[1])
+        #     #self.goal_pos = np.array(self.goal_type[0:3])
+        #     goal_ori = np.array(self.goal_type[3:7])
+        #     #self.goal_ori = goal_ori#np.array(p.getQuaternionFromEuler(goal_ori))
+        #     ori_change = p.getQuaternionFromEuler([9.08/180*np.pi,0, 0])#np.array([0.99999994124027, 0.0003417183131417258, 2.7327058643906894e-05, -1.132662577527209e-06])
+        #    # self.goal_ori = np.array(p.multiplyTransforms([0, 0, 0], ori_change, [0, 0, 0], p.getLinkState(self.pandaUid, 11)[1])[1])
             self.target_position, pos, orientation = get_goal_from_proximal_pose(self, 
                                                                                  self.patient,
                                                                                  leg_start,
                                                                                  leg_orientation,
                                                                                  foot,
                                                                                  foot_ori)
-            self.goal_pos = np.array([0.3121838, -0.08800575, 0.15520251]) - np.array([0.01,-0.03,-0.01])#pos
-            #([0.33048725, -0.07570115, 0.06105522])
-            #np.array([0.3379683792591095, -0.0786883607506752, 0.06340644508600235])- np.array([0.,-0.005,-0.01])
-            #np.array([0.34174003, -0.08506263,  0.16001045]) - np.array([0.,-0.02,-0.005])#np.array([0.34174003, -0.08506263,  0.16001045]) - np.array([0.01,0.01,0.005])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])
-            goal_ori = p.getEulerFromQuaternion(p.getLinkState(self.pandaUid, 11)[1])-np.array([1/180*np.pi,-11/180*np.pi, -15/180*np.pi])
+            self.goal_pos = np.array([ 0.29517541, -0.07789279,  0.13343939])-np.array([-0.010,-0.01,-0.006])#np.array([0.3121838, -0.08800575, 0.15520251]) - np.array([0.01,-0.03,-0.01])#pos
+        #     #([0.33048725, -0.07570115, 0.06105522])
+        #     #np.array([0.3379683792591095, -0.0786883607506752, 0.06340644508600235])- np.array([0.,-0.005,-0.01])
+        #     #np.array([0.34174003, -0.08506263,  0.16001045]) - np.array([0.,-0.02,-0.005])#np.array([0.34174003, -0.08506263,  0.16001045]) - np.array([0.01,0.01,0.005])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])
+            goal_ori = p.getEulerFromQuaternion(p.getLinkState(self.pandaUid, 11)[1])-np.array([0,10/180*np.pi, 0])
 
-            #np.array([ 0.30383321, -0.0970693,   0.15603161])-np.array([0.01,-0.022,0.001])#np.array([0.35496586561203003, -0.08662302792072296, 0.07155311107635498])-np.array([0.01,-0.01,-0.005])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])#([0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,0.005,0.005])#np.array([0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,0.005,0.005])
-            self.goal_ori = np.array(p.getQuaternionFromEuler(goal_ori))#np.array([0.07660838, 0.10599642, 0.76543734, 0.63008062])
-            print('Goal position:', self.goal_pos, 'Goal orientation (quaternion):', self.goal_ori) 
-            #p.getQuaternionFromEuler(np.array([89/180*np.pi, 15/180*np.pi, 11/180*np.pi]))
-            #np.array(p.getQuaternionFromEuler(goal_ori))
-           # print('Goal position:', self.goal_ori)
+        #     #np.array([ 0.30383321, -0.0970693,   0.15603161])-np.array([0.01,-0.022,0.001])#np.array([0.35496586561203003, -0.08662302792072296, 0.07155311107635498])-np.array([0.01,-0.01,-0.005])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])#([0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,0.005,0.005])#np.array([0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,0.005,0.005])
+        #     self.goal_ori = np.array(p.getQuaternionFromEuler(goal_ori))#np.array([0.07660838, 0.10599642, 0.76543734, 0.63008062])
+        #     print('Goal position:', self.goal_pos, 'Goal orientation (quaternion):', self.goal_ori) 
+        #     #p.getQuaternionFromEuler(np.array([89/180*np.pi, 15/180*np.pi, 11/180*np.pi]))
+        #     #np.array(p.getQuaternionFromEuler(goal_ori))
+        #    # print('Goal position:', self.goal_ori)
+            #self.goal_pos = goal[0]#np.array([0.31803113376479907, -0.08517002163540139, 0.1481109452402959])#goal[0]
+            #goal_ori = goal[1]#p.getEulerFromQuaternion(goal[1])-np.array([3/180*np.pi,1/180*np.pi, 0/180*np.pi])
+            #print('Goal position:', self.goal_pos, 'Goal orientation (quaternion):', goal_ori)   
+            #goal[1]
+            self.goal_ori =np.array(p.getQuaternionFromEuler(goal_ori))#np.array([-0.06132328,-0.06193331,0.70415999,0.70467186])#np.array(p.getQuaternionFromEuler(goal_ori))#np.array([0.999857944938553, 0.0034038286589975777, -0.014537799360434847, 0.007820248299749461])#np.array(p.getQuaternionFromEuler(goal_ori))
             self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#np.array([ 0.32180062,-0.09246775, 0.15800003,0.9999999728200057, 0.00023313980271510995, -8.89660707914592e-08, 2.4108688676344187e-06])#2.81656109e-04, -2.81431908e-04,  7.06825125e-01,  7.07388213e-01])
             
         # Dummy visual shape for goal marker
@@ -312,7 +325,7 @@ class fracturesurgery_env_v2(gym.Env):
         
        ## Enable force/torque sensors
         [p.enableJointForceTorqueSensor(self.pandaUid, joint, enableSensor=True) for joint in range(p.getNumJoints(self.pandaUid))]
-        p.enableJointForceTorqueSensor(self.foot, 0, enableSensor=True) # Load cell joint 
+        p.enableJointForceTorqueSensor(self.foot, 1, enableSensor=True) # Load cell joint 
         
         ##
         
@@ -333,7 +346,7 @@ class fracturesurgery_env_v2(gym.Env):
         initial_Joint_Velocities = [p.getJointState(self.pandaUid, i)[1] for i in range(9)]
         self.pos_distance, self.angle = utils.calculate_distances(self, initial_pos, initial_or, self.goal_pos, self.goal_ori)
         initial_isHolding = int(initial_isHolding)
-        initial_force = p.getJointState(self.foot, 0)[2]  # Joint index 0 is the fixed joint
+        initial_force = p.getJointState(self.foot, 1)[2]  # Joint index 0 is the fixed joint
         initial_force = np.linalg.norm(initial_force[0:3])
         #print('Initial Force:', initial_force)
         #get initial force without normalization
@@ -552,7 +565,7 @@ class fracturesurgery_env_v2(gym.Env):
         
         #print('Capped Force: ', self.capped_force,)
         done = env_utils.check_done(self)
-        
+        #print(actual_New_Position, actual_New_Orientation,self.pos_distance,self.angle)
         if self.test and (self.filerted_force >= self.max_force or self.isHolding ==0):
             print('Terminating episode due to excessive force during testing.')
             truncated = True
@@ -567,11 +580,11 @@ class fracturesurgery_env_v2(gym.Env):
         #        'Holding: ', self.isHolding, 
         #        'Contact: ', self.anycontact)
         
-        if done:
-            #time.sleep(10)
-            print('yay')
-        elif truncated:
-            print(f'truncated {self.filerted_force},{self.pos_distance},{self.angle},{actual_New_Position},{actual_New_Orientation},{self.isHolding},{self.contact}')
+        # if done:
+        #    # time.sleep(100)
+        #     print('yay')
+        # elif truncated:
+        #     print(f'truncated {self.filerted_force},{self.pos_distance},{self.angle},{actual_New_Position},{actual_New_Orientation},{self.isHolding},{self.contact}')
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 

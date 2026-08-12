@@ -37,7 +37,7 @@ def make_scene(env):
 
        #Set up robot with calculated start positions
        urdfRootPath=pybullet_data.getDataPath()
-                  # 🔹 Create the base surgical table (static)
+                  # Create the base surgical table (static)
     #    table_collision = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.05, 0.1, 0.002])
     #    table_visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.05, 0.1, 0.002], rgbaColor=[0.3, 0.3, 0.3, 1])
     #    table_body = p.createMultiBody(
@@ -48,7 +48,7 @@ def make_scene(env):
     #     )
     #    p.changeDynamics(table_body, -1, lateralFriction=0.1, restitution=0.0)
 
-    #     # 🔹 Create a soft pad (a smaller box resting on the table)
+    #     # Create a soft pad (a smaller box resting on the table)
     #    pad_collision = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.15, 0.1, 0.02])
     #    pad_visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.15, 0.1, 0.02], rgbaColor=[0.8, 0.2, 0.2, 1])
     #    pad_body = p.createMultiBody(
@@ -74,7 +74,8 @@ def make_scene(env):
 
        
        if env.randomise_start==True:
-           end_effector_pos = p.getLinkState(env.pandaUid, 11)[0] + np.random.uniform(-0.005, 0.005, size=3)  # small random offset
+           random = np.random.uniform(-0.005, 0.005, size=2)
+           end_effector_pos = p.getLinkState(env.pandaUid, 11)[0] + np.array([random[0], random[1], 0])  # small random offset
            random_joint_positions = p.calculateInverseKinematics(env.pandaUid, 11, targetPosition=end_effector_pos, maxNumIterations=1000, residualThreshold=1e-9)
            for i in range(9):
                p.resetJointState(env.pandaUid, i, random_joint_positions[i])
@@ -83,21 +84,7 @@ def make_scene(env):
 
        return env.pandaUid
 
-def is_point_in_bone(env,point, bone_id):
-    # Check distance between a coordinate and the entire mesh
-    # distance > 0 means it is outside
-    goal = p.createVisualShape(p.GEOM_SPHERE, radius=0.005, rgbaColor=[1, 0, 0, 1], visualFramePosition=point)
-    closest_points = p.getClosestPoints(bodyA=-1, bodyB=bone_id, 
-                                        distance=0.01, # Search radius
-                                        linkIndexA=-1, 
-                                        positionA=point)
-    
-    if len(closest_points) > 0:
-        # If the shortest distance is 0 or negative, it's a collision
-        if closest_points[0][8] <= 0: 
-            print(f'Point {point} is inside the bone (distance: {closest_points[0][8]:.4f} m)')
-            return True
-    return False
+
 
 def is_goal_configuration_valid(env, goal_pos, goal_quat):
     """Checks if the foot/gripper would collide with the leg at the goal pose."""
@@ -145,7 +132,7 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
         valid = False
         #[print(f"Joint {i} attempted: {new_states[i]:.4f} rad") for i in range(9)]
         #print(f'Goal pose is invalid due to contact(s) with the leg.')
-        print(f'Goal pose is invalid: Pos Dist={pos:.4f} m, Ori Dist={np.degrees(ori):.4f} deg, Contacts={len(contacts)}')
+        print(f'Goal pose is invalid: Pos Dist={pos} m, Ori Dist={np.degrees(ori)} deg, Contacts={len(contacts)}')
     # If len(contacts) > 0, the goal pose is physically impossible
     return valid# also check if orientation is within 30 degrees of goal orientation
 def getGoal(env, fracturestart, fractureorientaionDeg):
@@ -245,7 +232,7 @@ def getStarts(env):
     #pin = [0.004462 ,-0.002332 , 0.046608  ]
    # pin = [0.004462 ,-0.002332 , 0.049608  ]
     #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
-    fracturestart = fracturestart - [-0.04,0,0.08]#[-0.05,0,0]#
+    fracturestart = fracturestart - [-0.04,0.01,0.08]#[-0.05,0,0]#
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]
@@ -258,6 +245,7 @@ def getStarts(env):
     #     i+=1
     #print(f'Fracture Start: {fracturestart}, Orientation: {fractureorientaionDeg}, {fractureorientaionRad}')
     #fracturestart = np.array([0.37791427969932556, -0.14127257466316223, 0.06339067965745926])
+    #fracturestart = np.array([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])
     return fracturestart, fractureorientaionDeg#, legstart
 
 
@@ -569,7 +557,7 @@ def smooth_motion(env, joint_targets, joint_current, maxforce,numsubsteps):
         p.stepSimulation()
         time.sleep(0.01)
         joint_current = np.array([p.getJointState(env.pandaUid, j)[0] for j in range(9)])
-        force = p.getJointState(env.foot, 0)[2]  # Joint index 0 is the fixed joint
+        force = p.getJointState(env.foot, 1)[2]  # Joint index 1 is the fixed joint
         all_forces.append(force)
         force_magnitude = np.linalg.norm(force[:3])  # Magnitude of the force vector}])
         force = force_magnitude

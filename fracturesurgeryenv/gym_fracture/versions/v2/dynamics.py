@@ -21,7 +21,7 @@ def change_foot_dynamics(env):
                      contactDamping=100,
                      collisionMargin=0.1)
     p.changeDynamics(env.foot,-1, 
-                     mass=0.0276,#276, 
+                     mass=0.276,#276, 
                      lateralFriction=0.5, # Lower this! 5.0 is causing the 50N spikes
                      contactStiffness=300, 
                      contactDamping=100,
