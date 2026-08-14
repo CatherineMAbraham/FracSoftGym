@@ -274,7 +274,7 @@ class fracturesurgery_env_v2(gym.Env):
        # time.sleep(100)
         for _ in range(10):
             p.stepSimulation()
-        time.sleep(0.1)
+        #time.sleep(0.1)
         
         p.setGravity(0, 0, -9.81)
         initial_or = p.getLinkState(self.pandaUid, 11)[1]
