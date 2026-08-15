@@ -555,7 +555,7 @@ def smooth_motion(env, joint_targets, joint_current, maxforce,numsubsteps):
             env.band.step()
         #print('stepping')
         p.stepSimulation()
-        time.sleep(0.01)
+        #time.sleep(0.01)
         joint_current = np.array([p.getJointState(env.pandaUid, j)[0] for j in range(9)])
         force = p.getJointState(env.foot, 1)[2]  # Joint index 1 is the fixed joint
         all_forces.append(force)
