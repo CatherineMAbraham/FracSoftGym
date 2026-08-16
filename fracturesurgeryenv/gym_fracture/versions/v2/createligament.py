@@ -1,6 +1,6 @@
 import math
 from symtable import Class
-#from gym_fracture.versions.v2 import change_ligament_dynamics
+from gym_fracture.versions.v2.dynamics import change_ligament_dynamics
 import numpy as np
 import pybullet as p
 import os
@@ -150,44 +150,84 @@ class Ligament:
 
 
 
-    def auto_anchor_ligament(self, clothId, bodyA, bodyB, worldA, worldB, axis=0, num_anchors=2):
-        """
-        Automatically anchors a ligament-like soft body to two rigid bodies.
+    # def auto_anchor_ligament(self, clothId, bodyA, bodyB, worldA, worldB, axis=0, num_anchors=2):
+    #     """
+    #     Automatically anchors a ligament-like soft body to two rigid bodies.
         
-        Args:
-            clothId   : soft body ID from p.loadSoftBody
-            bodyA     : rigid body ID for one end
-            bodyB     : rigid body ID for the other end
-            axis      : principal axis of ligament (0=x, 1=y, 2=z)
-            num_anchors : how many vertices to anchor per side (default: 2)
-        """
+    #     Args:
+    #         clothId   : soft body ID from p.loadSoftBody
+    #         bodyA     : rigid body ID for one end
+    #         bodyB     : rigid body ID for the other end
+    #         axis      : principal axis of ligament (0=x, 1=y, 2=z)
+    #         num_anchors : how many vertices to anchor per side (default: 2)
+    #     """
 
-        # get current simulation mesh
+    #     # get current simulation mesh
+    #     numVerts, verts = p.getMeshData(clothId, -1, flags=p.MESH_DATA_SIMULATION_MESH)
+    #     verts = np.array(verts)
+        
+    #     distA = np.linalg.norm(verts - worldA, axis=1)
+    #     distB = np.linalg.norm(verts - worldB, axis=1)
+        
+    #     anchorA_vertices = np.where(distA < 0.005)[0]
+    #     anchorB_vertices = np.where(distB < 0.005)[0]
+    #     anchorA_vertices = anchorA_vertices[:num_anchors]
+    #     anchorB_vertices = anchorB_vertices[:num_anchors]
+    #     ligament_dir = worldB - worldA
+    #     unit_dir = ligament_dir / np.linalg.norm(ligament_dir)
+    #     safety_offset = 0.005
+    #     b_verts =self.local_to_local(clothId, bodyB, -1)
+    #     a_verts =self.local_to_local(clothId, bodyA, -1)
+    #     a_coords = a_verts[anchorA_vertices]
+    #     b_coords = b_verts[anchorB_vertices]
+    #     local_offsets_A = self.get_anchor_local_offsets(bodyA,1, verts[anchorA_vertices])
+    #     local_offsets_B = self.get_anchor_local_offsets(bodyB,-1,  verts[anchorB_vertices])
+    #     #p.addUserDebugText(f"A", verts[anchorA_vertices[0]], [1,0,0], 2.0)
+    #     #p.addUserDebugText(f"B", verts[anchorB_vertices[0]], [0,1,0], 2.0)
+    #     for i, vid in enumerate(anchorA_vertices):
+    #         p.createSoftBodyAnchor(clothId, int(vid), bodyA, 1,a_coords[i].tolist())
+    #     for i, vid in enumerate(anchorB_vertices):
+    #         offset_pos = b_verts[vid] + (unit_dir * safety_offset)
+    #         p.createSoftBodyAnchor(clothId, int(vid), bodyB, -1,b_coords[i].tolist())
+    #     return anchorA_vertices, anchorB_vertices
+
+    def auto_anchor_ligament(self, clothId, bodyA, bodyB, worldA, worldB, axis=0, num_anchors=5):
+        """
+        Anchors a soft-body ligament proportionally to its mesh density.
+        """
+        # Get current simulation mesh vertices
         numVerts, verts = p.getMeshData(clothId, -1, flags=p.MESH_DATA_SIMULATION_MESH)
         verts = np.array(verts)
         
+        # Calculate distance vectors relative to the attachment points
         distA = np.linalg.norm(verts - worldA, axis=1)
         distB = np.linalg.norm(verts - worldB, axis=1)
         
-        anchorA_vertices = np.where(distA < 0.005)[0]
-        anchorB_vertices = np.where(distB < 0.005)[0]
-        anchorA_vertices = anchorA_vertices[:num_anchors]
-        anchorB_vertices = anchorB_vertices[:num_anchors]
+        # FIX 1: Dynamically find vertices based on relative proximity 
+        # instead of a static cap, so fine meshes attach MORE points.
+        threshold_A = np.percentile(distA, 10) # Grab closest 10% of vertices on side A
+        threshold_B = np.percentile(distB, 10) # Grab closest 10% of vertices on side B
+        
+        anchorA_vertices = np.where(distA <= threshold_A)[0]
+        anchorB_vertices = np.where(distB <= threshold_B)[0]
+        
         ligament_dir = worldB - worldA
         unit_dir = ligament_dir / np.linalg.norm(ligament_dir)
         safety_offset = 0.005
-        b_verts =self.local_to_local(clothId, bodyB, -1)
-        a_verts =self.local_to_local(clothId, bodyA, -1)
-        a_coords = a_verts[anchorA_vertices]
-        b_coords = b_verts[anchorB_vertices]
-        local_offsets_A = self.get_anchor_local_offsets(bodyA,1, verts[anchorA_vertices])
-        local_offsets_B = self.get_anchor_local_offsets(bodyB,-1,  verts[anchorB_vertices])
-        #p.addUserDebugText(f"A", verts[anchorA_vertices[0]], [1,0,0], 2.0)
-        #p.addUserDebugText(f"B", verts[anchorB_vertices[0]], [0,1,0], 2.0)
-        for i, vid in enumerate(anchorA_vertices):
-            p.createSoftBodyAnchor(clothId, int(vid), bodyA, 1,a_coords[i].tolist())
-        for i, vid in enumerate(anchorB_vertices):
-            offset_pos = b_verts[vid] + (unit_dir * safety_offset)
-            p.createSoftBodyAnchor(clothId, int(vid), bodyB, -1,b_coords[i].tolist())
+        
+        b_verts = self.local_to_local(clothId, bodyB, -1)
+        a_verts = self.local_to_local(clothId, bodyA, -1)
+        
+        # FIX 2: Attach EVERY single node found in the boundary layer.
+        # A finer mesh will scale the anchor constraints up proportionally!
+        for vid in anchorA_vertices:
+            local_coord = a_verts[vid]
+            p.createSoftBodyAnchor(clothId, int(vid), bodyA, 1, local_coord.tolist())
+            
+        for vid in anchorB_vertices:
+            local_coord = b_verts[vid] + (unit_dir * safety_offset)
+            p.createSoftBodyAnchor(clothId, int(vid), bodyB, -1, local_coord.tolist())
+            
+        print(f"Mesh {self.vtk_file} attached with {len(anchorA_vertices)} anchors on Side A.")
         return anchorA_vertices, anchorB_vertices
     

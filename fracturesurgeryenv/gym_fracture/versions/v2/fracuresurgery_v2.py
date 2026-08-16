@@ -11,8 +11,8 @@ import pybullet_data
 import numpy as np
 import time
 #from gym_fracture.envs import spring_system, utils #calculate_distances, make_scene, getStarts, getGoal, check_done, get_new_pose, unpack_action,fingertip_distance, visualize_contact_forces, world_to_local
-from gym_fracture.versions.v2 import env_utils, utils
-from gym_fracture.versions.v2 import dynamics, new_band,new_band2,createligament
+from gym_fracture.versions.v2 import createligament, env_utils, utils
+from gym_fracture.versions.v2 import dynamics, new_band,new_band2
 from scipy.spatial.transform import Rotation as R
 import wandb
 from gym_fracture.versions.v2.Assets.transformation_matrices import get_goal_from_proximal_pose, get_patient_goal
@@ -388,9 +388,9 @@ class fracturesurgery_env_v2(gym.Env):
         p.setPhysicsEngineParameter(numSolverIterations=10, numSubSteps=5)
         if self.soft_tissue=='soft':
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
-            self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.foot, 1,local_offset=[0.01,-0.0015,0.04]) ##trial and error to place them 
+            self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.foot, -1,local_offset=[0.01,-0.0015,0.04]) ##trial and error to place them 
             self.point_c,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[-0.03,0.0,-0.01])
-            self.point_d,_ = new_band.ElasticBand._get_pose_vel(self,self.foot, 1,local_offset=[-0.03,-0.0015,0.04])
+            self.point_d,_ = new_band.ElasticBand._get_pose_vel(self,self.foot, -1,local_offset=[-0.03,-0.0015,0.04])
             #make_ligament(self,"cloth_Id1", self.foot, self.leg, self.point_c, self.point_d,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi,180/180*np.pi]), scale =1,youngs_modulus=self.young_modulus)
             ligament = createligament.Ligament("cloth_Id2", self.foot, self.leg, 
                                                 self.point_a, self.point_b,
