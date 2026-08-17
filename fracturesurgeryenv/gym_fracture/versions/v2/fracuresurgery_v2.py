@@ -474,18 +474,18 @@ class fracturesurgery_env_v2(gym.Env):
         if self.soft_tissue=='spring':
            self.output_force, max_step_force,avg_force,all_mean= utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
-           if self.filerted_force > self.output_force:
+           if self.filerted_force > self.maximum_force:
                 self.maximum_force = self.filerted_force
         elif self.soft_tissue=='soft':
             self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
             self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
-            if self.filerted_force > self.output_force:
+            if self.filerted_force > self.maximum_force:
                 self.maximum_force = self.filerted_force
         else: 
             self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
             self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
-            if self.filerted_force > self.output_force:
-                self.maximum_forcee = self.filerted_force
+            if self.filerted_force > self.maximum_force:
+                self.maximum_force = self.filerted_force
         # if self.soft_tissue=='soft':
         #     worldA, worldB = createligament.Ligament.radius_spring(self.foot, self.leg,
         #                                                     self.point_a, self.point_b)
@@ -565,7 +565,7 @@ class fracturesurgery_env_v2(gym.Env):
                                   dist,  
                                   self.isHolding)
         
-        #print('Capped Force: ', self.capped_force,)
+        #print('Max Force: ', self.maximum_force)
         done = env_utils.check_done(self)
         #print(actual_New_Position, actual_New_Orientation,self.pos_distance,self.angle)
         if self.test and (self.filerted_force >= 100 or self.isHolding ==0):
