@@ -167,6 +167,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.current_step = 0 ##THESE NEED TO BE RESET HERE 
         #self.force = 0
         self.output_force = 0
+        self.maximum_force = 0
         self.anycontact = 0
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
@@ -348,7 +349,7 @@ class fracturesurgery_env_v2(gym.Env):
         initial_isHolding = int(initial_isHolding)
         initial_force = p.getJointState(self.foot, 1)[2]  # Joint index 0 is the fixed joint
         initial_force = np.linalg.norm(initial_force[0:3])
-        #print('Initial Force:', initial_force)
+        print('Initial Force:', initial_force)
         #get initial force without normalization
         #initial_f = np.linalg.norm(force)#utils.visualize_contact_forces(self,self.pandaUid, self.foot)
         #print(initial_or)
@@ -356,7 +357,7 @@ class fracturesurgery_env_v2(gym.Env):
         # if int(bool(p.getContactPoints(self.foot, self.leg,1,-1))) == 1:
         #     self.contact = 1 if (p.getContactPoints(self.foot, self.leg,1,-1))[8]<self.distance_threshold_pos else 0
         # Query PyBullet once and store the tuple of contact points
-        contacts = p.getContactPoints(self.foot, self.leg, 1, -1)
+        contacts = p.getContactPoints(self.foot, self.leg, -1, -1)
 
         # Check if contacts exist AND if any contact distance is below your threshold
         self.contact = 1 if (contacts and any(pt[8] < 0 for pt in contacts)) else 0
@@ -474,17 +475,17 @@ class fracturesurgery_env_v2(gym.Env):
            self.output_force, max_step_force,avg_force,all_mean= utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
            if self.filerted_force > self.output_force:
-                self.output_force = self.filerted_force
+                self.maximum_force = self.filerted_force
         elif self.soft_tissue=='soft':
             self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
             self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
             if self.filerted_force > self.output_force:
-                self.output_force = self.filerted_force
+                self.maximum_force = self.filerted_force
         else: 
             self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
             self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
             if self.filerted_force > self.output_force:
-                self.output_force = self.filerted_force
+                self.maximum_forcee = self.filerted_force
         # if self.soft_tissue=='soft':
         #     worldA, worldB = createligament.Ligament.radius_spring(self.foot, self.leg,
         #                                                     self.point_a, self.point_b)
@@ -493,11 +494,11 @@ class fracturesurgery_env_v2(gym.Env):
         #print(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1))
         stretch = np.array(p.getLinkState(self.foot, 1)[0]) - np.array(p.getBasePositionAndOrientation(self.leg)[0])
         stretch = np.linalg.norm(stretch)
-        self.contact = int(bool(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1))) ## check for contact between foot and leg, can adjust distance threshold if needed, currently set to -1mm to avoid false positives from close proximity  
+        self.contact = int(bool(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=-1, linkIndexB=-1))) ## check for contact between foot and leg, can adjust distance threshold if needed, currently set to -1mm to avoid false positives from close proximity  
         # if self.contact:
         #     print('Contact within {0:.4f} mm'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8] * 1000))
         if self.contact:
-            contact_points = p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)
+            contact_points = p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=-1, linkIndexB=-1)
             if contact_points and contact_points[0][8] < -0.0005: ## check contact distance to avoid false positives from close proximity, currently set to -1mm
                 #print('Contact within {}'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8]))
                 #print('Contact!!, goal distance: ', self.pos_distance, 'angle: ', self.angle, 'goal:', self.target_position)
@@ -548,6 +549,7 @@ class fracturesurgery_env_v2(gym.Env):
         #self.capped_force = min(self.filerted_force,200)
         #normalise force instead of cap 
         #self.normalised_force = self.filerted_force / self.maxforce ## for visualization only
+        #print('Force: ', self.filerted_force)
         env_utils.set_observation(self, 
                                   actual_New_Position, 
                                   actual_New_Orientation, 
@@ -566,7 +568,7 @@ class fracturesurgery_env_v2(gym.Env):
         #print('Capped Force: ', self.capped_force,)
         done = env_utils.check_done(self)
         #print(actual_New_Position, actual_New_Orientation,self.pos_distance,self.angle)
-        if self.test and (self.filerted_force >= self.max_force or self.isHolding ==0):
+        if self.test and (self.filerted_force >= 100 or self.isHolding ==0):
             print('Terminating episode due to excessive force during testing.')
             truncated = True
             reward = -100
@@ -589,7 +591,7 @@ class fracturesurgery_env_v2(gym.Env):
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.filerted_force,'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 
+                'force': self.filerted_force,'max_force': self.maximum_force,'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 
                 'young_modulus': self.young_modulus,
                 'width': self.width}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)

@@ -245,7 +245,7 @@ def getStarts(env):
     #     i+=1
     #print(f'Fracture Start: {fracturestart}, Orientation: {fractureorientaionDeg}, {fractureorientaionRad}')
     #fracturestart = np.array([0.37791427969932556, -0.14127257466316223, 0.06339067965745926])
-    #fracturestart = np.array([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])
+    fracturestart = np.array([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])
     return fracturestart, fractureorientaionDeg#, legstart
 
 

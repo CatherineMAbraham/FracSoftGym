@@ -9,7 +9,7 @@ def change_leg_dynamics(env):
                      linearDamping=0.01,
                      angularDamping=0.01,
                      collisionMargin=0.0001)
-    #p.setPhysicsEngineParameter(contactSlop=0.0005)
+    p.setPhysicsEngineParameter(contactSlop=0.0005)
     #p.setCollisionFilterGroupMask(env.leg, -1, collisionFilterGroup=0, collisionFilterMask=0) 
  
 def change_foot_dynamics(env):
