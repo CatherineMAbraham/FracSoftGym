@@ -311,7 +311,7 @@ class fracturesurgery_env_v1(gym.Env):
         # for i in range(100):
         #     p.stepSimulation()
         
-       # p.setCollisionFilterPair(self.foot,self.leg,1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
+        p.setCollisionFilterPair(self.foot,self.leg,1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
         #p.setCollisionFilterPair(self.foot,self.leg,1,0,0)
         return self.state, {}
 
@@ -362,14 +362,24 @@ class fracturesurgery_env_v1(gym.Env):
             self, jointPoses, start_pos, max_joint_force, numsubsteps=12
         )
 
-        # Step A: Push raw avg_force into rolling median buffer
-        self.force_window.append(avg_force)
+        # 2. Reject non-physical solver explosions by capping extreme values (e.g., above 8.0 N)
+        MAX_EXPECTED_FORCE = 8.0
+        capped_force = min(avg_force, MAX_EXPECTED_FORCE)
+
+        # 3. Apply rolling median filter over recent history (e.g., window size 5–7)
+        self.force_window.append(capped_force)
         median_force = float(np.median(self.force_window))
 
-        # Step B: Apply EMA using median_force and self.alpha (0.1)
-        self.filerted_force = (self.alpha * median_force) + ((1.0 - self.alpha) * self.filerted_force)
+        # 4. Limit the rate of change per step (slew-rate limiting)
+        MAX_DELTA_PER_STEP = 0.5
+        force_delta = median_force - self.filerted_force
+        clamped_delta = np.clip(force_delta, -MAX_DELTA_PER_STEP, MAX_DELTA_PER_STEP)
+        target_force = self.filerted_force + clamped_delta
 
-        # Step C: Update output force conditionally
+        # 5. Continuous low-pass Exponential Moving Average update
+        self.filerted_force = (self.alpha * target_force) + ((1.0 - self.alpha) * self.filerted_force)
+
+        # 6. Peak-hold tracking for maximum observed filtered force
         if self.filerted_force > self.maximum_force:
             self.maximum_force = self.filerted_force
         
