@@ -434,7 +434,9 @@ class fracturesurgery_env_v1(gym.Env):
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.filerted_force,'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 'force_fail': self.force_fail}#,'force_mag':self.force_magnitude}#,
+                'force': self.filerted_force,
+                'maximum_force': self.maximum_force,
+                'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 'force_fail': self.force_fail}#,'force_mag':self.force_magnitude}#,
         
         if (not self.test) or (self.filerted_force <= 100):
             reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)

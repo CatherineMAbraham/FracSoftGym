@@ -219,7 +219,7 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
         env.achieved_goal = np.array(list(pos) + [isHolding]+[force])#+[env.contact])
         env.desired_goal = np.array(list(env.goal_pos) + [1]+desired_force)#+object_contact)
     elif env.contact_type == 1:
-        env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+[env.anycontact])#+[env.contact])
+        env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+object_contact)#+[env.contact])
         env.desired_goal = np.array(list(env.target_position) + [1]+desired_force +object_contact)
     else:
         env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force])
@@ -237,9 +237,9 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
     
 def check_done(env):
         if env.horizon == 'variable' and env.action_type not in ['ori_only', 'pos_only'] and env.contact_type == 0:
-            return env.pos_distance <= env.distance_threshold_pos and env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.filerted_force <=env.max_force #and env.anycontact == 0
+            return env.pos_distance <= env.distance_threshold_pos and env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.maximum_force <=env.max_force #and env.anycontact == 0
         elif env.horizon == 'variable' and env.action_type not in ['ori_only', 'pos_only'] and env.contact_type == 1:
-            return env.pos_distance <= env.distance_threshold_pos and env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.filerted_force <=env.max_force and env.anycontact == 0 
+            return env.pos_distance <= env.distance_threshold_pos and env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.maximum_force <=env.max_force #and env.anycontact == 0 
         elif env.horizon == 'fixed' and env.action_type == 'ori_only':
             return env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.current_step >= env.max_steps
         elif env.horizon == 'fixed' and env.action_type == 'pos_only':
