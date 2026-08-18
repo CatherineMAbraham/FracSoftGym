@@ -470,7 +470,7 @@ class fracturesurgery_env_v2(gym.Env):
         start_pos = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
         
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
-        alpha = 1
+        alpha = 0.8
         if self.soft_tissue=='spring':
            self.output_force, max_step_force,avg_force,all_mean= utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
@@ -565,7 +565,7 @@ class fracturesurgery_env_v2(gym.Env):
                                   dist,  
                                   self.isHolding)
         
-        #print('Max Force: ', self.maximum_force)
+        #print('Max Force: ', self.maximum_force, 'Filtered Force',self.filerted_force)
         done = env_utils.check_done(self)
         #print(actual_New_Position, actual_New_Orientation,self.pos_distance,self.angle)
         if self.test and (self.filerted_force >= 100 or self.isHolding ==0):
