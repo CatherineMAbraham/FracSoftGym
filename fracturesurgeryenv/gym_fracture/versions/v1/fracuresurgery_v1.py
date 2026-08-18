@@ -13,6 +13,7 @@ from gym_fracture.versions.v1 import env_utils, utils
 from gym_fracture.versions.v1 import dynamics, new_band,new_band2,createligament
 from scipy.spatial.transform import Rotation as R
 import wandb
+from collections import deque
 #from gym_fracture.envs.spring_damper import SpringDamper
 #from gym_fracture.envs.createligament import make_ligament,radius_spring
 #from gym_fracture.envs.multispring import create_ligament_chain, apply_axial_springs
@@ -96,7 +97,8 @@ class fracturesurgery_env_v1(gym.Env):
         self.n = 0
         self.anycontact = 0
         self.filerted_force = 0
-        
+        self.alpha = 0.1  # Set alpha between 0.05 and 0.1
+        self.force_window = deque(maxlen=5)
         self.not_valid_count = 0
         self.goal_gen_count = 0
         ## Rendering setup
@@ -149,6 +151,7 @@ class fracturesurgery_env_v1(gym.Env):
         ##Counters 
         self.current_step = 0 ##THESE NEED TO BE RESET HERE 
         self.output_force = 0
+        self.maximum_force = 0 
         self.anycontact = 0
         self.force_fail = False
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
@@ -188,6 +191,7 @@ class fracturesurgery_env_v1(gym.Env):
         ##
         difference = np.array([0.0,0.09,0.0])
         foot = p.getLinkState(self.foot, 1)[0]
+        print(foot)
         leg_start=foot - difference
     
         ##Load Leg
@@ -307,7 +311,7 @@ class fracturesurgery_env_v1(gym.Env):
         # for i in range(100):
         #     p.stepSimulation()
         
-        #p.setCollisionFilterPair(self.foot,self.leg,1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
+        p.setCollisionFilterPair(self.foot,self.leg,1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
         #p.setCollisionFilterPair(self.foot,self.leg,1,0,0)
         return self.state, {}
 
@@ -354,22 +358,20 @@ class fracturesurgery_env_v1(gym.Env):
         start_pos = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
         
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
-        alpha = 1
-        if self.soft_tissue=='spring':
-           self.output_force, max_step_force,avg_force,all_mean= utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
-           self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
-           if self.filerted_force > self.output_force:
-                self.output_force = self.filerted_force
-        elif self.soft_tissue=='soft':
-            self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
-            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
-            if self.filerted_force > self.output_force:
-                self.output_force = self.filerted_force
-        else: 
-            self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
-            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
-            if self.filerted_force > self.output_force:
-                self.output_force = self.filerted_force
+        self.output_force, max_step_force, avg_force, all_mean = utils.smooth_motion(
+            self, jointPoses, start_pos, max_joint_force, numsubsteps=12
+        )
+
+        # Step A: Push raw avg_force into rolling median buffer
+        self.force_window.append(avg_force)
+        median_force = float(np.median(self.force_window))
+
+        # Step B: Apply EMA using median_force and self.alpha (0.1)
+        self.filerted_force = (self.alpha * median_force) + ((1.0 - self.alpha) * self.filerted_force)
+
+        # Step C: Update output force conditionally
+        if self.filerted_force > self.maximum_force:
+            self.maximum_force = self.filerted_force
         
         
         
@@ -425,8 +427,9 @@ class fracturesurgery_env_v1(gym.Env):
             self.force_fail = True
         else:
             truncated = self.current_step >= self.max_steps and not done
-        
-        
+
+        if truncated:
+            print('Force:', self.filerted_force)
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
