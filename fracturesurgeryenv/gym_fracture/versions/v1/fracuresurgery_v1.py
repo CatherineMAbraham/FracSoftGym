@@ -96,7 +96,7 @@ class fracturesurgery_env_v1(gym.Env):
         self.angle = 0.0
         self.n = 0
         self.anycontact = 0
-        self.filerted_force = 0
+        self.filtered_force = 0
         self.alpha = 1  # Set alpha between 0.05 and 0.1
         self.force_window = deque(maxlen=5)
         self.not_valid_count = 0
@@ -152,6 +152,7 @@ class fracturesurgery_env_v1(gym.Env):
         self.current_step = 0 ##THESE NEED TO BE RESET HERE 
         self.output_force = 0
         self.maximum_force = 0 
+        self.average_force = 0
         self.anycontact = 0
         self.force_fail = False
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
@@ -362,26 +363,17 @@ class fracturesurgery_env_v1(gym.Env):
             self, jointPoses, start_pos, max_joint_force, numsubsteps=12
         )
 
-        # # 2. Reject non-physical solver explosions by capping extreme values (e.g., above 8.0 N)
-        # MAX_EXPECTED_FORCE = 8.0
-        # capped_force = min(avg_force, MAX_EXPECTED_FORCE)
+        spike_threshold = 15.0  # Define a threshold for spike detection: Pybullet gives random spikes in force,
+        # going to ignore any readings above 15N which is likely just a spike and not a real reading 
+        if avg_force > spike_threshold:
+            self.filtered_force = self.filtered_force  # Ignore spike, keep previous filtered value
+        else:
+            self.filtered_force = (self.alpha * avg_force) + ((1.0 - self.alpha) * self.filtered_force)
 
-        # # 3. Apply rolling median filter over recent history (e.g., window size 5–7)
-        # self.force_window.append(capped_force)
-        # median_force = float(np.median(self.force_window))
-
-        # # 4. Limit the rate of change per step (slew-rate limiting)
-        # MAX_DELTA_PER_STEP = 0.5
-        # force_delta = median_force - self.filerted_force
-        # clamped_delta = np.clip(force_delta, -MAX_DELTA_PER_STEP, MAX_DELTA_PER_STEP)
-        # target_force = self.filerted_force + clamped_delta
-
-        # 5. Continuous low-pass Exponential Moving Average update
-        self.filerted_force = (self.alpha * avg_force) + ((1.0 - self.alpha) * self.filerted_force)
-
+        self.average_force += self.filtered_force
         # 6. Peak-hold tracking for maximum observed filtered force
-        if self.filerted_force > self.maximum_force:
-            self.maximum_force = self.filerted_force
+        if self.filtered_force > self.maximum_force:
+            self.maximum_force = self.filtered_force
         
         
         
@@ -418,7 +410,7 @@ class fracturesurgery_env_v1(gym.Env):
                                   actual_New_Velocity, 
                                   joint_Poses, 
                                   joint_Velocities,
-                                  self.filerted_force,
+                                  self.filtered_force,
                                   self.contact, 
                                   self.pos_distance,
                                   self.angle,
@@ -429,8 +421,9 @@ class fracturesurgery_env_v1(gym.Env):
         
         #print('Capped Force: ', self.capped_force,)
         done = env_utils.check_done(self)
-        
-        if self.test and (self.filerted_force >= 100):# or self.isHolding ==0):
+        if done:
+            self.average_force /= self.current_step
+        if self.test and (self.filtered_force >= 100):# or self.isHolding ==0):
             print('Terminating episode due to excessive force during testing.')
             truncated = True
             reward = -100
@@ -439,17 +432,18 @@ class fracturesurgery_env_v1(gym.Env):
             truncated = self.current_step >= self.max_steps and not done
 
         # if truncated:
-        #    if self.filerted_force >= 10:
+        #    if self.filtered_force >= 10:
         #     print('Force:', self.maximum_force)
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.filerted_force,
+                'force': self.filtered_force,
                 'maximum_force': self.maximum_force,
+                'average_force': self.average_force,
                 'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 'force_fail': self.force_fail}#,'force_mag':self.force_magnitude}#,
         
-        if (not self.test) or (self.filerted_force <= 100):
+        if (not self.test) or (self.filtered_force <= 100):
             reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
         
         reward = np.float32(reward)

@@ -245,8 +245,8 @@ def check_done(env):
         elif env.horizon == 'fixed' and env.action_type == 'pos_only':
             return env.pos_distance <= env.distance_threshold_pos and env.isHolding == 1 and env.current_step >= env.max_steps
         elif env.action_type == 'ori_only':
-            return env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.filerted_force <=env.max_force
+            return env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.filtered_force <=env.max_force
         elif env.action_type == 'pos_only':
-            return env.pos_distance <= env.distance_threshold_pos and env.isHolding == 1 and env.filerted_force <=env.max_force
+            return env.pos_distance <= env.distance_threshold_pos and env.isHolding == 1 and env.filtered_force <=env.max_force
         else:
-            return env.pos_distance <= env.distance_threshold_pos and env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.filerted_force <=env.max_force and env.anycontact == 0
+            return env.pos_distance <= env.distance_threshold_pos and env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.filtered_force <=env.max_force and env.anycontact == 0

@@ -237,6 +237,7 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
     
 def check_done(env):
         if env.horizon == 'variable' and env.action_type not in ['ori_only', 'pos_only'] and env.contact_type == 0:
+            #print('checking done',{env.maximum_force},{env.filerted_force}, {env.max_force})
             return env.pos_distance <= env.distance_threshold_pos and env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.maximum_force <=env.max_force #and env.anycontact == 0
         elif env.horizon == 'variable' and env.action_type not in ['ori_only', 'pos_only'] and env.contact_type == 1:
             return env.pos_distance <= env.distance_threshold_pos and env.angle <= env.distance_threshold_ori and env.isHolding == 1 and env.maximum_force <=env.max_force and env.anycontact == 0 

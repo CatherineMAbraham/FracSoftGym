@@ -1,6 +1,7 @@
 ## Position and Orientation with Dictionary Observation
 
 ## Modules to Import
+from collections import deque
 from turtle import width
 
 import gymnasium as gym
@@ -96,7 +97,8 @@ class fracturesurgery_env_v2(gym.Env):
         self.width = width
         self.randomise_ligs = randomise_ligs
         self.randomise_start = randomise_start
-
+        self.alpha = 1  # Set alpha between 0.05 and 0.1
+        self.force_window = deque(maxlen=5)
         ## Initialise variables to 0 
         self.episodes_done = 0
         self.force = np.float32(0)
@@ -110,7 +112,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.angle = 0.0
         self.n = 0
         self.anycontact = 0
-        self.filerted_force = 0
+        self.filtered_force = 0
         self.eval_count = 0
         self.not_valid_count = 0
         self.goal_gen_count = 0
@@ -168,6 +170,7 @@ class fracturesurgery_env_v2(gym.Env):
         #self.force = 0
         self.output_force = 0
         self.maximum_force = 0
+        self.average_force = 0
         self.anycontact = 0
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
@@ -470,22 +473,52 @@ class fracturesurgery_env_v2(gym.Env):
         start_pos = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
         
         #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
-        alpha = 0.1
-        if self.soft_tissue=='spring':
-           self.output_force, max_step_force,avg_force,all_mean= utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
-           self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
-           if self.filerted_force > self.maximum_force:
-                self.maximum_force = self.filerted_force
-        elif self.soft_tissue=='soft':
-            self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
-            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
-            if self.filerted_force > self.maximum_force:
-                self.maximum_force = self.filerted_force
-        else: 
-            self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
-            self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
-            if self.filerted_force > self.maximum_force:
-                self.maximum_force = self.filerted_force
+        # alpha = 0.1
+        # if self.soft_tissue=='spring':
+        #    self.output_force, max_step_force,avg_force,all_mean= utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
+        #    self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
+        #    if self.filerted_force > self.maximum_force:
+        #         self.maximum_force = self.filerted_force
+        # elif self.soft_tissue=='soft':
+        #     self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
+        #     self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
+        #     if self.filerted_force > self.maximum_force:
+        #         self.maximum_force = self.filerted_force
+        # else: 
+        #     self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
+        #     self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
+        #     if self.filerted_force > self.maximum_force:
+        #         self.maximum_force = self.filerted_force
+        self.output_force, max_step_force, avg_force, all_mean = utils.smooth_motion(
+                self, jointPoses, start_pos, max_joint_force, numsubsteps=12
+            )
+    
+            # 2. Reject non-physical solver explosions by capping extreme values (e.g., above 8.0 N)
+        # MAX_EXPECTED_FORCE = 8.0
+        # capped_force = min(avg_force, MAX_EXPECTED_FORCE)
+
+        # # 3. Apply rolling median filter over recent history (e.g., window size 5–7)
+        # self.force_window.append(capped_force)
+        # median_force = float(np.median(self.force_window))
+
+        # # 4. Limit the rate of change per step (slew-rate limiting)
+        # MAX_DELTA_PER_STEP = 0.5
+        # force_delta = median_force - self.filerted_force
+        # clamped_delta = np.clip(force_delta, -MAX_DELTA_PER_STEP, MAX_DELTA_PER_STEP)
+        # target_force = self.filtered_force + clamped_delta
+
+        # 5. Continuous low-pass Exponential Moving Average update
+        spike_threshold = 15.0  # Define a threshold for spike detection: Pybullet gives random spikes in force,
+        # going to ignore any readings above 15N which is likely just a spike and not a real reading 
+        if avg_force > spike_threshold:
+            self.filtered_force = self.filtered_force  # Ignore spike, keep previous filtered value
+        else:
+            self.filtered_force = (self.alpha * avg_force) + ((1.0 - self.alpha) * self.filtered_force)
+
+        self.average_force += self.filtered_force
+        # 6. Peak-hold tracking for maximum observed filtered force
+        if self.filtered_force > self.maximum_force:
+            self.maximum_force = self.filtered_force
         # if self.soft_tissue=='soft':
         #     worldA, worldB = createligament.Ligament.radius_spring(self.foot, self.leg,
         #                                                     self.point_a, self.point_b)
@@ -546,17 +579,17 @@ class fracturesurgery_env_v2(gym.Env):
         joint_Poses = np.array([js[0] for js in joint_states])        # positions
         joint_Velocities = np.array([js[1] for js in joint_states])   # velocities
         self.pos_distance, self.angle = utils.calculate_distances(self, actual_New_Position, actual_New_Orientation, self.goal_pos, self.goal_ori)
-        #self.capped_force = min(self.filerted_force,200)
+        #self.capped_force = min(self.filtered_force,200)
         #normalise force instead of cap 
-        #self.normalised_force = self.filerted_force / self.maxforce ## for visualization only
-        #print('Force: ', self.filerted_force)
+        #self.normalised_force = self.filtered_force / self.maxforce ## for visualization only
+        #print('Force: ', self.filtered_force)
         env_utils.set_observation(self, 
                                   actual_New_Position, 
                                   actual_New_Orientation, 
                                   actual_New_Velocity, 
                                   joint_Poses, 
                                   joint_Velocities,
-                                  self.filerted_force,
+                                  self.filtered_force,
                                   self.contact, 
                                   self.pos_distance,
                                   self.angle,
@@ -565,10 +598,10 @@ class fracturesurgery_env_v2(gym.Env):
                                   dist,  
                                   self.isHolding)
         
-        #print('Max Force: ', self.maximum_force, 'Filtered Force',self.filerted_force)
+        #print('Max Force: ', self.maximum_force, 'Filtered Force',self.filtered_force)
         done = env_utils.check_done(self)
         #print(actual_New_Position, actual_New_Orientation,self.pos_distance,self.angle)
-        if self.test and (self.filerted_force >= 100 or self.isHolding ==0):
+        if self.test and (self.filtered_force >= 100 or self.isHolding ==0):
             print('Terminating episode due to excessive force during testing.')
             truncated = True
             reward = -100
@@ -581,22 +614,23 @@ class fracturesurgery_env_v2(gym.Env):
         #        'Angle: ', self.angle, 
         #        'Holding: ', self.isHolding, 
         #        'Contact: ', self.anycontact)
-        
-        # if done:
-        #    # time.sleep(100)
-        #     print('yay')
-        # elif truncated:
-        #     print(f'truncated {self.filerted_force},{self.pos_distance},{self.angle},{actual_New_Position},{actual_New_Orientation},{self.isHolding},{self.contact}')
+        if done:
+            self.average_force/= self.current_step
+        if done:
+           # time.sleep(100)
+            print('yay')
+        elif truncated:
+            print(f'truncated {self.maximum_force}')#,{self.pos_distance},{self.angle},{actual_New_Position},{actual_New_Orientation},{self.isHolding},{self.contact}')
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.filerted_force,'max_force': self.maximum_force,'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 
+                'force': self.filtered_force,'maximum_force': self.maximum_force,'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 
                 'young_modulus': self.young_modulus,
-                'width': self.width}#,'force_mag':self.force_magnitude}#,
+                'width': self.width,'average_force': self.average_force}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
-        if (not self.test) or (self.filerted_force <= 100):
+        if (not self.test) or (self.filtered_force <= 100):
             reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
         # else: keep the earlier penalty reward (-100)
         reward = np.float32(reward)
