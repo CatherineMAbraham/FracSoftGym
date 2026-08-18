@@ -97,7 +97,7 @@ class fracturesurgery_env_v1(gym.Env):
         self.n = 0
         self.anycontact = 0
         self.filerted_force = 0
-        self.alpha = 0.1  # Set alpha between 0.05 and 0.1
+        self.alpha = 1  # Set alpha between 0.05 and 0.1
         self.force_window = deque(maxlen=5)
         self.not_valid_count = 0
         self.goal_gen_count = 0
@@ -362,22 +362,22 @@ class fracturesurgery_env_v1(gym.Env):
             self, jointPoses, start_pos, max_joint_force, numsubsteps=12
         )
 
-        # 2. Reject non-physical solver explosions by capping extreme values (e.g., above 8.0 N)
-        MAX_EXPECTED_FORCE = 8.0
-        capped_force = min(avg_force, MAX_EXPECTED_FORCE)
+        # # 2. Reject non-physical solver explosions by capping extreme values (e.g., above 8.0 N)
+        # MAX_EXPECTED_FORCE = 8.0
+        # capped_force = min(avg_force, MAX_EXPECTED_FORCE)
 
-        # 3. Apply rolling median filter over recent history (e.g., window size 5–7)
-        self.force_window.append(capped_force)
-        median_force = float(np.median(self.force_window))
+        # # 3. Apply rolling median filter over recent history (e.g., window size 5–7)
+        # self.force_window.append(capped_force)
+        # median_force = float(np.median(self.force_window))
 
-        # 4. Limit the rate of change per step (slew-rate limiting)
-        MAX_DELTA_PER_STEP = 0.5
-        force_delta = median_force - self.filerted_force
-        clamped_delta = np.clip(force_delta, -MAX_DELTA_PER_STEP, MAX_DELTA_PER_STEP)
-        target_force = self.filerted_force + clamped_delta
+        # # 4. Limit the rate of change per step (slew-rate limiting)
+        # MAX_DELTA_PER_STEP = 0.5
+        # force_delta = median_force - self.filerted_force
+        # clamped_delta = np.clip(force_delta, -MAX_DELTA_PER_STEP, MAX_DELTA_PER_STEP)
+        # target_force = self.filerted_force + clamped_delta
 
         # 5. Continuous low-pass Exponential Moving Average update
-        self.filerted_force = (self.alpha * target_force) + ((1.0 - self.alpha) * self.filerted_force)
+        self.filerted_force = (self.alpha * avg_force) + ((1.0 - self.alpha) * self.filerted_force)
 
         # 6. Peak-hold tracking for maximum observed filtered force
         if self.filerted_force > self.maximum_force:
@@ -439,7 +439,8 @@ class fracturesurgery_env_v1(gym.Env):
             truncated = self.current_step >= self.max_steps and not done
 
         # if truncated:
-           # print('Force:', self.filerted_force)
+        #    if self.filerted_force >= 10:
+        #     print('Force:', self.maximum_force)
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
