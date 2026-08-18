@@ -191,7 +191,7 @@ class fracturesurgery_env_v1(gym.Env):
         ##
         difference = np.array([0.0,0.09,0.0])
         foot = p.getLinkState(self.foot, 1)[0]
-        print(foot)
+        #print(foot)
         leg_start=foot - difference
     
         ##Load Leg
@@ -311,7 +311,7 @@ class fracturesurgery_env_v1(gym.Env):
         # for i in range(100):
         #     p.stepSimulation()
         
-        p.setCollisionFilterPair(self.foot,self.leg,1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
+       # p.setCollisionFilterPair(self.foot,self.leg,1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
         #p.setCollisionFilterPair(self.foot,self.leg,1,0,0)
         return self.state, {}
 
@@ -428,8 +428,8 @@ class fracturesurgery_env_v1(gym.Env):
         else:
             truncated = self.current_step >= self.max_steps and not done
 
-        if truncated:
-            print('Force:', self.filerted_force)
+        # if truncated:
+           # print('Force:', self.filerted_force)
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
