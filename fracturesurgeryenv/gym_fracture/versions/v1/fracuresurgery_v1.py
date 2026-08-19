@@ -421,8 +421,8 @@ class fracturesurgery_env_v1(gym.Env):
         
         #print('Capped Force: ', self.capped_force,)
         done = env_utils.check_done(self)
-        if done:
-            self.average_force /= self.current_step
+
+        
         if self.test and (avg_force >= 100):# or self.isHolding ==0):
             print('Terminating episode due to excessive force during testing.')
             truncated = True
@@ -430,7 +430,8 @@ class fracturesurgery_env_v1(gym.Env):
             self.force_fail = True
         else:
             truncated = self.current_step >= self.max_steps and not done
-
+        if done or truncated:
+                self.average_force /= self.current_step
         # if truncated:
         #    if self.filtered_force >= 10:
         #     print('Force:', self.maximum_force)
