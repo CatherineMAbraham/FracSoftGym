@@ -423,7 +423,7 @@ class fracturesurgery_env_v1(gym.Env):
         done = env_utils.check_done(self)
         if done:
             self.average_force /= self.current_step
-        if self.test and (self.filtered_force >= 100):# or self.isHolding ==0):
+        if self.test and (avg_force >= 100):# or self.isHolding ==0):
             print('Terminating episode due to excessive force during testing.')
             truncated = True
             reward = -100
@@ -443,7 +443,7 @@ class fracturesurgery_env_v1(gym.Env):
                 'average_force': self.average_force,
                 'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 'force_fail': self.force_fail}#,'force_mag':self.force_magnitude}#,
         
-        if (not self.test) or (self.filtered_force <= 100):
+        if (not self.test) or (avg_force <= 100):
             reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
         
         reward = np.float32(reward)
