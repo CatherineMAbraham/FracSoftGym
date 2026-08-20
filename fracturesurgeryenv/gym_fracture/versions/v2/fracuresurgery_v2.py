@@ -172,7 +172,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.maximum_force = 0
         self.average_force = 0
         self.max_contact_force=0
-        self.contact_distance
+        self.contact_distance =0
         self.anycontact = 0
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
