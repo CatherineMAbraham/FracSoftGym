@@ -172,6 +172,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.maximum_force = 0
         self.average_force = 0
         self.max_contact_force=0
+        self.contact_distance
         self.anycontact = 0
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
@@ -533,7 +534,8 @@ class fracturesurgery_env_v2(gym.Env):
         #     print('Contact within {0:.4f} mm'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8] * 1000))
         if self.contact:
             contact_points = p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=-1, linkIndexB=-1)
-            if contact_points and contact_points[0][8] < -0.0005: ## check contact distance to avoid false positives from close proximity, currently set to -1mm
+            if contact_points and contact_points[0][8] < -0.0005: ## check contact distance to avoid false positives from close proximity, currently set to 0.5mm
+                self.contact_distance = contact_points[0][8]
                 #print('Contact within {}'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8]))
                 #print('Contact!!, goal distance: ', self.pos_distance, 'angle: ', self.angle, 'goal:', self.target_position)
                # self.contact = contact
@@ -557,7 +559,6 @@ class fracturesurgery_env_v2(gym.Env):
                     self.anycontact = 1
                     self.contact = 1
                 else:
-                    self.anycontact = 0
                     self.contact = 0
             
        
@@ -629,6 +630,7 @@ class fracturesurgery_env_v2(gym.Env):
                 'force': self.filtered_force,'maximum_force': self.maximum_force,'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 
                 'young_modulus': self.young_modulus,
                 'contact_force':self.max_contact_force,
+                'contact_distance':self.contact_distance,
                 'width': self.width,'average_force': self.average_force}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
