@@ -550,8 +550,8 @@ class fracturesurgery_env_v2(gym.Env):
                     # Resultant 3D force magnitude for this point
                     f_point = np.sqrt(fn**2 + f_fric1**2 + f_fric2**2)
                     total_force_magnitude += f_point
-                if max_contact_force > 1:  # Threshold to avoid false positives
-                #print(f"Total Normal Force: {total_normal_force:.2f} N")
+                if max_contact_force > 0.1:  # Threshold to avoid false positives
+                   # print(f"Total Normal Force: {total_normal_force:.2f} N")
                 #print(f"Max Point Force: {max_contact_force:.2f} N")
                     self.anycontact = 1
                     self.contact = 1
@@ -601,7 +601,7 @@ class fracturesurgery_env_v2(gym.Env):
         #print('Max Force: ', self.maximum_force, 'Filtered Force',self.filtered_force)
         done = env_utils.check_done(self)
         #print(actual_New_Position, actual_New_Orientation,self.pos_distance,self.angle)
-        if self.test and (self.filtered_force >= 100 or self.isHolding ==0):
+        if self.test and (avg_force >= 100 or self.isHolding ==0):
             print('Terminating episode due to excessive force during testing.')
             truncated = True
             reward = -100
@@ -627,10 +627,11 @@ class fracturesurgery_env_v2(gym.Env):
                 'angle': self.angle, 'Holding': self.isHolding, 
                 'force': self.filtered_force,'maximum_force': self.maximum_force,'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 
                 'young_modulus': self.young_modulus,
+                'contact_force':max_contact_force,
                 'width': self.width,'average_force': self.average_force}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
-        if (not self.test) or (self.filtered_force <= 100):
+        if (not self.test) or (avg_force <= 100):
             reward = self.compute_reward(self.achieved_goal, self.desired_goal, info)
         # else: keep the earlier penalty reward (-100)
         reward = np.float32(reward)
