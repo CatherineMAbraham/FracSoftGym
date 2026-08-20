@@ -171,6 +171,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.output_force = 0
         self.maximum_force = 0
         self.average_force = 0
+        self.max_contact_force=0
         self.anycontact = 0
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
@@ -540,7 +541,7 @@ class fracturesurgery_env_v2(gym.Env):
 
                 # 2. Maximum collision force at any single contact point
                 max_contact_force = max(pt[9] for pt in contact_points)
-
+                self.max_contact_force = max_contact_force
                 # 3. Complete force vector accounting for normal and friction forces
                 total_force_magnitude = 0.0
                 for pt in contact_points:
@@ -627,7 +628,7 @@ class fracturesurgery_env_v2(gym.Env):
                 'angle': self.angle, 'Holding': self.isHolding, 
                 'force': self.filtered_force,'maximum_force': self.maximum_force,'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 
                 'young_modulus': self.young_modulus,
-                'contact_force':max_contact_force,
+                'contact_force':self.max_contact_force,
                 'width': self.width,'average_force': self.average_force}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
