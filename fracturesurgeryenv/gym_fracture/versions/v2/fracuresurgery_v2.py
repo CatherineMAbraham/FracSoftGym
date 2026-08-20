@@ -551,7 +551,7 @@ class fracturesurgery_env_v2(gym.Env):
                     # Resultant 3D force magnitude for this point
                     f_point = np.sqrt(fn**2 + f_fric1**2 + f_fric2**2)
                     total_force_magnitude += f_point
-                if max_contact_force > 0.1:  # Threshold to avoid false positives
+                if max_contact_force > 0.5:  # Threshold to avoid false positives
                    # print(f"Total Normal Force: {total_normal_force:.2f} N")
                 #print(f"Max Point Force: {max_contact_force:.2f} N")
                     self.anycontact = 1
