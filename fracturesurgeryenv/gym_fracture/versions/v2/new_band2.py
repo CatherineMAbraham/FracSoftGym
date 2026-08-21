@@ -9,7 +9,7 @@ class ElasticBand:
                  young_modulus, area,width,
                  damping_ratio=0.5, exponent=1.5,num_springs=3,
                  randomize_position=False, position_std=0.002,
-                 randomize_num_ligaments=False, min_ligaments=1, max_ligaments=3):
+                 randomize_num_ligaments=False, min_ligaments=1, max_ligaments=5):
         self.bodyA = bodyA
         self.linkA = linkA
         self.bodyB = bodyB
