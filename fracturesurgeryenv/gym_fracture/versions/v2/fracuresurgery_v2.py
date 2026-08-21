@@ -43,6 +43,7 @@ class fracturesurgery_env_v2(gym.Env):
         contact_type = 0,
         youngs_modulus = 1e6,
         youngs_modulus_type = 'None', #None, 'eval_mode', 'testing'
+        randomise_num_springs = False,
         randomise_ligs = False,
         randomise_start = False,
         patient = None,
@@ -92,6 +93,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.number_of_springs = number_of_springs
         self.young_modulus = youngs_modulus
         self.young_modulus_type = youngs_modulus_type
+        self.randomise_num_springs = randomise_num_springs
         self.patient = patient
         self.test= test
         self.width = width
@@ -170,7 +172,6 @@ class fracturesurgery_env_v2(gym.Env):
         #self.force = 0
         self.output_force = 0
         self.maximum_force = 0
-        self.average_force = 0
         self.max_contact_force=0
         self.contact_distance =0
         self.anycontact = 0
@@ -354,7 +355,7 @@ class fracturesurgery_env_v2(gym.Env):
         initial_isHolding = int(initial_isHolding)
         initial_force = p.getJointState(self.foot, 1)[2]  # Joint index 0 is the fixed joint
         initial_force = np.linalg.norm(initial_force[0:3])
-        print('Initial Force:', initial_force)
+        #print('Initial Force:', initial_force)
         #get initial force without normalization
         #initial_f = np.linalg.norm(force)#utils.visualize_contact_forces(self,self.pandaUid, self.foot)
         #print(initial_or)
@@ -416,7 +417,7 @@ class fracturesurgery_env_v2(gym.Env):
                                          area=5e-6,
                                          width= self.width,
                                          num_springs=self.number_of_springs, randomize_position=self.randomise_ligs,
-                                         randomize_num_ligaments=self.randomise_ligs
+                                         randomize_num_ligaments=self.randomise_num_springs
                                          )
             
             
@@ -503,7 +504,7 @@ class fracturesurgery_env_v2(gym.Env):
         else:
             self.filtered_force = (self.alpha * avg_force) + ((1.0 - self.alpha) * self.filtered_force)
 
-        self.average_force += self.filtered_force
+        
         # 6. Peak-hold tracking for maximum observed filtered force
         if self.filtered_force > self.maximum_force:
             self.maximum_force = self.filtered_force
@@ -520,7 +521,7 @@ class fracturesurgery_env_v2(gym.Env):
         #     print('Contact within {0:.4f} mm'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8] * 1000))
         if self.contact:
             contact_points = p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=-1, linkIndexB=-1)
-            if contact_points and contact_points[0][8] < -0.0005: ## check contact distance to avoid false positives from close proximity, currently set to 0.5mm
+            if contact_points and contact_points[0][8] < -0.0001: ## check contact distance to avoid false positives from close proximity, currently set to 0.5mm
                 self.contact_distance = contact_points[0][8]
                 #print('Contact within {}'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8]))
                 #print('Contact!!, goal distance: ', self.pos_distance, 'angle: ', self.angle, 'goal:', self.target_position)
@@ -603,7 +604,7 @@ class fracturesurgery_env_v2(gym.Env):
         #        'Holding: ', self.isHolding, 
         #        'Contact: ', self.anycontact)
         #if done or truncated:
-        self.average_force/= self.current_step
+        
         if done:
            # time.sleep(100)
             print('yay')
@@ -618,7 +619,7 @@ class fracturesurgery_env_v2(gym.Env):
                 'young_modulus': self.young_modulus,
                 'contact_force':self.max_contact_force,
                 'contact_distance':self.contact_distance,
-                'width': self.width,'average_force': self.average_force}#,'force_mag':self.force_magnitude}#,
+                'width': self.width}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
         if (not self.test) or (avg_force <= 100):
