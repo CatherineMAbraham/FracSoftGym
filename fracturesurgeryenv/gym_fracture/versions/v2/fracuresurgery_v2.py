@@ -495,21 +495,7 @@ class fracturesurgery_env_v2(gym.Env):
                 self, jointPoses, start_pos, max_joint_force, numsubsteps=12
             )
     
-            # 2. Reject non-physical solver explosions by capping extreme values (e.g., above 8.0 N)
-        # MAX_EXPECTED_FORCE = 8.0
-        # capped_force = min(avg_force, MAX_EXPECTED_FORCE)
-
-        # # 3. Apply rolling median filter over recent history (e.g., window size 5–7)
-        # self.force_window.append(capped_force)
-        # median_force = float(np.median(self.force_window))
-
-        # # 4. Limit the rate of change per step (slew-rate limiting)
-        # MAX_DELTA_PER_STEP = 0.5
-        # force_delta = median_force - self.filerted_force
-        # clamped_delta = np.clip(force_delta, -MAX_DELTA_PER_STEP, MAX_DELTA_PER_STEP)
-        # target_force = self.filtered_force + clamped_delta
-
-        # 5. Continuous low-pass Exponential Moving Average update
+          
         spike_threshold = 15.0  # Define a threshold for spike detection: Pybullet gives random spikes in force,
         # going to ignore any readings above 15N which is likely just a spike and not a real reading 
         if avg_force > spike_threshold:
@@ -545,14 +531,14 @@ class fracturesurgery_env_v2(gym.Env):
                 max_contact_force = max(pt[9] for pt in contact_points)
                 self.max_contact_force = max_contact_force
                 # 3. Complete force vector accounting for normal and friction forces
-                total_force_magnitude = 0.0
-                for pt in contact_points:
-                    fn = pt[9]   # Normal force
-                    f_fric1 = pt[10] # Friction force 1
-                    f_fric2 = pt[12] # Friction force 2
-                    # Resultant 3D force magnitude for this point
-                    f_point = np.sqrt(fn**2 + f_fric1**2 + f_fric2**2)
-                    total_force_magnitude += f_point
+                # total_force_magnitude = 0.0
+                # for pt in contact_points:
+                #     fn = pt[9]   # Normal force
+                #     f_fric1 = pt[10] # Friction force 1
+                #     f_fric2 = pt[12] # Friction force 2
+                #     # Resultant 3D force magnitude for this point
+                #     f_point = np.sqrt(fn**2 + f_fric1**2 + f_fric2**2)
+                #     total_force_magnitude += f_point
                 if max_contact_force > 0.5:  # Threshold to avoid false positives
                    # print(f"Total Normal Force: {total_normal_force:.2f} N")
                 #print(f"Max Point Force: {max_contact_force:.2f} N")
@@ -616,8 +602,8 @@ class fracturesurgery_env_v2(gym.Env):
         #        'Angle: ', self.angle, 
         #        'Holding: ', self.isHolding, 
         #        'Contact: ', self.anycontact)
-        if done:
-            self.average_force/= self.current_step
+        #if done or truncated:
+        self.average_force/= self.current_step
         if done:
            # time.sleep(100)
             print('yay')
@@ -627,7 +613,8 @@ class fracturesurgery_env_v2(gym.Env):
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
-                'force': self.filtered_force,'maximum_force': self.maximum_force,'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 
+                'force': self.filtered_force,'maximum_force': self.maximum_force,
+                'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 
                 'young_modulus': self.young_modulus,
                 'contact_force':self.max_contact_force,
                 'contact_distance':self.contact_distance,

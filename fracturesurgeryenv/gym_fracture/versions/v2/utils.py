@@ -232,7 +232,7 @@ def getStarts(env):
     #pin = [0.004462 ,-0.002332 , 0.046608  ]
    # pin = [0.004462 ,-0.002332 , 0.049608  ]
     #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
-    fracturestart = fracturestart - [-0.04,0.01,0.08]#[-0.05,0,0]#
+    fracturestart = fracturestart - [-0.04,-0.03,0.08]#[-0.05,0,0]#
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]
@@ -245,7 +245,7 @@ def getStarts(env):
     #     i+=1
     #print(f'Fracture Start: {fracturestart}, Orientation: {fractureorientaionDeg}, {fractureorientaionRad}')
     #fracturestart = np.array([0.37791427969932556, -0.14127257466316223, 0.06339067965745926])
-    fracturestart = np.array([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])
+    #fracturestart = np.array([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])
     return fracturestart, fractureorientaionDeg#, legstart
 
 
