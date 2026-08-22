@@ -14,7 +14,7 @@ def set_observation_space(env):
         goal_shape = 10
     else:
         obs_shape = 36
-        goal_shape = 10 ## now we're going to add contact to the goal anyway as a 'dummy' variable, so we can keep the goal shape the same for both contact and non-contact environments
+        goal_shape = 9 ## now we're going to add contact to the goal anyway as a 'dummy' variable, so we can keep the goal shape the same for both contact and non-contact environments
     if env.obs_type == 'dict':
         env.observation_space = spaces.Dict({
             'observation': spaces.Box(low=-200, high=200, shape=(obs_shape,), dtype=np.float32),
@@ -222,8 +222,8 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
         env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+[env.anycontact])#+[env.contact])
         env.desired_goal = np.array(list(env.target_position) + [1]+desired_force +object_contact)
     else:
-        env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+object_contact)#we're going to set this as 'success' so we don't really look for it but it keeps the shape the same.
-        env.desired_goal = np.array(list(env.target_position) + [1]+desired_force+object_contact)
+        env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force])#we're going to set this as 'success' so we don't really look for it but it keeps the shape the same.
+        env.desired_goal = np.array(list(env.target_position) + [1]+desired_force)
 
     if env.obs_type == 'dict':
         observation_dict = {

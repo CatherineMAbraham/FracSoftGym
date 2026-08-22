@@ -520,34 +520,33 @@ class fracturesurgery_env_v2(gym.Env):
         # if self.contact:
         #     print('Contact within {0:.4f} mm'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8] * 1000))
         if self.contact:
+    # 1. Fetch ALL contact points between bodyA and bodyB
             contact_points = p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=-1, linkIndexB=-1)
-            if contact_points and contact_points[0][8] < -0.000: ## check contact distance to avoid false positives from close proximity, currently set to 0.5mm
-                self.contact_distance = contact_points[0][8]
-                #print('Contact within {}'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8]))
-                #print('Contact!!, goal distance: ', self.pos_distance, 'angle: ', self.angle, 'goal:', self.target_position)
-               # self.contact = contact
-                total_normal_force = sum(pt[9] for pt in contact_points)  # Sum of normal forces at all contact points
+            
+            # 2. Filter ALL contact points where penetration distance is < -0.000 m (0.5mm threshold or similar)
+            valid_contacts = [pt for pt in contact_points if pt[8] < -0.000] if contact_points else []
 
-                # 2. Maximum collision force at any single contact point
-                max_contact_force = max(pt[9] for pt in contact_points)
+            if valid_contacts:
+                # Sum of normal forces across ALL valid contact points
+                total_normal_force = sum(pt[9] for pt in valid_contacts)
+
+                # Maximum collision force across ALL valid contact points
+                max_contact_force = max(pt[9] for pt in valid_contacts)
                 self.max_contact_force = max_contact_force
-                # 3. Complete force vector accounting for normal and friction forces
-                # total_force_magnitude = 0.0
-                # for pt in contact_points:
-                #     fn = pt[9]   # Normal force
-                #     f_fric1 = pt[10] # Friction force 1
-                #     f_fric2 = pt[12] # Friction force 2
-                #     # Resultant 3D force magnitude for this point
-                #     f_point = np.sqrt(fn**2 + f_fric1**2 + f_fric2**2)
-                #     total_force_magnitude += f_point
-                if max_contact_force > 0.5:  # Threshold to avoid false positives
-                   # print(f"Total Normal Force: {total_normal_force:.2f} N")
-                #print(f"Max Point Force: {max_contact_force:.2f} N")
+
+                # Deepest penetration distance among all active contact points
+                self.contact_distance = min(pt[8] for pt in valid_contacts)
+
+                # Apply force threshold to set final contact flags
+                if max_contact_force > 0.5:
                     self.anycontact = 1
                     self.contact = 1
                 else:
                     self.contact = 0
-            
+            else:
+                self.contact = 0
+                self.max_contact_force = 0.0
+                self.contact_distance = 0.0
        
         # if self.contact==1:
         #     #p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8]}') ## print contact distance for debugging
@@ -605,11 +604,11 @@ class fracturesurgery_env_v2(gym.Env):
         #        'Contact: ', self.anycontact)
         #if done or truncated:
         
-        if done:
-           # time.sleep(100)
-            print('yay')
-        elif truncated:
-            print(f'truncated {self.maximum_force}')#,{self.pos_distance},{self.angle},{actual_New_Position},{actual_New_Orientation},{self.isHolding},{self.contact}')
+        # if done:
+        #    # time.sleep(100)
+        #     print('yay')
+        # elif truncated:
+        #     print(f'truncated {self.maximum_force}')#,{self.pos_distance},{self.angle},{actual_New_Position},{actual_New_Orientation},{self.isHolding},{self.contact}')
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
