@@ -588,6 +588,7 @@ class fracturesurgery_env_v2(gym.Env):
         
         #print('Max Force: ', self.maximum_force, 'Filtered Force',self.filtered_force)
         done = env_utils.check_done(self)
+        exploded = False
         #print(actual_New_Position, actual_New_Orientation,self.pos_distance,self.angle)
         if self.test and (avg_force >= 100 or self.isHolding ==0):
             print('Terminating episode due to excessive force during testing.')
