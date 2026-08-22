@@ -521,7 +521,7 @@ class fracturesurgery_env_v2(gym.Env):
         #     print('Contact within {0:.4f} mm'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8] * 1000))
         if self.contact:
             contact_points = p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=-1, linkIndexB=-1)
-            if contact_points and contact_points[0][8] < -0.0001: ## check contact distance to avoid false positives from close proximity, currently set to 0.5mm
+            if contact_points and contact_points[0][8] < -0.000: ## check contact distance to avoid false positives from close proximity, currently set to 0.5mm
                 self.contact_distance = contact_points[0][8]
                 #print('Contact within {}'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8]))
                 #print('Contact!!, goal distance: ', self.pos_distance, 'angle: ', self.angle, 'goal:', self.target_position)
