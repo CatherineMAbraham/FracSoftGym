@@ -593,6 +593,7 @@ class fracturesurgery_env_v2(gym.Env):
             print('Terminating episode due to excessive force during testing.')
             truncated = True
             reward = -100
+            exploded = True
         else:
             truncated = self.current_step >= self.max_steps and not done
         
@@ -617,6 +618,7 @@ class fracturesurgery_env_v2(gym.Env):
                 'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 
                 'young_modulus': self.young_modulus,
                 'contact_force':self.max_contact_force,
+                'exploded': exploded,
                 'contact_distance':self.contact_distance,
                 'width': self.width}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
