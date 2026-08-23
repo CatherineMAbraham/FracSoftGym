@@ -538,7 +538,7 @@ class fracturesurgery_env_v2(gym.Env):
                 self.contact_distance = min(pt[8] for pt in valid_contacts)
 
                 # Apply force threshold to set final contact flags
-                if max_contact_force > 0.5:
+                if max_contact_force > 0.2:
                     self.anycontact = 1
                     self.contact = 1
                 else:
