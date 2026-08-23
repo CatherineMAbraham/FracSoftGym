@@ -48,7 +48,8 @@ class fracturesurgery_env_v2(gym.Env):
         randomise_start = False,
         patient = None,
         width = 0.005,
-        test = False
+        test = False,
+        maximum_contact_force_threshold = 0.2
     ):
         """Gym Environment for training agents to perform fracture reduction surgery with a robotic manipulator.
         Args:
@@ -87,6 +88,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.vtk_file = vtk_file
         self.distance_threshold_pos = distance_threshold_pos
         self.distance_threshold_ori = distance_threshold_ori
+        self.maximum_contact_force_threshold = maximum_contact_force_threshold
         self.start_pos = start_pos # 'home' or 'extended'
         self.max_force = maxforce
         self.contact_type = contact_type
@@ -538,7 +540,7 @@ class fracturesurgery_env_v2(gym.Env):
                 self.contact_distance = min(pt[8] for pt in valid_contacts)
 
                 # Apply force threshold to set final contact flags
-                if max_contact_force > 0.2:
+                if max_contact_force > self.maximum_contact_force_threshold:
                     self.anycontact = 1
                     self.contact = 1
                 else:
