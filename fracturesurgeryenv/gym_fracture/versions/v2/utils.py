@@ -108,7 +108,7 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
     p.performCollisionDetection()
     
     # 4. Check for contact between the moved foot and the static leg
-    #contacts = p.getContactPoints(bodyA=env.foot, bodyB=env.leg, linkIndexA=1, linkIndexB=-1)
+    contacts = p.getContactPoints(bodyA=env.foot, bodyB=env.leg, linkIndexA=1, linkIndexB=-1)
     ## check how close it is to the goal to see if pose is physically possible
     position = p.getLinkState(env.pandaUid, 11)[0]
     orientation = p.getLinkState(env.pandaUid, 11)[1]
@@ -121,20 +121,20 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
     #     print(f'Orientation is valid {goal_quat}')
     # 5. Restore original position immediately
     #p.resetBasePositionAndOrientation(env.foot, orig_foot_pos, orig_foot_ori)
-    # for i in range(9):
-    #        p.resetJointState(env.pandaUid,i, joint_states[i][0])
-    #       # time.sleep(1)
-    # #time.sleep(5)
-    # #print('Back at home')
-    # #if len(contacts) == 0 and ori <=env.distance_threshold_ori and pos <= env.distance_threshold_pos:
-    # #     valid = True
-    # # else:
-    # #     valid = False
-    #     #[print(f"Joint {i} attempted: {new_states[i]:.4f} rad") for i in range(9)]
-    #     #print(f'Goal pose is invalid due to contact(s) with the leg.')
-    #     print(f'Goal pose is invalid: Pos Dist={pos} m, Ori Dist={np.degrees(ori)} deg, Contacts={len(contacts)}')
-    # # If len(contacts) > 0, the goal pose is physically impossible
-    # return valid# also check if orientation is within 30 degrees of goal orientation
+    for i in range(9):
+           p.resetJointState(env.pandaUid,i, joint_states[i][0])
+          # time.sleep(1)
+    #time.sleep(5)
+    #print('Back at home')
+    if len(contacts) == 0 and ori <=env.distance_threshold_ori and pos <= env.distance_threshold_pos:
+        valid = True
+    else:
+        valid = False
+        #[print(f"Joint {i} attempted: {new_states[i]:.4f} rad") for i in range(9)]
+        #print(f'Goal pose is invalid due to contact(s) with the leg.')
+        print(f'Goal pose is invalid: Pos Dist={pos} m, Ori Dist={np.degrees(ori)} deg, Contacts={len(contacts)}')
+    # If len(contacts) > 0, the goal pose is physically impossible
+    return valid# also check if orientation is within 30 degrees of goal orientation
 # def is_goal_in_range(env):
 #     goal_high = np.array([ 0.31951126, -0.03799936,  0.15826347])
 #     goal_low = [ 0.29451126, -0.06799936,  0.15226347]
@@ -208,7 +208,7 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
     env.goal_ori_high=np.radians(fractureorientaionDeg + [15,5,15])
    # print(f'Fracture Start: {fracturestart}, Orientation: {fractureorientaionDeg}')
     #print(f'Goal Pos Range Low: {env.goal_range_low}, High: {env.goal_range_high}')
-    #print(f'Goal Ori Low: {(env.goal_ori_low)}, High: {(env.goal_ori_high)}')
+    print(f'Goal Ori Low: {(env.goal_ori_low)}, High: {(env.goal_ori_high)}')
     #print('Goal Pos Range Low:', env.goal_range_low, 'High:', env.goal_range_high,'Goal Ori Low:', env.goal_ori_low, 'High:', env.goal_ori_high)
     fracturestart_end = np.array(fracturestart - np.array([-0.01,0.045,0]))
     a = fracturestart - limit_low#[0.0125,0.0,-0.003] 
@@ -309,8 +309,8 @@ def getStarts(env):
     # if isinstance(env.goal_type, str):
     #     pass
     # else:
-    #fracturestart=np.array([ 0.34701957, -0.03,0.07526956])#-np.array([0,0.03,0])#(0.3487603762848476, -0.08310808157863893, 0.07322828156663022)#([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])#[ 0.3468140278354482, -0.029897614059223178, 0.07524706439920568]
-    #print(fracturestart)
+    fracturestart=np.array([ 0.34701957, -0.03,0.07526956])#-np.array([0,0.03,0])#(0.3487603762848476, -0.08310808157863893, 0.07322828156663022)#([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])#[ 0.3468140278354482, -0.029897614059223178, 0.07524706439920568]
+    print(fracturestart)
     # [ 0.30702814 -0.06013873  0.15526305], foot ori: [ 4.33410682e-04 -1.40125743e-04  7.08949001e-01  7.05259602e-01], goal pos: [ 0.30729738 -0.03948561  0.15312103], goal ori: [ 0.99281821 -0.01780929  0.0186322  -0.11682327]
     return fracturestart, fractureorientaionDeg#, legstart
 
@@ -816,21 +816,93 @@ def drawAABB(env,object,link):
     f = [aabbMax[0], aabbMax[1], aabbMax[2]]
     t = [aabbMax[0], aabbMax[1], aabbMin[2]]
     p.addUserDebugLine(f, t, [1, 1, 1])
+    
 
-def apply_contact_dampening(self, dx, dy, dz, max_force=0.25):
-    # Only dampen if currently in physical contact
-    if not self.contact or self.max_contact_force <= 0:
-        return dx, dy, dz
 
-    # Calculate how close current force is to your threshold (0.25 N)
-    force_ratio = self.max_contact_force / max_force
+def apply_cbf_safety_filter_diagnostic(
+    env,
+    dx,
+    dy,
+    dz,
+    gamma=0.25,
+    stiffness=1000.0,
+    max_correction_step=0.001,
+    alpha=0.6,
+    workspace_min=None,
+    workspace_max=None,
+    debug_viz=False,
+    step_idx=0,
+):
+    """CBF Safety Filter with tangential sliding and workspace bounding."""
+    v_nom = np.array([dx, dy, dz], dtype=np.float64)
 
-    # Start dampening step speed when force exceeds 80% of threshold
-    if force_ratio > 0.8:
-        # Smoothly scale step size down (e.g., down to 15% minimum step size)
-        scale = max(0.15, 1.0 - (force_ratio - 0.8) * 2.0)
-        
-        # Scaling the whole vector keeps direction untouched
-        return dx * scale, dy * scale, dz * scale
+    # 1. Fetch EE Position (Link 11 on Panda) if workspace bounds provided
+    ee_pos = None
+    if workspace_min is not None and workspace_max is not None:
+        try:
+            ee_pos = np.array(p.getLinkState(env.pandaUid, 11)[0])
+        except Exception:
+            ee_pos = None
 
-    return dx, dy, dz
+    # 2. Query Contact Manifolds across all links
+    contacts = p.getContactPoints(bodyA=env.foot, bodyB=env.leg)
+    valid_contacts = [pt for pt in contacts if pt[9] > 0.0] if contacts else []
+
+    # Handle Case: No Active Surface Contact
+    if not valid_contacts:
+        env.f_smooth = (1.0 - alpha) * getattr(env, "f_smooth", 0.0)
+        v_safe = v_nom.copy()
+
+        # Enforce Workspace Bounds
+        if ee_pos is not None:
+            clamped_pos = np.clip(ee_pos + v_safe, workspace_min, workspace_max)
+            v_safe = clamped_pos - ee_pos
+
+        return v_safe[0], v_safe[1], v_safe[2]
+
+    # 3. Smooth Force Tracking
+    raw_force_max = max(pt[9] for pt in valid_contacts)
+    current_smooth = getattr(env, "f_smooth", 0.0)
+    env.f_smooth = alpha * raw_force_max + (1.0 - alpha) * current_smooth
+
+    # 4. Compute Normal Vector pointing INTO the obstacle surface
+    # PyBullet pt[7] (contactNormalOnB) points OUT of bodyB (leg) into bodyA (foot).
+    # Moving INTO the leg corresponds to moving opposite to pt[7], or using +pt[7] depending on frame.
+    normals = [np.array(pt[7]) for pt in valid_contacts]
+    n_push = np.mean(normals, axis=0)
+    norm_len = np.linalg.norm(n_push)
+
+    if norm_len < 1e-8:
+        v_safe = v_nom.copy()
+    else:
+        n_push /= norm_len  # Unit surface normal into obstacle
+
+        # 5. Control Barrier Function Limit
+        f_thresh = getattr(env, "maximum_contact_force_threshold", 0.70)
+        h_force = f_thresh - env.f_smooth
+
+        # Maximum allowed velocity component pushing into the surface
+        max_allowed_push_step = (gamma * h_force) / stiffness
+
+        # Decompose nominal velocity into normal and tangential components
+        v_normal_mag = np.dot(v_nom, n_push)
+        v_tangential = v_nom - (v_normal_mag * n_push)
+
+        # 6. Apply Filter: Cap ONLY normal velocity, preserve tangential sliding
+        if v_normal_mag > max_allowed_push_step:
+            v_normal_clamped = min(v_normal_mag, max_allowed_push_step)
+            # Enforce maximum correction step delta
+            if (v_normal_mag - v_normal_clamped) > max_correction_step:
+                v_normal_clamped = v_normal_mag - max_correction_step
+
+            v_safe = v_tangential + (v_normal_clamped * n_push)
+        else:
+            v_safe = v_nom.copy()
+
+    # 7. Workspace Boundary Clamping (Final Pass)
+    if ee_pos is not None:
+        target_pos = ee_pos + v_safe
+        clamped_pos = np.clip(target_pos, workspace_min, workspace_max)
+        v_safe = clamped_pos - ee_pos
+
+    return v_safe[0], v_safe[1], v_safe[2]

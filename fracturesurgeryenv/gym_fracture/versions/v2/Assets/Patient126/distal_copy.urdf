@@ -22,7 +22,7 @@
   <joint name="ankle_mount_joint" type="fixed">
     <parent link="moving_link"/>
     <child link="pin_link"/>
-    <origin xyz="0 0.08 0.002" rpy="-1.57 0 0"/>
+    <origin xyz="0 0.08 0.0" rpy="-1.57 0 0"/>
   </joint>
 
   <link name="pin_link">
