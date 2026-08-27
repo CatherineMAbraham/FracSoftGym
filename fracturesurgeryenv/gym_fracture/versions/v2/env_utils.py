@@ -4,16 +4,16 @@ from gym_fracture.versions.v2 import utils
 
 def set_observation_space(env):
     if env.action_type == 'ori_only':
-        obs_shape = 37 
+        obs_shape = 35  
         goal_shape = 5
     elif env.action_type == "pos_only":
-        obs_shape = 38  
+        obs_shape = 35  
         goal_shape = 4
     elif env.contact_type == True:
         obs_shape = 38
         goal_shape = 10
     else:
-        obs_shape = 37
+        obs_shape = 38
         goal_shape = 9 ## now we're going to add contact to the goal anyway as a 'dummy' variable, so we can keep the goal shape the same for both contact and non-contact environments
     if env.obs_type == 'dict':
         env.observation_space = spaces.Dict({
@@ -163,7 +163,7 @@ def compute_reward_dense(env, achieved_goal, desired_goal, info):
         return -d1 + e
     
 def set_observation(env, pos, ori, vel, jointPoses, jointVelocities, 
-                    force,contact,contact_distance,max_contact_force,position, angle,left_contact, right_contact, dist, isHolding):
+                    force,contact,contact_distance,contact_force, position,angle,left_contact, right_contact, dist, isHolding):
     if env.action_type == 'ori_only':
         observation = np.concatenate([
         np.array(pos),
@@ -174,7 +174,7 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
         np.array([force]),
         np.array([contact]),
         np.array([contact_distance]),
-        np.array([max_contact_force]),
+        np.array([contact_force]),
         np.array([angle]),
         np.array([left_contact]),
         np.array([right_contact]),
@@ -191,7 +191,9 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
                 np.array([force]),
                 np.array([contact]),
                 np.array([contact_distance]),
-                np.array([max_contact_force]),
+                np.array([contact_force]),
+                np.array([position]),
+                np.array([angle]),
                 np.array([left_contact]),
                 np.array([right_contact]),
                 np.array([dist]),
@@ -207,7 +209,7 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
             np.array([force]),
             np.array([contact]),
             np.array([contact_distance]),
-            np.array([max_contact_force]),
+            np.array([contact_force]),
             np.array([position]),
             np.array([angle]),
             np.array([left_contact]),

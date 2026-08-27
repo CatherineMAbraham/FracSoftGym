@@ -4,6 +4,7 @@
 from collections import deque
 from turtle import width
 
+from gym_fracture.versions.v2.Assets import transformation_matrices
 import gymnasium as gym
 from gymnasium import spaces
 import os
@@ -101,7 +102,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.width = width
         self.randomise_ligs = randomise_ligs
         self.randomise_start = randomise_start
-        self.alpha = 1  # Set alpha between 0.05 and 0.1
+        self.alpha = 0.2 # Set alpha between 0.05 and 0.1
         self.force_window = deque(maxlen=5)
         ## Initialise variables to 0 
         self.episodes_done = 0
@@ -112,6 +113,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.goal_ori_low = np.zeros(3)
         self.goal_ori_high = np.zeros(3)
         self.current_step = 0
+        self.filtered_contact_force = 0.0
         self.pos_distance = 0.0
         self.angle = 0.0
         self.n = 0
@@ -120,7 +122,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.eval_count = 0
         self.not_valid_count = 0
         self.goal_gen_count = 0
-        
+        self.f_smooth = 0.0
         ## Rendering setup
          ## need to fix this and add a render function, keep getting a warning about it
         
@@ -175,8 +177,9 @@ class fracturesurgery_env_v2(gym.Env):
         self.output_force = 0
         self.maximum_force = 0
         self.max_contact_force=0
-        self.contact_distance =float('inf')
+        self.contact_distance =0
         self.anycontact = 0
+        self.filtered_contact_force = 0.0
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
         
@@ -217,6 +220,8 @@ class fracturesurgery_env_v2(gym.Env):
         footorientation = p.getQuaternionFromEuler([90/180*np.pi,-0/180*np.pi, 0])#p.getQuaternionFromEuler([orientation[0], orientation[1], orientation[2]])
         #p.getQuaternionFromEuler([90/180*np.pi,0, 0])
         #footorientation = np.array([0.6992329955101013, 0.3331104815006256, 0.29179978370666504, 0.5612159967422485])
+        if self.patient == 198:
+                    footorientation = p.getQuaternionFromEuler([0,0, 0])
         self.foot = p.loadURDF(foot_path, basePosition=fracturestart, 
                                   baseOrientation=footorientation, 
                                     useFixedBase=0,
@@ -240,15 +245,15 @@ class fracturesurgery_env_v2(gym.Env):
         #difference = np.array([0.01,0.07,0.01]) #102
         difference = np.array([0,0.09,0])
         # don't overwrite `self.foot` (body id); read link state into local vars
-        foot = np.array(p.getLinkState(self.foot, 1,computeForwardKinematics=True)[0])
-        #print('Foot position:', foot)
+        #foot = np.array(p.getLinkState(self.foot, -1,computeForwardKinematics=True)[0])
+        #print('Foot position:', p.getBasePositionAndOrientation(self.foot)[0])
         foot_ori = np.array(p.getLinkState(self.foot, 1,computeForwardKinematics=True)[1])
         #print('Foot position:', foot)
         #print('Foot orientation (quaternion):', foot_ori)
       
         leg_orientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
         #leg_start = np.array([0.3470195700516103, -0.15000000000594865, 0.07526955827664446])#fracturestart-np.array([0.0,0.09,0])#np.array([0.35706788301467896, -0.1598062852025032, 0.07526329159736633])
-        #goal, leg_start = get_patient_goal(self, self.patient)
+        goal, leg = get_patient_goal(self, self.patient)
         #print('Leg start position:', leg_start)
         #leg_start =np.array([0.3370195700516103, -0.16000000000594865, 0.07526955827664446])#
         #leg_start = np.array([ 0.34701957,-0.06,0.04526956])-np.array([-0.00,-0.005,0.01])
@@ -257,30 +262,23 @@ class fracturesurgery_env_v2(gym.Env):
         ##rotate foot by 90 deg too
         #foot_ori = p.multiplyTransforms([0, 0, 0], leg_orientation, [0, 0, 0], foot_ori)[1]
         #new_foot = p.resetBasePositionAndOrientation(self.foot, foot, foot_ori)
-        #leg_pos = leg_start[0]
-        #leg_orientation = leg_start[1][0]
+        #leg_start = leg[0]-[0,1,0]
+        #leg_orientation = leg[1]
         #print('Leg start position:', leg_pos)
-        leg_start = fracturestart - np.array([0,0.09,0])
+        leg_start = fracturestart - np.array([0,1,0])
         #leg_orientation = np.array([0.7044160264027587, -0.06162841671621936, 0.06162841671621935, 0.7044160264027588])
         #print('Leg start orientation (quaternion):', leg_orientation)
         ##Load Leg
-        self.leg = p.loadURDF(leg_path,
-                        basePosition =leg_start,
-                     baseOrientation = leg_orientation,
-                        globalScaling = 1.0,
-                        useFixedBase = 1)
+        
         #time.sleep(100)
         #leg_orientation = p.getBasePositionAndOrientation(self.leg)[1]
         #leg_start = p.getBasePositionAndOrientation(self.leg)[0]
         #print('Leg position:', leg_start)
        # print('Leg orientation (quaternion):', np.rad2deg(p.getEulerFromQuaternion(leg_orientation)))
-        dynamics.change_leg_dynamics(self)
-        p.changeVisualShape(self.leg, -1, rgbaColor=[0.8, 0.8, 0.8, 1])  
-        p.setCollisionFilterGroupMask(self.foot, -1, collisionFilterGroup=0, collisionFilterMask=0)
-        p.setCollisionFilterGroupMask(self.leg, -1, collisionFilterGroup=0, collisionFilterMask=0)
+        
         ##Settle
         #print('Settling the simulation...') 
-       # time.sleep(100)
+        #time.sleep(10)
         for _ in range(10):
             p.stepSimulation()
         #time.sleep(0.1)
@@ -299,17 +297,17 @@ class fracturesurgery_env_v2(gym.Env):
         #     #self.goal_ori = goal_ori#np.array(p.getQuaternionFromEuler(goal_ori))
         #     ori_change = p.getQuaternionFromEuler([9.08/180*np.pi,0, 0])#np.array([0.99999994124027, 0.0003417183131417258, 2.7327058643906894e-05, -1.132662577527209e-06])
         #    # self.goal_ori = np.array(p.multiplyTransforms([0, 0, 0], ori_change, [0, 0, 0], p.getLinkState(self.pandaUid, 11)[1])[1])
-            self.target_position, pos, orientation = get_goal_from_proximal_pose(self, 
-                                                                                 self.patient,
-                                                                                 leg_start,
-                                                                                 leg_orientation,
-                                                                                 foot,
-                                                                                 foot_ori)
-            self.goal_pos = np.array([ 0.29517541, -0.07789279,  0.13343939])-np.array([-0.010,-0.01,-0.006])#np.array([0.3121838, -0.08800575, 0.15520251]) - np.array([0.01,-0.03,-0.01])#pos
+            # self.target_position, pos, orientation = get_goal_from_proximal_pose(self, 
+            #                                                                      self.patient,
+            #                                                                      leg_start,
+            #                                                                      leg_orientation,
+            #                                                                      self.foot,
+            #                                                                      foot_ori)
+           # self.goal_pos = np.array([ 0.29517541, -0.07789279,  0.13343939])-np.array([-0.010,-0.01,-0.006])#np.array([0.3121838, -0.08800575, 0.15520251]) - np.array([0.01,-0.03,-0.01])#pos
         #     #([0.33048725, -0.07570115, 0.06105522])
         #     #np.array([0.3379683792591095, -0.0786883607506752, 0.06340644508600235])- np.array([0.,-0.005,-0.01])
         #     #np.array([0.34174003, -0.08506263,  0.16001045]) - np.array([0.,-0.02,-0.005])#np.array([0.34174003, -0.08506263,  0.16001045]) - np.array([0.01,0.01,0.005])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])
-            goal_ori = p.getEulerFromQuaternion(p.getLinkState(self.pandaUid, 11)[1])-np.array([0,10/180*np.pi, 0])
+         #   goal_ori = p.getEulerFromQuaternion(p.getLinkState(self.pandaUid, 11)[1])-np.array([0,10/180*np.pi, 0])
 
         #     #np.array([ 0.30383321, -0.0970693,   0.15603161])-np.array([0.01,-0.022,0.001])#np.array([0.35496586561203003, -0.08662302792072296, 0.07155311107635498])-np.array([0.01,-0.01,-0.005])#np.array([ 0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,-0.005,0.00])#([0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,0.005,0.005])#np.array([0.32180062,-0.09246775, 0.15800003]) - np.array([0.005,0.005,0.005])
         #     self.goal_ori = np.array(p.getQuaternionFromEuler(goal_ori))#np.array([0.07660838, 0.10599642, 0.76543734, 0.63008062])
@@ -317,28 +315,51 @@ class fracturesurgery_env_v2(gym.Env):
         #     #p.getQuaternionFromEuler(np.array([89/180*np.pi, 15/180*np.pi, 11/180*np.pi]))
         #     #np.array(p.getQuaternionFromEuler(goal_ori))
         #    # print('Goal position:', self.goal_ori)
-            #self.goal_pos = goal[0]#np.array([0.31803113376479907, -0.08517002163540139, 0.1481109452402959])#goal[0]
+            self.goal_pos = goal[0]#np.array([0.31803113376479907, -0.08517002163540139, 0.1481109452402959])#goal[0]
             #goal_ori = goal[1]#p.getEulerFromQuaternion(goal[1])-np.array([3/180*np.pi,1/180*np.pi, 0/180*np.pi])
             #print('Goal position:', self.goal_pos, 'Goal orientation (quaternion):', goal_ori)   
-            #goal[1]
-            self.goal_ori =np.array(p.getQuaternionFromEuler(goal_ori))#np.array([-0.06132328,-0.06193331,0.70415999,0.70467186])#np.array(p.getQuaternionFromEuler(goal_ori))#np.array([0.999857944938553, 0.0034038286589975777, -0.014537799360434847, 0.007820248299749461])#np.array(p.getQuaternionFromEuler(goal_ori))
+            self.goal_ori = goal[1]
+           # self.goal_ori =np.array(p.getQuaternionFromEuler(goal_ori))#np.array([-0.06132328,-0.06193331,0.70415999,0.70467186])#np.array(p.getQuaternionFromEuler(goal_ori))#np.array([0.999857944938553, 0.0034038286589975777, -0.014537799360434847, 0.007820248299749461])#np.array(p.getQuaternionFromEuler(goal_ori))
             self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#np.array([ 0.32180062,-0.09246775, 0.15800003,0.9999999728200057, 0.00023313980271510995, -8.89660707914592e-08, 2.4108688676344187e-06])#2.81656109e-04, -2.81431908e-04,  7.06825125e-01,  7.07388213e-01])
-            
+       # print(f'Goal position: {self.goal_pos}, Goal orientation (quaternion): {self.goal_ori}')
+        #self.target_position = utils.is_goal_in_range(self)
+       #
+        #self.goal_pos = self.target_position[0:3]
+        #self.goal_ori = self.target_position[3:7]
+        #print(f'New Clipped Goal position: {self.target_position[0:3]}, New Clipped Goal orientation (quaternion): {self.goal_ori}')
+        #print(f'New Clipped Goal position: {self.target_position[0:3]}, New Clipped Goal orientation (quaternion): {self.goal_ori}')
+        #print(f'foot start: {foot}, foot ori: {foot_ori}, goal pos: {self.goal_pos}, goal ori: {self.goal_ori}')
         # Dummy visual shape for goal marker
-            valid = utils.is_goal_configuration_valid(self,self.goal_pos, self.goal_ori)
+            #valid = utils.is_goal_configuration_valid(self,self.goal_pos, self.goal_ori)
            # time.sleep(10)
         #utils.is_goal_configuration_valid(self,self.goal_pos, self.goal_ori)
         goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
-                            basePosition=self.goal_pos, baseOrientation=self.goal_ori)
+                            basePosition=self.target_position[0:3], baseOrientation=self.goal_ori)
         #time.sleep(1)
         
        ## Enable force/torque sensors
         [p.enableJointForceTorqueSensor(self.pandaUid, joint, enableSensor=True) for joint in range(p.getNumJoints(self.pandaUid))]
         p.enableJointForceTorqueSensor(self.foot, 1, enableSensor=True) # Load cell joint 
-        
+        leg_start, leg_start_ori = transformation_matrices.get_leg_start_working(self)
+        #leg_start = fracturestart - np.array([0,0.09,0])
+       # leg_start = (0.3470195700516103, -0.13000000000594865, 0.07526955827664446)
+        ## need to combine leg_orientation and leg_start_ori to get the correct orientation for the leg
+        #leg_orientation = p.multiplyTransforms([0, 0, 0], leg_start_ori, [0, 0, 0], leg_orientation)[1]
+        #leg_start = [0.35707396,0.13249574,0.00356559 ]
+        #print('Leg start position:', leg_start)
+        if self.patient == 198:
+            leg_orientation = p.getQuaternionFromEuler([0,0, 0])
+        self.leg = p.loadURDF(leg_path,
+                        basePosition =leg_start,#-[0,1,0],
+                        baseOrientation = leg_orientation,
+                        globalScaling = 1.0,
+                        useFixedBase = 1)
         ##
         
-       
+        dynamics.change_leg_dynamics(self)
+        p.changeVisualShape(self.leg, -1, rgbaColor=[0.8, 0.8, 0.8, 1])  
+        p.setCollisionFilterGroupMask(self.foot, -1, collisionFilterGroup=0, collisionFilterMask=0)
+        p.setCollisionFilterGroupMask(self.leg, -1, collisionFilterGroup=0, collisionFilterMask=0)
         ##Initial Observation
         initial_pos = p.getLinkState(self.pandaUid, 11)[0]
         initial_or = p.getLinkState(self.pandaUid, 11)[1]
@@ -347,7 +368,7 @@ class fracturesurgery_env_v2(gym.Env):
         # use helper to get 0/1 contact flags
         left_contact = utils.contact_flag(self, 9)
         right_contact = utils.contact_flag(self, 10)
-
+        #print(f'initial_pos: {initial_pos}, initial_or: {initial_or}, left_contact: {left_contact}, right_contact: {right_contact}, dist: {self.dist}')
 
         initial_isHolding = utils.is_holding(self, left_contact, right_contact, self.dist)
         initial_vel = p.getLinkState(self.pandaUid, 11, 1)[6]
@@ -357,25 +378,13 @@ class fracturesurgery_env_v2(gym.Env):
         initial_isHolding = int(initial_isHolding)
         initial_force = p.getJointState(self.foot, 1)[2]  # Joint index 0 is the fixed joint
         initial_force = np.linalg.norm(initial_force[0:3])
-        #print('Initial Force:', initial_force)
-        #get initial force without normalization
-        #initial_f = np.linalg.norm(force)#utils.visualize_contact_forces(self,self.pandaUid, self.foot)
-        #print(initial_or)
-        # self.contact = int(bool(p.getContactPoints(self.foot, self.leg,1,-1)))
-        # if int(bool(p.getContactPoints(self.foot, self.leg,1,-1))) == 1:
-        #     self.contact = 1 if (p.getContactPoints(self.foot, self.leg,1,-1))[8]<self.distance_threshold_pos else 0
-        # Query PyBullet once and store the tuple of contact points
+       
         contacts = p.getContactPoints(self.foot, self.leg, -1, -1)
 
         # Check if contacts exist AND if any contact distance is below your threshold
         self.contact = 1 if (contacts and any(pt[8] < 0 for pt in contacts)) else 0
         if self.contact ==1:
             print(f"Contact detected with distance: {(p.getContactPoints(self.foot, self.leg,1,-1))[8]:.4f} m")
-            self.contact_distance = (p.getContactPoints(self.foot, self.leg,-1,-1))[8]
-            self.max_contact_force = max(pt[9] for pt in contacts)  # Get the maximum contact force from all contact points
-        else:
-            self.contact_distance = float('inf')  # No contact, set distance to infinity
-            self.max_contact_force = 0.0
         #print((p.getContactPoints(self.foot, self.leg,1,-1)))
         env_utils.set_observation(self, 
                                   initial_pos, 
@@ -386,7 +395,7 @@ class fracturesurgery_env_v2(gym.Env):
                                   initial_force,
                                   self.contact,
                                   self.contact_distance,
-                                  self.max_contact_force,
+                                  self.filtered_contact_force,
                                   self.pos_distance,
                                   self.angle,
                                   left_contact,
@@ -453,12 +462,9 @@ class fracturesurgery_env_v2(gym.Env):
             'pos_only': 'pos_only'
         }
         mode = mode_map.get(self.action_type, None)
-
         
         new_Position, new_Orientation = utils.get_new_pose(self,dx, dy, dz, qx, qy, qz, qw, mode)
-        #print(f"New Position: {new_Position}, New Orientation: {new_Orientation}")
-        #new_Position = np.array([0.32091317, -0.07630774,  0.15682939])
-        #new_Orientation = np.array([0.98674402,  0.09496498, -0.13048336,  0.01708737])
+       
         if self.action_type == 'pos_only':
             jointPoses = p.calculateInverseKinematics(self.pandaUid, 11, targetPosition=new_Position, maxNumIterations=10, residualThreshold=1e-4)
         else:
@@ -484,36 +490,19 @@ class fracturesurgery_env_v2(gym.Env):
         
         start_pos = np.array([p.getJointState(self.pandaUid, j)[0] for j in range(9)])
         
-        #p.setJointMotorControlArray(self.pandaUid, list(range(9)), p.POSITION_CONTROL,targetPositions = jointPoses,forces=max_force)#, maxVelocities=max_vel)
-        # alpha = 0.1
-        # if self.soft_tissue=='spring':
-        #    self.output_force, max_step_force,avg_force,all_mean= utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
-        #    self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
-        #    if self.filerted_force > self.maximum_force:
-        #         self.maximum_force = self.filerted_force
-        # elif self.soft_tissue=='soft':
-        #     self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
-        #     self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
-        #     if self.filerted_force > self.maximum_force:
-        #         self.maximum_force = self.filerted_force
-        # else: 
-        #     self.output_force,max_step_force, avg_force, all_mean = utils.smooth_motion(self, jointPoses, start_pos, max_joint_force, numsubsteps=12)
-        #     self.filerted_force = (alpha * avg_force) + ((1 - alpha) * self.filerted_force)
-        #     if self.filerted_force > self.maximum_force:
-        #         self.maximum_force = self.filerted_force
         self.output_force, max_step_force, avg_force, all_mean = utils.smooth_motion(
                 self, jointPoses, start_pos, max_joint_force, numsubsteps=12
             )
     
-          
+        alpha_step = 1  
         spike_threshold = 15.0  # Define a threshold for spike detection: Pybullet gives random spikes in force,
         # going to ignore any readings above 15N which is likely just a spike and not a real reading 
         if avg_force > spike_threshold:
             self.filtered_force = self.filtered_force  # Ignore spike, keep previous filtered value
         else:
-            self.filtered_force = (self.alpha * avg_force) + ((1.0 - self.alpha) * self.filtered_force)
+            self.filtered_force = (alpha_step * avg_force) + ((1.0 - alpha_step) * self.filtered_force)
 
-        
+       
         # 6. Peak-hold tracking for maximum observed filtered force
         if self.filtered_force > self.maximum_force:
             self.maximum_force = self.filtered_force
@@ -525,44 +514,34 @@ class fracturesurgery_env_v2(gym.Env):
         #print(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1))
         stretch = np.array(p.getLinkState(self.foot, 1)[0]) - np.array(p.getBasePositionAndOrientation(self.leg)[0])
         stretch = np.linalg.norm(stretch)
-        self.contact = int(bool(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=-1, linkIndexB=-1))) ## check for contact between foot and leg, can adjust distance threshold if needed, currently set to -1mm to avoid false positives from close proximity  
+        contact_points = p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=-1, linkIndexB=-1) ## check for contact between foot and leg, can adjust distance threshold if needed, currently set to -1mm to avoid false positives from close proximity  
         # if self.contact:
         #     print('Contact within {0:.4f} mm'.format(p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8] * 1000))
-        if self.contact:
-    # 1. Fetch ALL contact points between bodyA and bodyB
-            contact_points = p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=-1, linkIndexB=-1)
+        
+        valid_contacts = [pt for pt in contact_points if pt[8] < -0.000] if contact_points else []
+
+        if valid_contacts:
+            self.max_contact_force = max(pt[9] for pt in valid_contacts)
+            self.contact_distance = min(pt[8] for pt in valid_contacts)
             
-            # 2. Filter ALL contact points where penetration distance is < -0.000 m (0.5mm threshold or similar)
-            valid_contacts = [pt for pt in contact_points if pt[8] < -0.000] if contact_points else []
+            # Update EMA filter smoothly during active contact
+            self.filtered_contact_force = (self.alpha * self.max_contact_force) + ((1.0 - self.alpha) * self.filtered_contact_force)
 
-            if valid_contacts:
-                # Sum of normal forces across ALL valid contact points
-                total_normal_force = sum(pt[9] for pt in valid_contacts)
-
-                # Maximum collision force across ALL valid contact points
-                max_contact_force = max(pt[9] for pt in valid_contacts)
-                self.max_contact_force = max_contact_force
-
-                # Deepest penetration distance among all active contact points
-                self.contact_distance = min(pt[8] for pt in valid_contacts)
-
-                # Apply force threshold to set final contact flags
-                if max_contact_force > self.maximum_contact_force_threshold:
-                    self.anycontact = 1
-                    self.contact = 1
-                else:
-                    self.contact = 0
+            # Threshold only determines the binary contact flag, NOT the filter state
+            if self.filtered_contact_force > self.maximum_contact_force_threshold:
+                self.anycontact = 1
+                self.contact = 1
             else:
                 self.contact = 0
-                self.max_contact_force = 0.0
-                self.contact_distance = 0.0
-       
-        # if self.contact==1:
-        #     #p.getContactPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1)[0][8]}') ## print contact distance for debugging
-        #     self.anycontact = 1
-            #print('Contact!')
+                # Do NOT clear self.filtered_contact_force here; let EMA accumulate!
+        else:
+            # Reset filter ONLY when physical contact is completely broken
+            self.contact = 0
+            self.max_contact_force = 0.0
+            self.filtered_contact_force = 0.0
+            self.contact_distance = 0.0
         
-        ## Observation Update
+        
         actual_New_Position = p.getLinkState(self.pandaUid, 11)[0]
         actual_New_Orientation = p.getLinkState(self.pandaUid, 11)[1]
         actual_New_Velocity = p.getLinkState(self.pandaUid, 11, 1)[6]
@@ -576,10 +555,7 @@ class fracturesurgery_env_v2(gym.Env):
         joint_Poses = np.array([js[0] for js in joint_states])        # positions
         joint_Velocities = np.array([js[1] for js in joint_states])   # velocities
         self.pos_distance, self.angle = utils.calculate_distances(self, actual_New_Position, actual_New_Orientation, self.goal_pos, self.goal_ori)
-        #self.capped_force = min(self.filtered_force,200)
-        #normalise force instead of cap 
-        #self.normalised_force = self.filtered_force / self.maxforce ## for visualization only
-        #print('Force: ', self.filtered_force)
+        
         env_utils.set_observation(self, 
                                   actual_New_Position, 
                                   actual_New_Orientation, 
@@ -589,7 +565,7 @@ class fracturesurgery_env_v2(gym.Env):
                                   self.filtered_force,
                                   self.contact, 
                                   self.contact_distance,
-                                  self.max_contact_force,
+                                  self.filtered_contact_force,
                                   self.pos_distance,
                                   self.angle,
                                   left_contact,
@@ -627,9 +603,9 @@ class fracturesurgery_env_v2(gym.Env):
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
                 'force': self.filtered_force,'maximum_force': self.maximum_force,
-                'contact': self.anycontact,'stretch': stretch,'force_axis_mean': all_mean, 
+                'contact': self.anycontact,'stretch': stretch,'force_axis_mso ean': all_mean, 
                 'young_modulus': self.young_modulus,
-                'contact_force':self.max_contact_force,
+                'contact_force':self.filtered_contact_force,
                 'exploded': exploded,
                 'contact_distance':self.contact_distance,
                 'width': self.width}#,'force_mag':self.force_magnitude}#,
@@ -641,6 +617,9 @@ class fracturesurgery_env_v2(gym.Env):
         reward = np.float32(reward)
         #print('force: ', self.force, reward)
         #print(self.anycontact)
+        # if done:
+        #     #time.sleep(50)
+        #     print(f'foot pos: {p.getBasePositionAndOrientation(self.foot)[0]}, foot ori: {p.getBasePositionAndOrientation(self.foot)[1]}, goal pos: {self.goal_pos}, goal ori: {self.goal_ori}')
         return self.state, reward, done, truncated, info
 
     def render(self) :

@@ -135,6 +135,65 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
         print(f'Goal pose is invalid: Pos Dist={pos} m, Ori Dist={np.degrees(ori)} deg, Contacts={len(contacts)}')
     # If len(contacts) > 0, the goal pose is physically impossible
     return valid# also check if orientation is within 30 degrees of goal orientation
+# def is_goal_in_range(env):
+#     goal_high = np.array([ 0.31951126, -0.03799936,  0.15826347])
+#     goal_low = [ 0.29451126, -0.06799936,  0.15226347]
+#     goal_ori_high = [3.40339204,0.08726646,0.26219755]
+#     goal_ori_low = [ 2.87979327, -0.08726646, -0.26140122]
+#     target_pos = env.target_position[0:3]
+#     target_ori = (p.getEulerFromQuaternion(env.target_position[3:7]))
+#     for i in range(3):
+#         if target_pos[i] < goal_low[i] or target_pos[i] > goal_high[i]:
+#             print(f'Axis {i} out of range: {target_pos[i]} not in [{goal_low[i]}, {goal_high[i]}]')
+#             env.target_position[i] = np.clip(env.target_position[i], goal_low[i], goal_high[i])
+#             env.target_position[i]-=0.001
+#     for i in range(3):
+#         if target_ori[i] < goal_ori_low[i] or target_ori[i] > goal_ori_high[i]:
+#             print(f'Orientation axis {i} out of range: {target_ori[i]} not in [{goal_ori_low[i]}, {goal_ori_high[i]}]')
+#             target_ori[i] = np.clip(target_ori[i], goal_ori_low[i], goal_ori_high[i])
+#             env.target_position[3:7] = p.getQuaternionFromEuler(target_ori)
+#     return env.target_position
+def is_goal_in_range(env, pos_buffer=0.001, ori_buffer=0.005):
+    goal_high = np.array([0.31951126, -0.03799936, 0.15826347])
+    goal_low = np.array([0.29451126, -0.06799936, 0.15226347])
+
+    goal_ori_high = np.array([3.40339204, 0.08726646, 0.26219755])  # Radians
+    goal_ori_low = np.array([2.87979327, -0.08726646, -0.26140122])  # Radians
+
+    # Apply buffer inwards from boundaries
+    buffered_pos_low = goal_low + pos_buffer
+    buffered_pos_high = goal_high - pos_buffer
+
+    buffered_ori_low = goal_ori_low + ori_buffer
+    buffered_ori_high = goal_ori_high - ori_buffer
+
+    target_pos = np.array(env.target_position[0:3])
+    target_ori = np.array(p.getEulerFromQuaternion(env.target_position[3:7]))
+
+    # --- 1. Position Check & Inward Clip ---
+    for i in range(3):
+        if target_pos[i] < goal_low[i] or target_pos[i] > goal_high[i]:
+            print(
+                f"Axis {i} out of range: {target_pos[i]:.6f} not in [{goal_low[i]}, {goal_high[i]}]"
+            )
+
+    clipped_pos = np.clip(target_pos, buffered_pos_low, buffered_pos_high)
+    env.target_position[0:3] = clipped_pos
+
+    # --- 2. Orientation Check & Inward Clip ---
+    for i in range(3):
+        if target_ori[i] < goal_ori_low[i] or target_ori[i] > goal_ori_high[i]:
+            print(
+                f"Orientation axis {i} out of range: {target_ori[i]:.6f} not in [{goal_ori_low[i]}, {goal_ori_high[i]}]"
+            )
+
+    clipped_ori = np.clip(target_ori, buffered_ori_low, buffered_ori_high)
+
+    # Convert directly back to Quaternion (no np.radians)
+    env.target_position[3:7] = p.getQuaternionFromEuler(clipped_ori)
+
+    return env.target_position
+
 def getGoal(env, fracturestart, fractureorientaionDeg):
     env.goal_gen_count += 1
     fracturestart = np.array(p.getLinkState(env.pandaUid, 11)[0] )
@@ -149,7 +208,7 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
     env.goal_ori_high=np.radians(fractureorientaionDeg + [15,5,15])
    # print(f'Fracture Start: {fracturestart}, Orientation: {fractureorientaionDeg}')
     #print(f'Goal Pos Range Low: {env.goal_range_low}, High: {env.goal_range_high}')
-    #print(f'Goal Ori Low: {np.degrees(env.goal_ori_low)}, High: {np.degrees(env.goal_ori_high)}')
+   # print(f'Goal Ori Low: {(env.goal_ori_low)}, High: {(env.goal_ori_high)}')
     #print('Goal Pos Range Low:', env.goal_range_low, 'High:', env.goal_range_high,'Goal Ori Low:', env.goal_ori_low, 'High:', env.goal_ori_high)
     fracturestart_end = np.array(fracturestart - np.array([-0.01,0.045,0]))
     a = fracturestart - limit_low#[0.0125,0.0,-0.003] 
@@ -192,28 +251,28 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
 
     #goal_ori = R.from_euler('xyz', ori).as_quat()
     #env.goal_ori = np.round(goal_ori,3)
-    valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)#
+    #valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)#
     #print('Generated Goal Position:', env.goal_pos, 'Orientation (Euler):', np.degrees(ori), 'Valid:', valid)
-    while not valid:
-        env.not_valid_count += 1
-        invalid_goal = np.array(
-            [(np.asarray(env.goal_pos, dtype=float), np.asarray(env.goal_ori, dtype=float))],
-            dtype=[('pos', float, (3,)), ('ori', float, (4,))]
-        )
+    # while not valid:
+    #     env.not_valid_count += 1
+    #     invalid_goal = np.array(
+    #         [(np.asarray(env.goal_pos, dtype=float), np.asarray(env.goal_ori, dtype=float))],
+    #         dtype=[('pos', float, (3,)), ('ori', float, (4,))]
+    #     )
 
-        if os.path.exists(INVALID_GOALS_PATH):
-            existing_goals = np.load(INVALID_GOALS_PATH)
-            invalid_goals = np.concatenate((existing_goals, invalid_goal))
-        else:
-            invalid_goals = invalid_goal
+    #     if os.path.exists(INVALID_GOALS_PATH):
+    #         existing_goals = np.load(INVALID_GOALS_PATH)
+    #         invalid_goals = np.concatenate((existing_goals, invalid_goal))
+    #     else:
+    #         invalid_goals = invalid_goal
 
-        np.save(INVALID_GOALS_PATH, invalid_goals)
-        print(f'Invalid Percentage: {env.not_valid_count/env.goal_gen_count:.2%} | Invalid Count: {env.not_valid_count} | Total Generated: {env.goal_gen_count}')
-        env.goal_pos = np.array(env.np_random.uniform(env.goal_range_low, env.goal_range_high,))
-        ori = np.array(env.np_random.uniform(env.goal_ori_low, env.goal_ori_high))
-        env.goal_ori = np.array(p.getQuaternionFromEuler(ori))
-        valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)
-        env.goal_gen_count += 1 
+    #     np.save(INVALID_GOALS_PATH, invalid_goals)
+    #     print(f'Invalid Percentage: {env.not_valid_count/env.goal_gen_count:.2%} | Invalid Count: {env.not_valid_count} | Total Generated: {env.goal_gen_count}')
+    #     env.goal_pos = np.array(env.np_random.uniform(env.goal_range_low, env.goal_range_high,))
+    #     ori = np.array(env.np_random.uniform(env.goal_ori_low, env.goal_ori_high))
+    #     env.goal_ori = np.array(p.getQuaternionFromEuler(ori))
+    #     valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)
+    #     env.goal_gen_count += 1 
     
 def get_youngs_modulus_and_width(env):
     youngs_modulus_range =np.arange(1e5, 5e6, 1e3) #1MPa to 20MPa in 1kPa increments
@@ -246,6 +305,14 @@ def getStarts(env):
     #print(f'Fracture Start: {fracturestart}, Orientation: {fractureorientaionDeg}, {fractureorientaionRad}')
     #fracturestart = np.array([0.37791427969932556, -0.14127257466316223, 0.06339067965745926])
     #fracturestart = np.array([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])
+    ##foot start :foot start: 
+    # if isinstance(env.goal_type, str):
+    #     pass
+    # else:
+    if isinstance(env.goal_type, np.ndarray):
+        fracturestart=np.array([ 0.34701957, -0.03,0.07526956])#-np.array([0,0.03,0])#(0.3487603762848476, -0.08310808157863893, 0.07322828156663022)#([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])#[ 0.3468140278354482, -0.029897614059223178, 0.07524706439920568]
+    #print(fracturestart)
+    # [ 0.30702814 -0.06013873  0.15526305], foot ori: [ 4.33410682e-04 -1.40125743e-04  7.08949001e-01  7.05259602e-01], goal pos: [ 0.30729738 -0.03948561  0.15312103], goal ori: [ 0.99281821 -0.01780929  0.0186322  -0.11682327]
     return fracturestart, fractureorientaionDeg#, legstart
 
 
@@ -750,3 +817,70 @@ def drawAABB(env,object,link):
     f = [aabbMax[0], aabbMax[1], aabbMax[2]]
     t = [aabbMax[0], aabbMax[1], aabbMin[2]]
     p.addUserDebugLine(f, t, [1, 1, 1])
+    
+
+
+def apply_cbf_safety_filter_diagnostic(
+    env,
+    dx,
+    dy,
+    dz,
+    gamma=1.0,
+    stiffness=100.0,
+    max_correction_step=0.001,
+    alpha=0.6,
+    workspace_min=None,
+    workspace_max=None,
+    debug_viz=True,
+    step_idx=0,
+):
+    ee_pos = np.array(env.get_ee_pos()) if hasattr(env, "get_ee_pos") else None
+    contacts = p.getContactPoints(bodyA=env.foot, bodyB=env.leg)
+
+    valid_contacts = [pt for pt in contacts if pt[9] > 0.0] if contacts else []
+    v_nom = np.array([dx, dy, dz])
+
+    if not valid_contacts:
+        env.f_smooth = (1.0 - alpha) * env.f_smooth
+        v_safe = v_nom.copy()
+        if ee_pos is not None and workspace_min is not None and workspace_max is not None:
+            v_safe = np.clip(ee_pos + v_safe, workspace_min, workspace_max) - ee_pos
+        return v_safe[0], v_safe[1], v_safe[2]
+
+    # 1. Force Aggregation
+    raw_force_sum = sum(pt[9] for pt in valid_contacts)
+    raw_force_max = max(pt[9] for pt in valid_contacts)
+    env.f_smooth = alpha * raw_force_max + (1.0 - alpha) * env.f_smooth
+
+    # 2. Corrected Push Normal Direction (Points INTO the bone surface)
+    normals = [np.array(pt[7]) for pt in valid_contacts]  # REMOVED NEGATION
+    n_push = np.mean(normals, axis=0)
+    norm_len = np.linalg.norm(n_push)
+    if norm_len < 1e-8:
+        return dx, dy, dz
+    n_push /= norm_len
+
+    # 3. Barrier Margin with Active Back-off when Over Threshold
+    f_thresh = env.maximum_contact_force_threshold
+    h_force = f_thresh - env.f_smooth
+
+    # Allows negative max_allowed_push_step to actively push robot OUT of penetration
+    max_allowed_push_step = (gamma * h_force) / stiffness
+
+    v_push = np.dot(v_nom, n_push)
+
+    # 4. Correction Calculation
+    violation = v_push - max_allowed_push_step
+    if violation > 0.0:
+        clamped_correction = min(violation, max_correction_step)
+        v_safe = v_nom - clamped_correction * n_push
+    else:
+        v_safe = v_nom.copy()
+
+    # 5. Enforce Workspace Limits
+    if ee_pos is not None and workspace_min is not None and workspace_max is not None:
+        target_pos = ee_pos + v_safe
+        clamped_pos = np.clip(target_pos, workspace_min, workspace_max)
+        v_safe = clamped_pos - ee_pos
+
+    return v_safe[0], v_safe[1], v_safe[2]
