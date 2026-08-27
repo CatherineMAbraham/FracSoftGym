@@ -108,7 +108,7 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
     p.performCollisionDetection()
     
     # 4. Check for contact between the moved foot and the static leg
-    contacts = p.getContactPoints(bodyA=env.foot, bodyB=env.leg, linkIndexA=1, linkIndexB=-1)
+    #contacts = p.getContactPoints(bodyA=env.foot, bodyB=env.leg, linkIndexA=1, linkIndexB=-1)
     ## check how close it is to the goal to see if pose is physically possible
     position = p.getLinkState(env.pandaUid, 11)[0]
     orientation = p.getLinkState(env.pandaUid, 11)[1]
@@ -121,20 +121,79 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
     #     print(f'Orientation is valid {goal_quat}')
     # 5. Restore original position immediately
     #p.resetBasePositionAndOrientation(env.foot, orig_foot_pos, orig_foot_ori)
-    for i in range(9):
-           p.resetJointState(env.pandaUid,i, joint_states[i][0])
-          # time.sleep(1)
-    #time.sleep(5)
-    #print('Back at home')
-    if len(contacts) == 0 and ori <=env.distance_threshold_ori and pos <= env.distance_threshold_pos:
-        valid = True
-    else:
-        valid = False
-        #[print(f"Joint {i} attempted: {new_states[i]:.4f} rad") for i in range(9)]
-        #print(f'Goal pose is invalid due to contact(s) with the leg.')
-        print(f'Goal pose is invalid: Pos Dist={pos} m, Ori Dist={np.degrees(ori)} deg, Contacts={len(contacts)}')
-    # If len(contacts) > 0, the goal pose is physically impossible
-    return valid# also check if orientation is within 30 degrees of goal orientation
+    # for i in range(9):
+    #        p.resetJointState(env.pandaUid,i, joint_states[i][0])
+    #       # time.sleep(1)
+    # #time.sleep(5)
+    # #print('Back at home')
+    # #if len(contacts) == 0 and ori <=env.distance_threshold_ori and pos <= env.distance_threshold_pos:
+    # #     valid = True
+    # # else:
+    # #     valid = False
+    #     #[print(f"Joint {i} attempted: {new_states[i]:.4f} rad") for i in range(9)]
+    #     #print(f'Goal pose is invalid due to contact(s) with the leg.')
+    #     print(f'Goal pose is invalid: Pos Dist={pos} m, Ori Dist={np.degrees(ori)} deg, Contacts={len(contacts)}')
+    # # If len(contacts) > 0, the goal pose is physically impossible
+    # return valid# also check if orientation is within 30 degrees of goal orientation
+# def is_goal_in_range(env):
+#     goal_high = np.array([ 0.31951126, -0.03799936,  0.15826347])
+#     goal_low = [ 0.29451126, -0.06799936,  0.15226347]
+#     goal_ori_high = [3.40339204,0.08726646,0.26219755]
+#     goal_ori_low = [ 2.87979327, -0.08726646, -0.26140122]
+#     target_pos = env.target_position[0:3]
+#     target_ori = (p.getEulerFromQuaternion(env.target_position[3:7]))
+#     for i in range(3):
+#         if target_pos[i] < goal_low[i] or target_pos[i] > goal_high[i]:
+#             print(f'Axis {i} out of range: {target_pos[i]} not in [{goal_low[i]}, {goal_high[i]}]')
+#             env.target_position[i] = np.clip(env.target_position[i], goal_low[i], goal_high[i])
+#             env.target_position[i]-=0.001
+#     for i in range(3):
+#         if target_ori[i] < goal_ori_low[i] or target_ori[i] > goal_ori_high[i]:
+#             print(f'Orientation axis {i} out of range: {target_ori[i]} not in [{goal_ori_low[i]}, {goal_ori_high[i]}]')
+#             target_ori[i] = np.clip(target_ori[i], goal_ori_low[i], goal_ori_high[i])
+#             env.target_position[3:7] = p.getQuaternionFromEuler(target_ori)
+#     return env.target_position
+def is_goal_in_range(env, pos_buffer=0.001, ori_buffer=0.005):
+    goal_high = np.array([0.31951126, -0.03799936, 0.15826347])
+    goal_low = np.array([0.29451126, -0.06799936, 0.15226347])
+
+    goal_ori_high = np.array([3.40339204, 0.08726646, 0.26219755])  # Radians
+    goal_ori_low = np.array([2.87979327, -0.08726646, -0.26140122])  # Radians
+
+    # Apply buffer inwards from boundaries
+    buffered_pos_low = goal_low + pos_buffer
+    buffered_pos_high = goal_high - pos_buffer
+
+    buffered_ori_low = goal_ori_low + ori_buffer
+    buffered_ori_high = goal_ori_high - ori_buffer
+
+    target_pos = np.array(env.target_position[0:3])
+    target_ori = np.array(p.getEulerFromQuaternion(env.target_position[3:7]))
+
+    # --- 1. Position Check & Inward Clip ---
+    for i in range(3):
+        if target_pos[i] < goal_low[i] or target_pos[i] > goal_high[i]:
+            print(
+                f"Axis {i} out of range: {target_pos[i]:.6f} not in [{goal_low[i]}, {goal_high[i]}]"
+            )
+
+    clipped_pos = np.clip(target_pos, buffered_pos_low, buffered_pos_high)
+    env.target_position[0:3] = clipped_pos
+
+    # --- 2. Orientation Check & Inward Clip ---
+    for i in range(3):
+        if target_ori[i] < goal_ori_low[i] or target_ori[i] > goal_ori_high[i]:
+            print(
+                f"Orientation axis {i} out of range: {target_ori[i]:.6f} not in [{goal_ori_low[i]}, {goal_ori_high[i]}]"
+            )
+
+    clipped_ori = np.clip(target_ori, buffered_ori_low, buffered_ori_high)
+
+    # Convert directly back to Quaternion (no np.radians)
+    env.target_position[3:7] = p.getQuaternionFromEuler(clipped_ori)
+
+    return env.target_position
+
 def getGoal(env, fracturestart, fractureorientaionDeg):
     env.goal_gen_count += 1
     fracturestart = np.array(p.getLinkState(env.pandaUid, 11)[0] )
@@ -149,7 +208,7 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
     env.goal_ori_high=np.radians(fractureorientaionDeg + [15,5,15])
    # print(f'Fracture Start: {fracturestart}, Orientation: {fractureorientaionDeg}')
     #print(f'Goal Pos Range Low: {env.goal_range_low}, High: {env.goal_range_high}')
-    #print(f'Goal Ori Low: {np.degrees(env.goal_ori_low)}, High: {np.degrees(env.goal_ori_high)}')
+    #print(f'Goal Ori Low: {(env.goal_ori_low)}, High: {(env.goal_ori_high)}')
     #print('Goal Pos Range Low:', env.goal_range_low, 'High:', env.goal_range_high,'Goal Ori Low:', env.goal_ori_low, 'High:', env.goal_ori_high)
     fracturestart_end = np.array(fracturestart - np.array([-0.01,0.045,0]))
     a = fracturestart - limit_low#[0.0125,0.0,-0.003] 
@@ -192,28 +251,28 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
 
     #goal_ori = R.from_euler('xyz', ori).as_quat()
     #env.goal_ori = np.round(goal_ori,3)
-    valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)#
+    #valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)#
     #print('Generated Goal Position:', env.goal_pos, 'Orientation (Euler):', np.degrees(ori), 'Valid:', valid)
-    while not valid:
-        env.not_valid_count += 1
-        invalid_goal = np.array(
-            [(np.asarray(env.goal_pos, dtype=float), np.asarray(env.goal_ori, dtype=float))],
-            dtype=[('pos', float, (3,)), ('ori', float, (4,))]
-        )
+    # while not valid:
+    #     env.not_valid_count += 1
+    #     invalid_goal = np.array(
+    #         [(np.asarray(env.goal_pos, dtype=float), np.asarray(env.goal_ori, dtype=float))],
+    #         dtype=[('pos', float, (3,)), ('ori', float, (4,))]
+    #     )
 
-        if os.path.exists(INVALID_GOALS_PATH):
-            existing_goals = np.load(INVALID_GOALS_PATH)
-            invalid_goals = np.concatenate((existing_goals, invalid_goal))
-        else:
-            invalid_goals = invalid_goal
+    #     if os.path.exists(INVALID_GOALS_PATH):
+    #         existing_goals = np.load(INVALID_GOALS_PATH)
+    #         invalid_goals = np.concatenate((existing_goals, invalid_goal))
+    #     else:
+    #         invalid_goals = invalid_goal
 
-        np.save(INVALID_GOALS_PATH, invalid_goals)
-        print(f'Invalid Percentage: {env.not_valid_count/env.goal_gen_count:.2%} | Invalid Count: {env.not_valid_count} | Total Generated: {env.goal_gen_count}')
-        env.goal_pos = np.array(env.np_random.uniform(env.goal_range_low, env.goal_range_high,))
-        ori = np.array(env.np_random.uniform(env.goal_ori_low, env.goal_ori_high))
-        env.goal_ori = np.array(p.getQuaternionFromEuler(ori))
-        valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)
-        env.goal_gen_count += 1 
+    #     np.save(INVALID_GOALS_PATH, invalid_goals)
+    #     print(f'Invalid Percentage: {env.not_valid_count/env.goal_gen_count:.2%} | Invalid Count: {env.not_valid_count} | Total Generated: {env.goal_gen_count}')
+    #     env.goal_pos = np.array(env.np_random.uniform(env.goal_range_low, env.goal_range_high,))
+    #     ori = np.array(env.np_random.uniform(env.goal_ori_low, env.goal_ori_high))
+    #     env.goal_ori = np.array(p.getQuaternionFromEuler(ori))
+    #     valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)
+    #     env.goal_gen_count += 1 
     
 def get_youngs_modulus_and_width(env):
     youngs_modulus_range =np.arange(1e5, 5e6, 1e3) #1MPa to 20MPa in 1kPa increments
@@ -246,6 +305,13 @@ def getStarts(env):
     #print(f'Fracture Start: {fracturestart}, Orientation: {fractureorientaionDeg}, {fractureorientaionRad}')
     #fracturestart = np.array([0.37791427969932556, -0.14127257466316223, 0.06339067965745926])
     #fracturestart = np.array([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])
+    ##foot start :foot start: 
+    # if isinstance(env.goal_type, str):
+    #     pass
+    # else:
+    #fracturestart=np.array([ 0.34701957, -0.03,0.07526956])#-np.array([0,0.03,0])#(0.3487603762848476, -0.08310808157863893, 0.07322828156663022)#([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])#[ 0.3468140278354482, -0.029897614059223178, 0.07524706439920568]
+    #print(fracturestart)
+    # [ 0.30702814 -0.06013873  0.15526305], foot ori: [ 4.33410682e-04 -1.40125743e-04  7.08949001e-01  7.05259602e-01], goal pos: [ 0.30729738 -0.03948561  0.15312103], goal ori: [ 0.99281821 -0.01780929  0.0186322  -0.11682327]
     return fracturestart, fractureorientaionDeg#, legstart
 
 
@@ -750,3 +816,21 @@ def drawAABB(env,object,link):
     f = [aabbMax[0], aabbMax[1], aabbMax[2]]
     t = [aabbMax[0], aabbMax[1], aabbMin[2]]
     p.addUserDebugLine(f, t, [1, 1, 1])
+
+def apply_contact_dampening(self, dx, dy, dz, max_force=0.25):
+    # Only dampen if currently in physical contact
+    if not self.contact or self.max_contact_force <= 0:
+        return dx, dy, dz
+
+    # Calculate how close current force is to your threshold (0.25 N)
+    force_ratio = self.max_contact_force / max_force
+
+    # Start dampening step speed when force exceeds 80% of threshold
+    if force_ratio > 0.8:
+        # Smoothly scale step size down (e.g., down to 15% minimum step size)
+        scale = max(0.15, 1.0 - (force_ratio - 0.8) * 2.0)
+        
+        # Scaling the whole vector keeps direction untouched
+        return dx * scale, dy * scale, dz * scale
+
+    return dx, dy, dz
