@@ -334,7 +334,7 @@ class fracturesurgery_env_v2(gym.Env):
        ## Enable force/torque sensors
         [p.enableJointForceTorqueSensor(self.pandaUid, joint, enableSensor=True) for joint in range(p.getNumJoints(self.pandaUid))]
         p.enableJointForceTorqueSensor(self.foot, 1, enableSensor=True) # Load cell joint 
-        leg_start, leg_start_ori = transformation_matrices.get_leg_start_working(self)
+        #leg_start, leg_start_ori = transformation_matrices.get_leg_start_working(self)
         leg_start = fracturestart - np.array([0,0.09,0])
        # leg_start = (0.3470195700516103, -0.13000000000594865, 0.07526955827664446)
         ## need to combine leg_orientation and leg_start_ori to get the correct orientation for the leg
