@@ -7,10 +7,10 @@ def set_observation_space(env):
         obs_shape = 37 
         goal_shape = 5
     elif env.action_type == "pos_only":
-        obs_shape = 37  
+        obs_shape = 38  
         goal_shape = 4
     elif env.contact_type == True:
-        obs_shape = 37
+        obs_shape = 38
         goal_shape = 10
     else:
         obs_shape = 37
@@ -206,6 +206,8 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
             np.array(jointVelocities),
             np.array([force]),
             np.array([contact]),
+            np.array([contact_distance]),
+            np.array([max_contact_force]),
             np.array([position]),
             np.array([angle]),
             np.array([left_contact]),
