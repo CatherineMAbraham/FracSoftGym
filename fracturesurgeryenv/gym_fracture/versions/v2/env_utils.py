@@ -111,38 +111,60 @@ def compute_reward_sparse_euler(env, achieved_goal, desired_goal, info):
         
     return np.array(reward)
 
-def compute_reward_sparse_euler_contact(env, achieved_goal, desired_goal, info):
+def compute_reward_sparse_euler_contact(env, achieved_goal, desired_goal, info=None):
+    w_force = getattr(env, "force_penalty_weight", 0.1)
+    max_thresh = getattr(env, "maximum_contact_force_threshold", 0.25)
+
     if achieved_goal.ndim == 1:   
-            pos_achieved, angle_achieved = achieved_goal[:3], achieved_goal[3:7]
-            pos_desired, angle_desired = desired_goal[:3], desired_goal[3:7]
-            env.pos_distance, env.angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
-            env.isHolding = achieved_goal[7]
-            env.force = achieved_goal[8]
-            env.contact = achieved_goal[9]
-            #contact_reward = env.contact_alpha * env.contact
-            reward = 0 if (
-                env.pos_distance <= env.distance_threshold_pos and
-                env.angle <= env.distance_threshold_ori and 
-                env.isHolding == 1 and
-                env.force <= env.max_force and
-                env.contact == 0
-            ) else -1
+        pos_achieved, angle_achieved = achieved_goal[:3], achieved_goal[3:7]
+        pos_desired, angle_desired = desired_goal[:3], desired_goal[3:7]
+        
+        pos_dist, angle_dist = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
+        is_holding = achieved_goal[7]
+        force_val = achieved_goal[8]
+        contact_flag = achieved_goal[9]
+
+        is_success = (
+            pos_dist <= env.distance_threshold_pos and
+            angle_dist <= env.distance_threshold_ori and 
+            is_holding == 1 and
+            force_val <= env.max_force and
+            contact_flag == 0
+        )
+
+        if is_success:
+            return np.array(0.0)
+
+        force_ratio = np.clip(force_val / max_thresh, 0.0, 2.0) if max_thresh > 0 else 0.0
+        force_penalty = w_force * (force_ratio ** 2)
+
+        return np.array(-1.0 - force_penalty)
+
     else:
         pos_achieved, angle_achieved = achieved_goal[:, :3], achieved_goal[:, 3:7]
         pos_desired, angle_desired = desired_goal[:, :3], desired_goal[:, 3:7]
-        env.pos_distance, env.angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
-        env.isHolding = achieved_goal[:, 7]
-        env.force = achieved_goal[:, 8]
-        env.contact = achieved_goal[:, 9]
-        reward = np.where(
-            (env.pos_distance <= env.distance_threshold_pos) &
-            (env.angle <= env.distance_threshold_ori) &
-            (env.isHolding == 1) & 
-            (env.force <= env.max_force) &
-            (env.contact == 0),
-            0, -1)
         
-    return np.array(reward)
+        pos_dist, angle_dist = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
+        is_holding = achieved_goal[:, 7]
+        force_val = achieved_goal[:, 8]
+        contact_flag = achieved_goal[:, 9]
+
+        is_success = (
+            (pos_dist <= env.distance_threshold_pos) &
+            (angle_dist <= env.distance_threshold_ori) &
+            (is_holding == 1) & 
+            (force_val <= env.max_force) &
+            (contact_flag == 0)
+        )
+
+        # Force float64 output buffer to prevent integer casting crashes
+        out_buffer = np.zeros(force_val.shape, dtype=np.float64)
+        force_ratio = np.divide(force_val, max_thresh, out=out_buffer, where=max_thresh != 0)
+        force_ratio = np.clip(force_ratio, 0.0, 2.0)
+        force_penalty = w_force * (force_ratio ** 2)
+
+        reward = np.where(is_success, 0.0, -1.0 - force_penalty)
+        return np.array(reward)
 
 def compute_reward_dense(env, achieved_goal, desired_goal, info):
     hold = 0.1 if env.isHolding == 0 else 0
