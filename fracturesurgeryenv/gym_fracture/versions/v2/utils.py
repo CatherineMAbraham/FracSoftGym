@@ -601,11 +601,26 @@ def move_panda_smoothly(env,robot_id, joint_indices, target_positions,
         # Update current positions and velocities
         q_current = np.array([p.getJointState(robot_id, j)[0] for j in joint_indices])
         v_current = np.array([p.getJointState(robot_id, j)[1] for j in joint_indices])
-
+def get_contact_force(env, bodyA, bodyB):
+    contact_points = p.getContactPoints(bodyA, bodyB, linkIndexA=-1, linkIndexB=-1)
+    valid_contacts = [pt for pt in contact_points if pt[8] < -0.000] if contact_points else []
+    
+    if valid_contacts:
+        max_step_contact_force = max(pt[9] for pt in valid_contacts)
+        contact_distance = min(pt[8] for pt in valid_contacts)
+    else:
+        max_step_contact_force = 0.0
+        contact_distance = 5  # Reset EMA when no contact is detected  # Reset contact distance when no contact is detected
+    return max_step_contact_force, contact_distance
+        
+        # Update EMA filter smoothly during active contact
+        #env.filtered_contact_force = (env.alpha * env.max_contact_force) + ((1.0 - env.alpha) * env.filtered_contact_force)
 def smooth_motion(env, joint_targets, joint_current, maxforce,numsubsteps):
     max_step_force = 0 
     force_total = 0
     all_forces=[]
+    contact_forces =[]
+    contact_distances = []
     for i in range(numsubsteps):
         alpha = (i + 1) / numsubsteps
         intermediate_targets = joint_current + alpha * (joint_targets - joint_current)
@@ -629,6 +644,9 @@ def smooth_motion(env, joint_targets, joint_current, maxforce,numsubsteps):
         force_magnitude = np.linalg.norm(force[:3])  # Magnitude of the force vector}])
         force = force_magnitude
         force_total += force
+        contact_force, contact_distance = get_contact_force(env, env.leg, env.foot)
+        contact_forces.append(contact_force)
+        contact_distances.append(contact_distance)
         #forces.append(force)
         #p.addUserDebugText(f'Force: {force:.2f} N', [0.5, 0, 0.5], textColorRGB=[1, 0, 0], textSize=1, lifeTime=0.1)
         if force > max_step_force: ## step max force
@@ -637,9 +655,75 @@ def smooth_motion(env, joint_targets, joint_current, maxforce,numsubsteps):
                 env.output_force = max_step_force
                 #print('New Max Force:', env.output_force)
             
+    #print(contact_forces)
+    return env.output_force, max_step_force, force_total/numsubsteps, np.mean(all_forces,axis=0), np.mean(contact_forces,axis=0),np.min(contact_distances)
+def smooth_motion_dynamic(env, joint_targets, joint_current, maxforce, 
+                  min_steps=12, max_steps=24, f_start=0.15, f_max=0.20, safety_threshold=0.25):
+    max_step_force = 0.0
+    force_total = 0.0
+    all_forces = []
+    
+    start_joint_positions = np.array(joint_current, copy=True)
+    actual_steps = 0
+    alpha = 0.0
+    contact_force_ema = 0.0  # Measured from previous sub-step tick
 
-    return env.output_force, max_step_force, force_total/numsubsteps, np.mean(all_forces,axis=0)
+    # Loop dynamically advances alpha from 0.0 to 1.0
+    while alpha < 1.0:
+        actual_steps += 1
         
+        # 1. DYNAMICALLY COMPUTE STEP SIZE BASED ON LAST SUB-STEP'S FORCE
+        if contact_force_ema > f_start:
+            # Scale target total steps bounded strictly between min_steps and max_steps
+            ratio = min(1.0, (contact_force - f_start) / (f_max - f_start))
+            current_target_steps = min_steps + ratio * (max_steps - min_steps)
+        else:
+            current_target_steps = min_steps
+
+        # Compute d_alpha for THIS specific sub-step tick
+        d_alpha = 1.0 / current_target_steps
+        alpha = min(1.0, alpha + d_alpha)
+        
+        # Interpolate joint targets along the trajectory
+        intermediate_targets = start_joint_positions + alpha * (joint_targets - start_joint_positions)
+        
+        p.setJointMotorControlArray(
+            env.pandaUid,
+            jointIndices=range(9),
+            controlMode=p.POSITION_CONTROL,
+            targetPositions=intermediate_targets.tolist(),
+            forces=maxforce
+        )
+        
+        if env.soft_tissue == 'spring':
+            env.band.step()
+            
+        p.stepSimulation()
+        
+        # 2. MEASURE CONTACT FORCE AT THIS SUB-STEP TICK
+        contact_force, contact_distance = get_contact_force(env, env.leg, env.foot)
+        contact_force_ema = (env.alpha * contact_force) + ((1.0 - env.alpha) * contact_force_ema)
+        #print(f'Sub-step {actual_steps}: Contact Force = {contact_force:.4f} N, EMA = {contact_force_ema:.4f} N, Distance = {contact_distance:.6f} m, Alpha = {alpha:.4f}, Target Steps = {current_target_steps:.2f}')
+        # 3. MEASURE JOINT REACTION FORCE
+        joint_force_raw = p.getJointState(env.foot, 1)[2]
+        joint_force_mag = float(np.linalg.norm(joint_force_raw[:3]))
+        all_forces.append(joint_force_raw)
+        force_total += joint_force_mag
+        
+        if joint_force_mag > max_step_force:
+            max_step_force = joint_force_mag
+            if max_step_force > env.output_force:
+                env.output_force = max_step_force
+
+        # Immediate hard break if force breaches critical safety threshold
+        if contact_force_ema >= safety_threshold:
+            break
+
+    avg_force = force_total / actual_steps if actual_steps > 0 else 0.0
+    mean_all_forces = np.mean(all_forces, axis=0) if all_forces else np.zeros(6)
+
+    return env.output_force, max_step_force, avg_force, mean_all_forces
+
 def compute_ee_forward_dynamics(
     robot_id,
     ee_link_index,
