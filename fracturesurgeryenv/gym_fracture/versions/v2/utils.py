@@ -610,7 +610,7 @@ def get_contact_force(env, bodyA, bodyB):
         contact_distance = min(pt[8] for pt in valid_contacts)
     else:
         max_step_contact_force = 0.0
-        contact_distance = 5  # Reset EMA when no contact is detected  # Reset contact distance when no contact is detected
+        contact_distance = 0  # Reset EMA when no contact is detected  # Reset contact distance when no contact is detected
     return max_step_contact_force, contact_distance
         
         # Update EMA filter smoothly during active contact
