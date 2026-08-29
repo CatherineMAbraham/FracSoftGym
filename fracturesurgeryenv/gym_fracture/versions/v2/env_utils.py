@@ -82,30 +82,30 @@ def compute_reward_sparse_euler(env, achieved_goal, desired_goal, info):
     if achieved_goal.ndim == 1:   
             pos_achieved, angle_achieved = achieved_goal[:3], achieved_goal[3:7]
             pos_desired, angle_desired = desired_goal[:3], desired_goal[3:7]
-            env.pos_distance, env.angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
-            env.isHolding = achieved_goal[7]
-            env.force = achieved_goal[8]
+            pos_distance, angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
+            isHolding = achieved_goal[7]
+            force = achieved_goal[8]
             #env.contact = achieved_goal[9]
             reward = 0 if (
-                env.pos_distance <= env.distance_threshold_pos and
-                env.angle <= env.distance_threshold_ori and 
-                env.isHolding == 1 and
-                env.force <= env.max_force# and
+                pos_distance <= env.distance_threshold_pos and
+                angle <= env.distance_threshold_ori and 
+                isHolding == 1 and
+                force <= env.max_force# and
                # env.contact == 0
             ) else -1
     else:
         pos_achieved, angle_achieved = achieved_goal[:, :3], achieved_goal[:, 3:7]
         pos_desired, angle_desired = desired_goal[:, :3], desired_goal[:, 3:7]
-        env.pos_distance, env.angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
-        env.isHolding = achieved_goal[:, 7]
-        env.force = achieved_goal[:, 8]
+        pos_distance, angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
+        isHolding = achieved_goal[:, 7]
+        force = achieved_goal[:, 8]
         
         #env.contact = achieved_goal[:, 9]
         reward = np.where(
-            (env.pos_distance <= env.distance_threshold_pos) &
-            (env.angle <= env.distance_threshold_ori) &
-            (env.isHolding == 1) & 
-            (env.force <= env.max_force),# &
+            (pos_distance <= env.distance_threshold_pos) &
+            (angle <= env.distance_threshold_ori) &
+            (isHolding == 1) & 
+            (force <= env.max_force),# &
             #(env.contact == 0),
             0, -1)
         
@@ -115,31 +115,31 @@ def compute_reward_sparse_euler_contact(env, achieved_goal, desired_goal, info):
     if achieved_goal.ndim == 1:   
             pos_achieved, angle_achieved = achieved_goal[:3], achieved_goal[3:7]
             pos_desired, angle_desired = desired_goal[:3], desired_goal[3:7]
-            env.pos_distance, env.angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
-            env.isHolding = achieved_goal[7]
-            env.force = achieved_goal[8]
-            env.contact = achieved_goal[9]
+            pos_distance, angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
+            isHolding = achieved_goal[7]
+            force = achieved_goal[8]
+            contact = achieved_goal[9]
             #contact_reward = env.contact_alpha * env.contact
             reward = 0 if (
-                env.pos_distance <= env.distance_threshold_pos and
-                env.angle <= env.distance_threshold_ori and 
-                env.isHolding == 1 and
-                env.force <= env.max_force and
-                env.contact == 0
+                pos_distance <= env.distance_threshold_pos and
+                angle <= env.distance_threshold_ori and 
+                isHolding == 1 and
+                force <= env.max_force and
+                contact == 0
             ) else -1
     else:
         pos_achieved, angle_achieved = achieved_goal[:, :3], achieved_goal[:, 3:7]
         pos_desired, angle_desired = desired_goal[:, :3], desired_goal[:, 3:7]
-        env.pos_distance, env.angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
-        env.isHolding = achieved_goal[:, 7]
-        env.force = achieved_goal[:, 8]
-        env.contact = achieved_goal[:, 9]
+        pos_distance, angle = utils.calculate_distances(env, pos_achieved, angle_achieved, pos_desired, angle_desired)
+        isHolding = achieved_goal[:, 7]
+        force = achieved_goal[:, 8]
+        contact = achieved_goal[:, 9]
         reward = np.where(
-            (env.pos_distance <= env.distance_threshold_pos) &
-            (env.angle <= env.distance_threshold_ori) &
-            (env.isHolding == 1) & 
-            (env.force <= env.max_force) &
-            (env.contact == 0),
+            (pos_distance <= env.distance_threshold_pos) &
+            (angle <= env.distance_threshold_ori) &
+            (isHolding == 1) & 
+            (force <= env.max_force) &
+            (contact == 0),
             0, -1)
         
     return np.array(reward)
