@@ -344,7 +344,6 @@ class fracturesurgery_env_v2(gym.Env):
                                   initial_Joint_Poses, 
                                   initial_Joint_Velocities, 
                                   initial_force,
-                                  self.maximum_force,
                                   self.contact,
                                   self.contact_distance,
                                   self.contact_ema,
@@ -511,7 +510,6 @@ class fracturesurgery_env_v2(gym.Env):
                                   joint_Poses, 
                                   joint_Velocities,
                                   self.filtered_force,
-                                  self.maximum_force,
                                   self.contact, 
                                   self.contact_distance,
                                   self.contact_ema,
@@ -546,8 +544,7 @@ class fracturesurgery_env_v2(gym.Env):
         #    # time.sleep(100)
         #     print('yay')
         # elif truncated:
-        if truncated:
-             print(f'truncated {self.maximum_force},{self.pos_distance},{self.angle},{self.contact}')
+        #     print(f'truncated {self.maximum_force}')#,{self.pos_distance},{self.angle},{actual_New_Position},{actual_New_Orientation},{self.isHolding},{self.contact}')
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
