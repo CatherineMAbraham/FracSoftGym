@@ -102,7 +102,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.width = width
         self.randomise_ligs = randomise_ligs
         self.randomise_start = randomise_start
-        self.alpha = 0.4 # Set alpha between 0.05 and 0.1
+        self.alpha = 0.1 # Set alpha between 0.05 and 0.1
         self.force_window = deque(maxlen=5)
         ## Initialise variables to 0 
         self.episodes_done = 0
