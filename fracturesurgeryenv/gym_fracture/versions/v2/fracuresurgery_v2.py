@@ -102,7 +102,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.width = width
         self.randomise_ligs = randomise_ligs
         self.randomise_start = randomise_start
-        self.alpha = 0.1 # Set alpha between 0.05 and 0.1
+        self.alpha = 0.4 # Set alpha between 0.05 and 0.1
         self.force_window = deque(maxlen=5)
         ## Initialise variables to 0 
         self.episodes_done = 0
@@ -128,7 +128,8 @@ class fracturesurgery_env_v2(gym.Env):
         
         self.render()
 
-        
+        if self.randomise_ligs or self.randomise_num_springs or self.randomise_start:
+            print("Randomisation enabled for ligaments, number of springs, or start position.")
         #p.setTimeStep(1/500)
 
         ##Obs and Action Space setup
