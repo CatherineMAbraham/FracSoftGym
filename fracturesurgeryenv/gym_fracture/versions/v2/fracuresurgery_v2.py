@@ -278,8 +278,8 @@ class fracturesurgery_env_v2(gym.Env):
             self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#np.array([ 0.32180062,-0.09246775, 0.15800003,0.9999999728200057, 0.00023313980271510995, -8.89660707914592e-08, 2.4108688676344187e-06])#2.81656109e-04, -2.81431908e-04,  7.06825125e-01,  7.07388213e-01])
 
         #self.target_position = utils.is_goal_in_range(self)
-        self.goal_pos = self.target_position[0:3]
-        self.goal_ori = self.target_position[3:7]
+        #self.goal_pos = self.target_position[0:3]
+        #self.goal_ori = self.target_position[3:7]
         goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
                             basePosition=self.target_position[0:3], baseOrientation=self.goal_ori)
         #time.sleep(1)
@@ -344,6 +344,7 @@ class fracturesurgery_env_v2(gym.Env):
                                   initial_Joint_Poses, 
                                   initial_Joint_Velocities, 
                                   initial_force,
+                                  self.maximum_force,
                                   self.contact,
                                   self.contact_distance,
                                   self.contact_ema,
@@ -510,6 +511,7 @@ class fracturesurgery_env_v2(gym.Env):
                                   joint_Poses, 
                                   joint_Velocities,
                                   self.filtered_force,
+                                  self.maximum_force,
                                   self.contact, 
                                   self.contact_distance,
                                   self.contact_ema,
@@ -544,7 +546,8 @@ class fracturesurgery_env_v2(gym.Env):
         #    # time.sleep(100)
         #     print('yay')
         # elif truncated:
-        #     print(f'truncated {self.maximum_force}')#,{self.pos_distance},{self.angle},{actual_New_Position},{actual_New_Orientation},{self.isHolding},{self.contact}')
+        if truncated:
+             print(f'truncated {self.maximum_force},{self.pos_distance},{self.angle},{self.contact}')
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
