@@ -4,16 +4,16 @@ from gym_fracture.versions.v2 import utils
 
 def set_observation_space(env):
     if env.action_type == 'ori_only':
-        obs_shape = 36  
+        obs_shape = 37  
         goal_shape = 5
     elif env.action_type == "pos_only":
-        obs_shape = 36  
+        obs_shape = 37  
         goal_shape = 4
     elif env.contact_type == True:
-        obs_shape = 36
+        obs_shape = 39
         goal_shape = 10
     else:
-        obs_shape = 38
+        obs_shape = 39
         goal_shape = 9 ## now we're going to add contact to the goal anyway as a 'dummy' variable, so we can keep the goal shape the same for both contact and non-contact environments
     if env.obs_type == 'dict':
         env.observation_space = spaces.Dict({
