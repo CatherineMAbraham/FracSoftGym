@@ -181,6 +181,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.anycontact = 0
         self.filtered_contact_force = 0.0
         self.contact_ema = 0.0
+        footjoint = 1
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
         
@@ -212,7 +213,7 @@ class fracturesurgery_env_v2(gym.Env):
         ##Load Objects
         current_dir = os.path.dirname(os.path.abspath(__file__))
         leg_path = os.path.join(current_dir, f"Assets/Patient{self.patient}/proximal.urdf")
-        foot_path = os.path.join(current_dir, f"Assets/Patient{self.patient}/distal_copy.urdf")
+        foot_path = os.path.join(current_dir, f"Assets/Patient{self.patient}/distal.urdf")
 
         #footorientation = np.array([-0.07917334884405136, 0.0, 0.0, 0.9968608617782593])#p.getQuaternionFromEuler([90/180*np.pi, 0, 0])
         #footorientation = np.array([0.7139526009559631, -0.016048969700932503, -0.0035978537052869797, 0.7000008821487427])
@@ -224,7 +225,7 @@ class fracturesurgery_env_v2(gym.Env):
         if self.patient == 198:
                     footorientation = p.getQuaternionFromEuler([0,0, 0])
         self.foot = p.loadURDF(foot_path, basePosition=fracturestart, 
-                                  baseOrientation=footorientation, 
+                               #   baseOrientation=footorientation, 
                                     useFixedBase=0,
                                      globalScaling=1)
         #p.setCollisionFilterGroupMask(self.foot, 1, collisionFilterGroup=0, collisionFilterMask=0)
@@ -300,7 +301,9 @@ class fracturesurgery_env_v2(gym.Env):
         #print('Leg start position:', leg_start)
         if self.patient == 198:
             leg_orientation = p.getQuaternionFromEuler([0,0, 0])
-        
+        foot = p.getLinkState(self.foot, 1)[0]
+                #print(foot)
+        leg_start=foot - difference
         self.leg = p.loadURDF(leg_path,
                                         basePosition =leg_start,#-[0,1,0],
                                         baseOrientation = leg_orientation,
@@ -309,7 +312,7 @@ class fracturesurgery_env_v2(gym.Env):
         
         dynamics.change_leg_dynamics(self)
         p.changeVisualShape(self.leg, -1, rgbaColor=[0.8, 0.8, 0.8, 1])  
-        p.setCollisionFilterGroupMask(self.foot, -1, collisionFilterGroup=0, collisionFilterMask=0)
+        p.setCollisionFilterGroupMask(self.foot, footjoint, collisionFilterGroup=0, collisionFilterMask=0)
         p.setCollisionFilterGroupMask(self.leg, -1, collisionFilterGroup=0, collisionFilterMask=0)
         ##Initial Observation
         initial_pos = p.getLinkState(self.pandaUid, 11)[0]
@@ -328,15 +331,15 @@ class fracturesurgery_env_v2(gym.Env):
         #print(self.goal_ori)
         self.pos_distance, self.angle = utils.calculate_distances(self, initial_pos, initial_or, self.goal_pos, self.goal_ori)
         initial_isHolding = int(initial_isHolding)
-        initial_force = p.getJointState(self.foot, 1)[2]  # Joint index 0 is the fixed joint
+        initial_force = p.getJointState(self.foot, 0)[2]  # Joint index 0 is the fixed joint
         initial_force = np.linalg.norm(initial_force[0:3])
        
-        contacts = p.getContactPoints(self.foot, self.leg, -1, -1)
+        contacts = p.getContactPoints(self.foot, self.leg, footjoint, -1)
 
         # Check if contacts exist AND if any contact distance is below your threshold
         self.contact = 1 if (contacts and any(pt[8] < 0 for pt in contacts)) else 0
         if self.contact ==1:
-            print(f"Contact detected with distance: {(p.getContactPoints(self.foot, self.leg,-1,-1))[8]:.4f} m")
+            print(f"Contact detected with distance: {(p.getContactPoints(self.foot, self.leg,footjoint,-1))[8]:.4f} m")
         #print((p.getContactPoints(self.foot, self.leg,1,-1)))
         env_utils.set_observation(self, 
                                   initial_pos, 
@@ -365,9 +368,9 @@ class fracturesurgery_env_v2(gym.Env):
         p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=5)
         if self.soft_tissue=='soft':
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
-            self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.foot, -1,local_offset=[0.01,-0.0015,0.04]) ##trial and error to place them 
+            self.point_a,_ = new_band.ElasticBand._get_pose_vel(self,self.foot, 1,local_offset=[0.01,-0.0015,0.04]) ##trial and error to place them 
             self.point_c,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[-0.03,0.0,-0.01])
-            self.point_d,_ = new_band.ElasticBand._get_pose_vel(self,self.foot, -1,local_offset=[-0.03,-0.0015,0.04])
+            self.point_d,_ = new_band.ElasticBand._get_pose_vel(self,self.foot, 1,local_offset=[-0.03,-0.0015,0.04])
             #make_ligament(self,"cloth_Id1", self.foot, self.leg, self.point_c, self.point_d,orientation=p.getQuaternionFromEuler([90/180*np.pi,270/180*np.pi,180/180*np.pi]), scale =1,youngs_modulus=self.young_modulus)
             ligament = createligament.Ligament("cloth_Id2", self.foot, self.leg, 
                                                 self.point_a, self.point_b,
@@ -381,7 +384,7 @@ class fracturesurgery_env_v2(gym.Env):
                                                     scale =1, 
                                                     youngs_modulus=self.young_modulus) #0.75
         elif self.soft_tissue=='spring':
-            self.band = new_band2.ElasticBand(bodyA=self.foot, linkA= -1,
+            self.band = new_band2.ElasticBand(bodyA=self.foot, linkA= 1,
                                          bodyB=self.leg, linkB= -1,
                                          young_modulus=self.young_modulus,
                                          area=5e-6,
@@ -397,7 +400,7 @@ class fracturesurgery_env_v2(gym.Env):
        
         #print(p.getClosestPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1,distance=0.5 ))
         #utils.drawAABB(self,self.leg,-1)
-        p.setCollisionFilterPair(self.foot,self.leg,-1,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
+        p.setCollisionFilterPair(self.foot,self.leg,0,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
         return self.state, {}
 
     
@@ -544,8 +547,8 @@ class fracturesurgery_env_v2(gym.Env):
         # if done:
         #    # time.sleep(100)
         #     print('yay')
-        # elif truncated:
-        #     print(f'truncated {self.maximum_force}')#,{self.pos_distance},{self.angle},{actual_New_Position},{actual_New_Orientation},{self.isHolding},{self.contact}')
+        if truncated:
+            print(f'truncated {self.maximum_force},{self.pos_distance},{self.angle},{actual_New_Position},{actual_New_Orientation}')#,{self.isHolding},{self.contact}')
         
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 

@@ -74,6 +74,7 @@ def make_scene(env):
 
        
        if env.randomise_start==True:
+           print('random start')
            random = np.random.uniform(-0.005, 0.005, size=2)
            end_effector_pos = p.getLinkState(env.pandaUid, 11)[0] + np.array([random[0], random[1], 0])  # small random offset
            random_joint_positions = p.calculateInverseKinematics(env.pandaUid, 11, targetPosition=end_effector_pos, maxNumIterations=1000, residualThreshold=1e-9)
@@ -291,7 +292,7 @@ def getStarts(env):
     #pin = [0.004462 ,-0.002332 , 0.046608  ]
    # pin = [0.004462 ,-0.002332 , 0.049608  ]
     #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
-    fracturestart = fracturestart - [-0.04,-0.03,0.08]#[-0.05,0,0]#
+    fracturestart = fracturestart - [-0.05,0,0]#[-0.04,-0.03,0.08]#[-0.05,0,0]#- [-0.05,0,0]
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]
@@ -602,7 +603,7 @@ def move_panda_smoothly(env,robot_id, joint_indices, target_positions,
         q_current = np.array([p.getJointState(robot_id, j)[0] for j in joint_indices])
         v_current = np.array([p.getJointState(robot_id, j)[1] for j in joint_indices])
 def get_contact_force(env, bodyA, bodyB):
-    contact_points = p.getContactPoints(bodyA, bodyB, linkIndexA=-1, linkIndexB=-1)
+    contact_points = p.getContactPoints(bodyA, bodyB, linkIndexA=1, linkIndexB=-1)
     valid_contacts = [pt for pt in contact_points if pt[8] < -0.000] if contact_points else []
     
     if valid_contacts:
