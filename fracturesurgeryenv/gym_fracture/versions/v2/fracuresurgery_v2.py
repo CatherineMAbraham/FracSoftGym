@@ -473,7 +473,7 @@ class fracturesurgery_env_v2(gym.Env):
         else:
             self.contact = 0
         #print(f"Contact EMA: {self.contact_ema:.4f}, Contact Distance: {self.contact_distance:.4f}, Any Contact: {self.anycontact}")
-        alpha_step = 1  
+        alpha_step = 0.4  # Smoothing factor for force EMA  
         spike_threshold = 15.0  # Define a threshold for spike detection: Pybullet gives random spikes in force,
         # going to ignore any readings above 15N which is likely just a spike and not a real reading 
         if avg_force > spike_threshold:
