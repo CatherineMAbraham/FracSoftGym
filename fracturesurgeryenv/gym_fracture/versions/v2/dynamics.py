@@ -14,13 +14,13 @@ def change_leg_dynamics(env):
  
 def change_foot_dynamics(env):
     
-    p.changeDynamics(env.foot, -1, 
+    p.changeDynamics(env.foot, 1, 
                      mass=0.001, 
                      lateralFriction=2, # Lower this! 5.0 is causing the 50N spikes
                      contactStiffness=5000, 
                      contactDamping=100,
                      collisionMargin=0.1)
-    p.changeDynamics(env.foot,1, 
+    p.changeDynamics(env.foot,env.footjoint, 
                      mass=0.276,#276, 
                      lateralFriction=0.5, # Lower this! 5.0 is causing the 50N spikes
                      contactStiffness=300, 

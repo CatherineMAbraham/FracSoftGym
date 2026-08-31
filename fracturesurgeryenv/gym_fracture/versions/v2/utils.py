@@ -207,35 +207,7 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
     env.goal_range_high = fracturestart+ limit_high
     env.goal_ori_low= np.radians(fractureorientaionDeg - [15,5,15])
     env.goal_ori_high=np.radians(fractureorientaionDeg + [15,5,15])
-   # print(f'Fracture Start: {fracturestart}, Orientation: {fractureorientaionDeg}')
-    #print(f'Goal Pos Range Low: {env.goal_range_low}, High: {env.goal_range_high}')
-   # print(f'Goal Ori Low: {(env.goal_ori_low)}, High: {(env.goal_ori_high)}')
-    #print('Goal Pos Range Low:', env.goal_range_low, 'High:', env.goal_range_high,'Goal Ori Low:', env.goal_ori_low, 'High:', env.goal_ori_high)
-    fracturestart_end = np.array(fracturestart - np.array([-0.01,0.045,0]))
-    a = fracturestart - limit_low#[0.0125,0.0,-0.003] 
-    b = fracturestart + limit_high#[-0.0125,0.03,0.003]
-    c = fracturestart + limit_low#[0.0125,-0.0,0.003]
-    d = fracturestart + limit_high#[0.0125,0.03,0.003]
-    e = fracturestart - limit_low#[0.0125,0.0,0.103] 
-    f = fracturestart + limit_high#[-0.0125,0.03,-0.103]
-    g = fracturestart + limit_low#[0.0125,-0.0,-0.103]
-    h = fracturestart + limit_high#[0.0125,0.03,-0.103]
-    # p.addUserDebugLine(a, b, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(a, c, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(b, d, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(d, c, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(e, f, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(e, g, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(f, h, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(h, g, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(a, e, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(b, f, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(c, g, lineColorRGB=[0, 1, 0], lineWidth=3)
-    # p.addUserDebugLine(d, h, lineColorRGB=[0, 1, 0], lineWidth=3)
-    #print(env.curriculum_phase)
-    # if env.curriculum_phase ==1:
-    #     env.goal_pos = fracturestart.copy()
-    # else:0
+  
     env.goal_pos = np.array(env.np_random.uniform(env.goal_range_low, env.goal_range_high,))
     ##choose the most extreme goal position for debugging purposes, can change to random within range later
     #env.goal_pos = np.array([env.goal_range_low[0], env.goal_range_low[1], env.goal_range_low[2]])
@@ -250,31 +222,7 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
     env.goal_ori = np.array(p.getQuaternionFromEuler(ori))
     
 
-    #goal_ori = R.from_euler('xyz', ori).as_quat()
-    #env.goal_ori = np.round(goal_ori,3)
-    #valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)#
-    #print('Generated Goal Position:', env.goal_pos, 'Orientation (Euler):', np.degrees(ori), 'Valid:', valid)
-    # while not valid:
-    #     env.not_valid_count += 1
-    #     invalid_goal = np.array(
-    #         [(np.asarray(env.goal_pos, dtype=float), np.asarray(env.goal_ori, dtype=float))],
-    #         dtype=[('pos', float, (3,)), ('ori', float, (4,))]
-    #     )
-
-    #     if os.path.exists(INVALID_GOALS_PATH):
-    #         existing_goals = np.load(INVALID_GOALS_PATH)
-    #         invalid_goals = np.concatenate((existing_goals, invalid_goal))
-    #     else:
-    #         invalid_goals = invalid_goal
-
-    #     np.save(INVALID_GOALS_PATH, invalid_goals)
-    #     print(f'Invalid Percentage: {env.not_valid_count/env.goal_gen_count:.2%} | Invalid Count: {env.not_valid_count} | Total Generated: {env.goal_gen_count}')
-    #     env.goal_pos = np.array(env.np_random.uniform(env.goal_range_low, env.goal_range_high,))
-    #     ori = np.array(env.np_random.uniform(env.goal_ori_low, env.goal_ori_high))
-    #     env.goal_ori = np.array(p.getQuaternionFromEuler(ori))
-    #     valid = is_goal_configuration_valid(env, env.goal_pos, env.goal_ori)
-    #     env.goal_gen_count += 1 
-    
+   
 def get_youngs_modulus_and_width(env):
     youngs_modulus_range =np.arange(1e5, 5e6, 1e3) #1MPa to 20MPa in 1kPa increments
     width_range = np.round(np.arange(0.001, 0.01, 0.001), 3)
@@ -292,7 +240,7 @@ def getStarts(env):
     #pin = [0.004462 ,-0.002332 , 0.046608  ]
    # pin = [0.004462 ,-0.002332 , 0.049608  ]
     #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
-    fracturestart = fracturestart - [-0.05,0,0]#[-0.04,-0.03,0.08]#[-0.05,0,0]#- [-0.05,0,0]
+    fracturestart = fracturestart - [-0.04,-0.03,0.08]#[-0.05,0,0]#- [-0.05,0,0]
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]
@@ -423,76 +371,7 @@ def constrain_quat(env, q):
     return q # Apply scaled rotation back  
 
 
-def visualize_contact_forces(env,bodyA, bodyB, scale=0.01, lifeTime=0.05, lineWidth=2):
-    """
-    Draw contact normal, friction vectors and total force for every contact between bodyA and bodyB.
-    - bodyA: robot (or the contacting body)
-    - bodyB: object (the body receiving force in c[...] interpretation used here)
-    - scale: visual scaling factor (1 meter per 1 N would be huge; use ~0.001-0.05)
-    """
-    contacts = p.getContactPoints(bodyA=bodyA, bodyB=bodyB, linkIndexB=-1)
-    #print(contacts)
-    for c in contacts:
-        # contact point in world frame (use the reported contact position)
-        #print('Contact Info:', c)
-        linkIndex = c[3]  # link index on body A (robot)
-        #print('Contact Link Index:', linkIndex)
-        contact_pos = c[6]  # commonly used in examples; point on body B
-        # normal on body B (unit vector), points away from B toward A
-        normal_dir = np.array(c[7], dtype=float)
-        normal_mag = float(c[9])    # normal force magnitude (N)
-        #print('Normal Mag:', normal_mag)
-        tan1_mag = float(c[10])
-        tan1_dir = np.array(c[11], dtype=float)
-        tan2_mag = float(c[12])
-        tan2_dir = np.array(c[13], dtype=float)
 
-        #print(normal_mag, tan1_mag, tan2_mag)
-        # compute vector contributions (force on object B)
-        f_normal = normal_mag * normal_dir
-        f_t1 = tan1_mag * tan1_dir
-        f_t2 = tan2_mag * tan2_dir
-        f_total = f_normal + f_t1 + f_t2
-        #print(f_normal, f_t1, f_t2, f_total)
-#        p.addUserDebugLine(normal_dir,)
-        forces = [p.getJointState(env.pandaUid, i)[3] for i in range(9)]
-        q_list = [p.getJointState(env.pandaUid, j)[0] for j in range(9)]
-        v_list = [p.getJointState(env.pandaUid, j)[1] for j in range(9)]
-        tau = np.array(forces)
-        # linkIndex = index of end-effector link
-        link_state = p.getLinkState(env.pandaUid, linkIndex, computeForwardKinematics=True)
-        link_world_pos = np.array(link_state[0])
-        link_world_orn = np.array(link_state[1])  # quaternion (x,y,z,w)
-
-        # convert contact world position to link local coordinates
-        # build rotation matrix from quaternion
-        rot_mat = np.array(p.getMatrixFromQuaternion(link_world_orn)).reshape(3,3)
-        local_pos = rot_mat.T.dot(contact_pos - link_world_pos)  # local coords in link frame
-
-        # calculate Jacobian at that local position
-        lin_jac, ang_jac = p.calculateJacobian(env.pandaUid, linkIndex,
-                                            localPosition=list(local_pos),
-                                            objPositions=q_list,
-                                            objVelocities=v_list,
-                                            objAccelerations=[0.0]*len(q_list))
-        J_lin = np.array(lin_jac)   # shape (3, n)
-        J_ang = np.array(ang_jac)   # shape (3, n)
-
-        # predicted joint torques from force only (tau = J^T * F)
-        tau_pred_from_force = J_lin.T.dot(f_total)   # (n,) vector, Nm
-
-        #print("contact f_total world (N):", f_total, "||mag||:", np.linalg.norm(f_total))
-        #print("predicted tau from linear force (Nm):", tau_pred_from_force)
-
-        # optionally also include any contact moment (if you have it) via angular jacobian
-        # compare to measured joint torques:
-        measured_taus = np.array([p.getJointState(env.pandaUid, j)[3] for j in range(9)])
-        #print("measured joint torques (Nm):", measured_taus)
-        #print("difference (meas - predicted):", measured_taus - tau_pred_from_force)
-        f_total = np.linalg.norm(f_total)
-        f_total = np.float32(f_total)
-        #print('Total Contact Force:', f_total)
-        return f_total
     
 def fingertip_distance(body_id, left_idx, right_idx, physicsClientId=0):
     # getLinkState(...)[0] is world position of link frame
@@ -559,51 +438,9 @@ def compute_target_velocity(desired_pos, current_pos, current_vel, dt,
     return prop_vel_clamped_np
 
 
-def move_panda_smoothly(env,robot_id, joint_indices, target_positions,
-                        max_speeds, Kd=0.01, max_force=20,
-                        dt=0.01, tolerance=1e-3, sleep_time=None):
-    """
-    Smoothly move Panda to target_positions using per-joint velocity control.
-    """
-    target_positions = np.array(target_positions, dtype=float)
-    max_speeds = np.array(max_speeds, dtype=float)
 
-    # Initialize current joint positions and velocities
-    q_current = np.array([p.getJointState(robot_id, j)[0] for j in joint_indices])
-    v_current = np.array([p.getJointState(robot_id, j)[1] for j in joint_indices])
-
-    while np.linalg.norm(target_positions - q_current) > tolerance:
-        # Compute target velocities using per-joint limits
-        target_velocities = compute_target_velocity(
-            desired_pos=target_positions,
-            current_pos=q_current,
-            current_vel=v_current,
-            dt=dt,
-            max_speed=max_speeds,
-            Kd=Kd
-        )
-
-        # Apply velocity control
-        p.setJointMotorControlArray(
-            robot_id,
-            jointIndices=joint_indices,
-            controlMode=p.VELOCITY_CONTROL,
-            targetVelocities=target_velocities.tolist(),
-            forces=max_force
-        )
-
-        # Step simulations
-        env.band.step()
-        p.stepSimulation()
-        #print('Target Velocities:', target_velocities)
-        if sleep_time:
-            time.sleep(sleep_time)
-
-        # Update current positions and velocities
-        q_current = np.array([p.getJointState(robot_id, j)[0] for j in joint_indices])
-        v_current = np.array([p.getJointState(robot_id, j)[1] for j in joint_indices])
 def get_contact_force(env, bodyA, bodyB):
-    contact_points = p.getContactPoints(bodyA, bodyB, linkIndexA=1, linkIndexB=-1)
+    contact_points = p.getContactPoints(bodyA, bodyB, linkIndexA=env.footjoint, linkIndexB=-1)
     valid_contacts = [pt for pt in contact_points if pt[8] < -0.000] if contact_points else []
     
     if valid_contacts:
@@ -640,7 +477,7 @@ def smooth_motion(env, joint_targets, joint_current, maxforce,numsubsteps):
         p.stepSimulation()
         #time.sleep(0.01)
         joint_current = np.array([p.getJointState(env.pandaUid, j)[0] for j in range(9)])
-        force = p.getJointState(env.foot, 1)[2]  # Joint index 1 is the fixed joint
+        force = p.getJointState(env.foot, env.loadcell)[2]  # Joint index 1 is the fixed joint
         all_forces.append(force)
         force_magnitude = np.linalg.norm(force[:3])  # Magnitude of the force vector}])
         force = force_magnitude

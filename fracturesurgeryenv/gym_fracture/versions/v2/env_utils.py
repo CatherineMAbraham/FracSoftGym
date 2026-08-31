@@ -4,16 +4,16 @@ from gym_fracture.versions.v2 import utils
 
 def set_observation_space(env):
     if env.action_type == 'ori_only':
-        obs_shape = 35  
+        obs_shape = 37  
         goal_shape = 5
     elif env.action_type == "pos_only":
-        obs_shape = 35  
+        obs_shape = 37  
         goal_shape = 4
     elif env.contact_type == True:
-        obs_shape = 38
+        obs_shape = 40
         goal_shape = 10
     else:
-        obs_shape = 38
+        obs_shape = 40
         goal_shape = 9 ## now we're going to add contact to the goal anyway as a 'dummy' variable, so we can keep the goal shape the same for both contact and non-contact environments
     if env.obs_type == 'dict':
         env.observation_space = spaces.Dict({
@@ -163,7 +163,7 @@ def compute_reward_dense(env, achieved_goal, desired_goal, info):
         return -d1 + e
     
 def set_observation(env, pos, ori, vel, jointPoses, jointVelocities, 
-                    force,contact,contact_distance,contact_force, position,angle,left_contact, right_contact, dist, isHolding):
+                    force,maximum_force,contact,anycontact,contact_distance,contact_force, position,angle,left_contact, right_contact, dist, isHolding):
     if env.action_type == 'ori_only':
         observation = np.concatenate([
         np.array(pos),
@@ -172,7 +172,9 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
         np.array(jointPoses),
         np.array(jointVelocities),
         np.array([force]),
+        np.array([maximum_force]),
         np.array([contact]),
+        np.array([anycontact]),
         np.array([contact_distance]),
         np.array([contact_force]),
         np.array([angle]),
@@ -189,7 +191,9 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
                 np.array(jointPoses),
                 np.array(jointVelocities),
                 np.array([force]),
+                np.array([maximum_force]),
                 np.array([contact]),
+                np.array([anycontact]),
                 np.array([contact_distance]),
                 np.array([contact_force]),
                 np.array([position]),
@@ -207,7 +211,9 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
             np.array(jointPoses),
             np.array(jointVelocities),
             np.array([force]),
+            np.array([maximum_force]),
             np.array([contact]),
+            np.array([anycontact]),
             np.array([contact_distance]),
             np.array([contact_force]),
             np.array([position]),
@@ -227,7 +233,7 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
         env.achieved_goal = np.array(list(pos) + [isHolding]+[force])#+[env.contact])
         env.desired_goal = np.array(list(env.goal_pos) + [1]+desired_force)#+object_contact)
     elif env.contact_type == 1:
-        env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+[env.anycontact])#+[env.contact])
+        env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+[anycontact])#+[env.contact])
         env.desired_goal = np.array(list(env.target_position) + [1]+desired_force +object_contact)
     else:
         env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force])#we're going to set this as 'success' so we don't really look for it but it keeps the shape the same.
