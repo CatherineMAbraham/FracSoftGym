@@ -357,9 +357,6 @@ class fracturesurgery_env_v2(gym.Env):
                                   self.contact_ema,
                                   self.pos_distance,
                                   self.angle,
-                                  left_contact,
-                                  right_contact,
-                                  self.dist, 
                                   initial_isHolding)
         #print(f"Youngs Modulus Type is {self.young_modulus_type}, not using soft tissue in this environment.")
         if self.young_modulus_type =='testing' :
@@ -524,10 +521,7 @@ class fracturesurgery_env_v2(gym.Env):
                                   self.contact_distance,
                                   self.contact_ema,
                                   self.pos_distance,
-                                  self.angle,
-                                  left_contact,
-                                  right_contact, 
-                                  dist,  
+                                  self.angle, 
                                   self.isHolding)
         
         #print('Max Force: ', self.maximum_force, 'Filtered Force',self.filtered_force)
