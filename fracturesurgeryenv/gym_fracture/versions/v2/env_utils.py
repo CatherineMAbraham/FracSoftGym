@@ -224,7 +224,7 @@ def set_observation(env, pos, ori, vel, jointPoses, jointVelocities,
         env.achieved_goal = np.array(list(pos) + [isHolding]+[force])#+[env.contact])
         env.desired_goal = np.array(list(env.goal_pos) + [1]+desired_force)#+object_contact)
     elif env.contact_type == 1:
-        env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+[anycontact])#+[env.contact])
+        env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force]+[contact])#+[env.contact])
         env.desired_goal = np.array(list(env.target_position) + [1]+desired_force +object_contact)
     else:
         env.achieved_goal = np.array(list(pos) + list(ori) + [isHolding]+[force])#we're going to set this as 'success' so we don't really look for it but it keeps the shape the same.
