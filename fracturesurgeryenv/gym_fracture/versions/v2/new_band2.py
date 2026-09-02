@@ -9,7 +9,7 @@ class ElasticBand:
                  young_modulus, area,width,
                  damping_ratio=0.5, exponent=1.5,num_springs=3,
                  randomize_position=False, position_std=0.002,
-                 randomize_num_ligaments=False, min_ligaments=1, max_ligaments=5):
+                 randomize_num_ligaments=False, min_ligaments=1, max_ligaments=3,patient=110):
         self.bodyA = bodyA
         self.linkA = linkA
         self.bodyB = bodyB
@@ -49,14 +49,15 @@ class ElasticBand:
         #self.local_offsets_A= [np.array([ 0.3769989,  -0.08445022,  0.07449624]),np.array([ 0.3769989,  -0.07730737,  0.07449624])]
         #self.local_offsets_B=[np.array([ 0.3769989,  -0.12016451,  0.07449624]),np.array([ 0.3769989,  -0.12016451,  0.07949624])]
         #[np.array([ 0.02000636, -0.00083421,  0.04432721]), [np.array([ 0.01999438, -0.00067805, -0.0100396 ]),
-        base_offset_A = np.array([ 0.02000484, -0.00081395,  0.03718438])
-        base_offset_B = np.array([ 0.01999438,  0.00432195, -0.0100396 ])
+        base_offset_A =np.array([0,0,0]) if patient == 126 else np.array([ 0.02000484, -0.00081395,  0.03718438])
+        base_offset_B = np.array([ 0.01999438,  0.00432195, -0.0100396 ]) 
         
         # Randomize number of ligaments positioned around the bone if enabled
         num_ligaments = 1
         if randomize_num_ligaments:
             num_ligaments = np.random.randint(min_ligaments, max_ligaments + 1)
-        
+        #print(f"Creating {num_ligaments} ligaments for the elastic band.")
+       
         self.local_offsets_A = []
         self.local_offsets_B = []
         

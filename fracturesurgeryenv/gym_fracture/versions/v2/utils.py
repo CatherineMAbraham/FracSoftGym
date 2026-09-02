@@ -154,43 +154,63 @@ def is_goal_configuration_valid(env, goal_pos, goal_quat):
 #             target_ori[i] = np.clip(target_ori[i], goal_ori_low[i], goal_ori_high[i])
 #             env.target_position[3:7] = p.getQuaternionFromEuler(target_ori)
 #     return env.target_position
+def is_angle_in_range(angle, min_angle, max_angle):
+    # Normalize angles to [0, 2*pi)
+    twopi = 2 * np.pi
+    angle = angle % twopi
+    min_angle = min_angle % twopi
+    max_angle = max_angle % twopi
+
+    if min_angle <= max_angle:
+        return min_angle <= angle <= max_angle
+    else: # Range crosses the 0/2pi boundary
+        return angle >= min_angle or angle <= max_angle
 def is_goal_in_range(env, pos_buffer=0.001, ori_buffer=0.005):
-    goal_high = np.array([0.31951126, -0.03799936, 0.15826347])
-    goal_low = np.array([0.29451126, -0.06799936, 0.15226347])
+    # Goal bounds
+    goal_pos_low  = np.array([0.29451126, -0.06799936, 0.15226347])
+    goal_pos_high = np.array([0.31951126, -0.03799936, 0.15826347])
 
-    goal_ori_high = np.array([3.40339204, 0.08726646, 0.26219755])  # Radians
-    goal_ori_low = np.array([2.87979327, -0.08726646, -0.26140122])  # Radians
+    goal_ori_low  = np.array([2.87979327, -0.08726646, -0.26140122])  # Radians
+    goal_ori_high = np.array([3.40339204, 0.08726646, 0.26219755])   # Radians
 
-    # Apply buffer inwards from boundaries
-    buffered_pos_low = goal_low + pos_buffer
-    buffered_pos_high = goal_high - pos_buffer
+    # Apply inward buffers
+    buf_pos_low  = goal_pos_low + pos_buffer
+    buf_pos_high = goal_pos_high - pos_buffer
 
-    buffered_ori_low = goal_ori_low + ori_buffer
-    buffered_ori_high = goal_ori_high - ori_buffer
-
+    # Current targets
     target_pos = np.array(env.target_position[0:3])
     target_ori = np.array(p.getEulerFromQuaternion(env.target_position[3:7]))
 
-    # --- 1. Position Check & Inward Clip ---
-    for i in range(3):
-        if target_pos[i] < goal_low[i] or target_pos[i] > goal_high[i]:
-            print(
-                f"Axis {i} out of range: {target_pos[i]:.6f} not in [{goal_low[i]}, {goal_high[i]}]"
-            )
+    # --- 1. Position Check & Clip ---
+    out_of_bounds_pos = (target_pos < goal_pos_low) | (target_pos > goal_pos_high)
+    if np.any(out_of_bounds_pos):
+        for i in np.where(out_of_bounds_pos)[0]:
+            print(f"Pos axis {i} out of range: {target_pos[i]:.6f} not in [{goal_pos_low[i]}, {goal_pos_high[i]}]")
 
-    clipped_pos = np.clip(target_pos, buffered_pos_low, buffered_pos_high)
+    clipped_pos = np.clip(target_pos, buf_pos_low, buf_pos_high)
+
+    # --- 2. Center-Relative Orientation Check & Clip ---
+    # Center and buffered half-width of allowed range
+    ori_center = (goal_ori_low + goal_ori_high) / 2.0
+    ori_half_width = (goal_ori_high - goal_ori_low) / 2.0
+    buf_half_width = np.maximum(0.0, ori_half_width - ori_buffer)
+
+    # Calculate shortest angular offset relative to range center
+    raw_offset = target_ori - ori_center
+    norm_offset = (raw_offset + np.pi) % (2 * np.pi) - np.pi
+
+    # Check if outside buffered bounds
+    out_of_bounds_ori = np.abs(norm_offset) > buf_half_width
+    if np.any(out_of_bounds_ori):
+        for i in np.where(out_of_bounds_ori)[0]:
+            print(f"Orientation axis {i} out of range: offset {norm_offset[i]:.4f} rad exceeds max allowed ±{buf_half_width[i]:.4f}")
+
+    # Clip normalized offset within half-width limits
+    clipped_offset = np.clip(norm_offset, -buf_half_width, buf_half_width)
+    clipped_ori = ori_center + clipped_offset
+
+    # --- 3. Update Target State ---
     env.target_position[0:3] = clipped_pos
-
-    # --- 2. Orientation Check & Inward Clip ---
-    for i in range(3):
-        if target_ori[i] < goal_ori_low[i] or target_ori[i] > goal_ori_high[i]:
-            print(
-                f"Orientation axis {i} out of range: {target_ori[i]:.6f} not in [{goal_ori_low[i]}, {goal_ori_high[i]}]"
-            )
-
-    clipped_ori = np.clip(target_ori, buffered_ori_low, buffered_ori_high)
-
-    # Convert directly back to Quaternion (no np.radians)
     env.target_position[3:7] = p.getQuaternionFromEuler(clipped_ori)
 
     return env.target_position
@@ -240,7 +260,7 @@ def getStarts(env):
     #pin = [0.004462 ,-0.002332 , 0.046608  ]
    # pin = [0.004462 ,-0.002332 , 0.049608  ]
     #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
-    fracturestart = fracturestart - [-0.04,-0.03,0.08]#[-0.05,0,0]#- [-0.05,0,0]
+    fracturestart = fracturestart -[-0.04,-0.03,0.08]# [-0.04,0,0.08]#[-0.04,-0.03,0.08]#[-0.05,0,0]#- [-0.05,0,0]
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]
@@ -258,8 +278,8 @@ def getStarts(env):
     # if isinstance(env.goal_type, str):
     #     pass
     # else:
-    if isinstance(env.goal_type, np.ndarray):
-        fracturestart=np.array([ 0.34701957, -0.03,0.07526956])#-np.array([0,0.03,0])#(0.3487603762848476, -0.08310808157863893, 0.07322828156663022)#([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])#[ 0.3468140278354482, -0.029897614059223178, 0.07524706439920568]
+    # if isinstance(env.goal_type, np.ndarray):
+    #     fracturestart=np.array([ 0.34701957, -0.03,0.07526956])#-np.array([0,0.03,0])#(0.3487603762848476, -0.08310808157863893, 0.07322828156663022)#([0.35706911463540575, -0.06982252591466533, 0.07526190835600088])#[ 0.3468140278354482, -0.029897614059223178, 0.07524706439920568]
     #print(fracturestart)
     # [ 0.30702814 -0.06013873  0.15526305], foot ori: [ 4.33410682e-04 -1.40125743e-04  7.08949001e-01  7.05259602e-01], goal pos: [ 0.30729738 -0.03948561  0.15312103], goal ori: [ 0.99281821 -0.01780929  0.0186322  -0.11682327]
     return fracturestart, fractureorientaionDeg#, legstart
@@ -437,7 +457,45 @@ def compute_target_velocity(desired_pos, current_pos, current_vel, dt,
 
     return prop_vel_clamped_np
 
+def compute_smooth_substeps(env,distance: float, min_steps: int = 12, max_steps: int = 50, 
+                           d_buffer: float = 0.015, gain: float = 200.0) -> int:
+    """
+    Computes a continuous, differentiable step count using a logistic scaling layer.
+    
+    Args:
+        distance: Signed distance to contact boundary (meters/units).
+        min_steps: Substeps in free motion (high speed).
+        max_steps: Substeps in contact (slow speed / high damping).
+        d_buffer: Distance threshold at which deceleration initiates.
+        gain: Slope steepness of the transition region.
+    """
+    # Smooth continuous mapping: scales from min_steps -> max_steps as distance drops below d_buffer
+    scale = 1.0 / (1.0 + np.exp(gain * (distance - d_buffer)))
+    return int(np.round(min_steps + (max_steps - min_steps) * scale))
+def compute_cbf_substeps(distance: float, dd_ds: float = -1.0, nominal_steps: int = 12, 
+                         max_steps: int = 100, d_safe: float = 0.0, gamma: float = 10.0) -> int:
+    """
+    Computes required substeps using a Path-Velocity Control Barrier Function.
+    
+    Args:
+        distance: Signed contact distance d(s).
+        dd_ds: Spatial gradient of distance along the path (negative approaching contact).
+        d_safe: Buffer distance threshold (meters).
+        gamma: Class-K linear gain governing deceleration aggressiveness.
+    """
+    h = distance - d_safe
+    if h <= 0:
+        return max_steps  # Maximum deceleration/damping in or past contact boundary
 
+    # Compute CBF velocity bound: s_dot <= (gamma * h) / |dd/ds|
+    s_dot_max = (gamma * h) / max(1e-4, abs(dd_ds))
+    
+    # Map nominal path speed (s_dot = 1.0) to maximum safe fraction
+    s_dot_safe = min(1.0, max(0.01, s_dot_max))
+    
+    # Substeps scale inversely with allowed path velocity
+    cbf_steps = int(np.ceil(nominal_steps / s_dot_safe))
+    return min(max_steps, max(nominal_steps, cbf_steps))
 
 def get_contact_force(env, bodyA, bodyB):
     contact_points = p.getContactPoints(bodyA, bodyB, linkIndexA=env.footjoint, linkIndexB=-1)
@@ -453,6 +511,74 @@ def get_contact_force(env, bodyA, bodyB):
         
         # Update EMA filter smoothly during active contact
         #env.filtered_contact_force = (env.alpha * env.max_contact_force) + ((1.0 - env.alpha) * env.filtered_contact_force)
+def smooth_motion_safe(env, joint_targets, joint_current, maxforce, numsubsteps, 
+                  agent_force_limit=5.0, contact_force_limit=0.5):
+    max_step_force = 0 
+    force_total = 0
+    all_forces = []
+    contact_forces = []
+    contact_distances = []
+    
+    # Target position can freeze dynamically if either force limit is breached
+    joint_targets = np.array(joint_targets)
+    joint_current = np.array(joint_current)
+    active_target = joint_targets.copy()
+    
+    for i in range(numsubsteps):
+        alpha = (i + 1) / numsubsteps
+        intermediate_targets = joint_current + alpha * (active_target - joint_current)
+        
+        p.setJointMotorControlArray(
+            env.pandaUid,
+            jointIndices=range(9),
+            controlMode=p.POSITION_CONTROL,
+            targetPositions=intermediate_targets.tolist(),
+            forces=maxforce
+        )
+        
+        if env.soft_tissue == 'spring':
+            env.band.step()
+
+        p.stepSimulation()
+
+        # 1. Measure Agent / Loadcell Force (5.0 N limit)
+        joint_current = np.array([p.getJointState(env.pandaUid, j)[0] for j in range(9)])
+        force_raw = p.getJointState(env.foot, env.loadcell)[2] 
+        agent_force_mag = np.linalg.norm(force_raw[:3])
+        
+        # 2. Measure Contact Force between Leg and Foot (0.5 N limit)
+        contact_force, contact_distance = get_contact_force(env, env.leg, env.foot)
+        
+        if isinstance(contact_force, (list, np.ndarray)):
+            contact_force_mag = float(np.linalg.norm(contact_force))
+        else:
+            contact_force_mag = float(contact_force)
+
+        # DUAL-SAFETY INTERLOCK: Check each force against its specific threshold
+        if agent_force_mag >= agent_force_limit or contact_force_mag >= contact_force_limit:
+            # Freeze target trajectory to hold current pose
+            active_target = joint_current.copy()
+            p.setJointMotorControlArray(
+                env.pandaUid,
+                jointIndices=range(9),
+                controlMode=p.POSITION_CONTROL,
+                targetPositions=joint_current.tolist(),
+                forces=maxforce
+            )
+
+        all_forces.append(force_raw)
+        contact_forces.append(contact_force)
+        contact_distances.append(contact_distance)
+        
+        force_total += agent_force_mag
+
+        if agent_force_mag > max_step_force:
+            max_step_force = agent_force_mag
+            if max_step_force > env.output_force:
+                env.output_force = max_step_force
+
+    return (env.output_force, max_step_force, force_total / numsubsteps, 
+            np.mean(all_forces, axis=0), np.mean(contact_forces, axis=0), np.min(contact_distances))
 def smooth_motion(env, joint_targets, joint_current, maxforce,numsubsteps):
     max_step_force = 0 
     force_total = 0

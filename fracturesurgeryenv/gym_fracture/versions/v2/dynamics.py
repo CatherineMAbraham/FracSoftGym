@@ -13,18 +13,41 @@ def change_leg_dynamics(env):
     #p.setCollisionFilterGroupMask(env.leg, -1, collisionFilterGroup=0, collisionFilterMask=0) 
  
 def change_foot_dynamics(env):
-    
+    if env.randomise_foot_dynamics:
+        mass = env.np_random.uniform(0.276 * 0.9, 0.276 * 1.1)
+        
+        # Friction DR
+        joint_friction = env.np_random.uniform(0.3, 1.0)
+        sole_friction = env.np_random.uniform(0.5, 1.2)
+        spin_friction = env.np_random.uniform(0.001, 0.02)
+        
+        # Contact Compliance DR (±20% variation)
+        stiffness_link1 = env.np_random.uniform(4000, 6000)
+        stiffness_joint = env.np_random.uniform(240, 360)
+        damping = env.np_random.uniform(80, 120)
+        restitution = env.np_random.uniform(0.0, 0.15)
+    else:
+        mass = 0.276
+        sole_friction, joint_friction, spin_friction = 1.0, 0.5, 0.005
+        stiffness_link1, stiffness_joint, damping = 5000, 300, 100
+        restitution = 0.0
+
+    # Toe / Sole segment
     p.changeDynamics(env.foot, 1, 
-                     mass=0.001, 
-                     lateralFriction=2, # Lower this! 5.0 is causing the 50N spikes
-                     contactStiffness=5000, 
-                     contactDamping=100,
-                     collisionMargin=0.1)
-    p.changeDynamics(env.foot,env.footjoint, 
-                     mass=0.276,#276, 
-                     lateralFriction=0.5, # Lower this! 5.0 is causing the 50N spikes
-                     contactStiffness=300, 
-                     contactDamping=100,
+                              mass=0.001, 
+                              lateralFriction=2, # Lower this! 5.0 is causing the 50N spikes
+                              contactStiffness=5000, 
+                              contactDamping=100,
+                              collisionMargin=0.1) # Standardized from 0.1 to avoid phantom collisions
+
+    # Main Foot Joint segment
+    p.changeDynamics(env.foot, env.footjoint, 
+                     mass=mass, 
+                     lateralFriction=joint_friction,
+                     spinningFriction=spin_friction,
+                     contactStiffness=stiffness_joint, 
+                     contactDamping=damping,
+                     restitution=restitution,
                      collisionMargin=0.0001)
    # print(p.getLinkState(env.foot, 1))
     

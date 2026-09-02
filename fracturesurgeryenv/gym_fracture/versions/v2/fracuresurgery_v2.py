@@ -47,6 +47,7 @@ class fracturesurgery_env_v2(gym.Env):
         randomise_num_springs = False,
         randomise_ligs = False,
         randomise_start = False,
+        randomise_foot_dynamics=    False,
         patient = None,
         width = 0.005,
         test = False,
@@ -102,6 +103,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.width = width
         self.randomise_ligs = randomise_ligs
         self.randomise_start = randomise_start
+        self.randomise_foot_dynamics = randomise_foot_dynamics
         self.alpha = 0.4 # Set alpha between 0.05 and 0.1
         self.force_window = deque(maxlen=5)
         ## Initialise variables to 0 
@@ -183,7 +185,10 @@ class fracturesurgery_env_v2(gym.Env):
         self.anycontact = 0
         self.filtered_contact_force = 0.0
         self.contact_ema = 0.0
-        
+
+        if self.randomise_num_springs:
+            self.number_of_springs = np.random.randint(1, 10)  # Randomly choose between 1 and 5 springs
+            print(f"Randomised number of springs: {self.number_of_springs}")
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
         
@@ -279,8 +284,11 @@ class fracturesurgery_env_v2(gym.Env):
             #print('Goal position:', self.goal_pos, 'Goal orientation (quaternion):', goal_ori)   
             self.goal_ori = goal[1]
            # self.goal_ori =np.array(p.getQuaternionFromEuler(goal_ori))#np.array([-0.06132328,-0.06193331,0.70415999,0.70467186])#np.array(p.getQuaternionFromEuler(goal_ori))#np.array([0.999857944938553, 0.0034038286589975777, -0.014537799360434847, 0.007820248299749461])#np.array(p.getQuaternionFromEuler(goal_ori))
-            self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#np.array([ 0.32180062,-0.09246775, 0.15800003,0.9999999728200057, 0.00023313980271510995, -8.89660707914592e-08, 2.4108688676344187e-06])#2.81656109e-04, -2.81431908e-04,  7.06825125e-01,  7.07388213e-01])
-
+            self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#
+            self.target_position = utils.is_goal_in_range(self)
+            #self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#np.array([ 0.32180062,-0.09246775, 0.15800003,0.9999999728200057, 0.00023313980271510995, -8.89660707914592e-08, 2.4108688676344187e-06])#2.81656109e-04, -2.81431908e-04,  7.06825125e-01,  7.07388213e-01])
+            self.goal_pos = self.target_position[0:3]
+            self.goal_ori = self.target_position[3:7]
         #self.target_position = utils.is_goal_in_range(self)
         #self.goal_pos = self.target_position[0:3]
         #self.goal_ori = self.target_position[3:7]
@@ -303,8 +311,9 @@ class fracturesurgery_env_v2(gym.Env):
         #print('Leg start position:', leg_start)
         if self.patient == 198:
             leg_orientation = p.getQuaternionFromEuler([0,0, 0])
-        foot = p.getLinkState(self.foot, 1)[0]
+        foot = p.getBasePositionAndOrientation(self.foot)[0]#p.getLinkState(self.foot, -1)[0]
                 #print(foot)
+        #difference = np.array([0, 0.105, 0.02])
         #leg_start=foot - difference
         self.leg = p.loadURDF(leg_path,
                                         basePosition =leg_start,#-[0,1,0],
@@ -342,6 +351,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.contact = 1 if (contacts and any(pt[8] < 0 for pt in contacts)) else 0
         if self.contact ==1:
             print(f"Contact detected with distance: {(p.getContactPoints(self.foot, self.leg,self.footjoint,-1))[8]:.4f} m")
+            self.contact_force,self.contact_distance = utils.get_contact_force(self, self.foot, self.leg)
         #print((p.getContactPoints(self.foot, self.leg,1,-1)))
         env_utils.set_observation(self, 
                                   initial_pos, 
@@ -365,7 +375,7 @@ class fracturesurgery_env_v2(gym.Env):
         elif self.young_modulus_type == 'None':
             self.young_modulus = self.young_modulus
             self.width = 0.005
-          
+        print(f'number of springs: {self.number_of_springs}')
         p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=5)
         if self.soft_tissue=='soft':
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
@@ -391,7 +401,7 @@ class fracturesurgery_env_v2(gym.Env):
                                          area=5e-6,
                                          width= self.width,
                                          num_springs=self.number_of_springs, randomize_position=self.randomise_ligs,
-                                         randomize_num_ligaments=self.randomise_num_springs
+                                         randomize_num_ligaments=self.randomise_num_springs, patient= self.patient
                                          )
             
             
@@ -455,11 +465,17 @@ class fracturesurgery_env_v2(gym.Env):
         #     num_steps = 20  # Standard execution speed
           # Standard execution speed
         # 7. Reset emergency flag and step simulation with sub-step monitoring
-        num_steps = 12
+        # if self.contact_distance < 0:
+        #     num_steps = 50
+        # else:
+        #     num_steps = 12  # Slow down if in contact to reduce force spikes
+        #num_steps = utils.compute_smooth_substeps(self,self.contact_distance)
+        num_steps = utils.compute_cbf_substeps(self.contact_distance, dd_ds=-1.0, nominal_steps=12, max_steps=50)
+        num_steps =12
         self.output_force, max_step_force, avg_force, all_mean, contact_mean, contact_distance = utils.smooth_motion(
             self, jointPoses, start_pos, max_joint_force, numsubsteps=num_steps
         )
-
+        #print(f'Contact Force: {contact_mean:.4f} N, Contact Distance: {contact_distance:.4f} m')
         self.contact_ema = (self.alpha * contact_mean) + ((1.0 - self.alpha) * self.contact_ema)
         
         # 1. Set distance metric unconditionally (DRY principle)
@@ -476,6 +492,7 @@ class fracturesurgery_env_v2(gym.Env):
         alpha_step = 0.4  # Smoothing factor for force EMA  
         spike_threshold = 15.0  # Define a threshold for spike detection: Pybullet gives random spikes in force,
         # going to ignore any readings above 15N which is likely just a spike and not a real reading 
+        
         if avg_force > spike_threshold:
             self.filtered_force = self.filtered_force  # Ignore spike, keep previous filtered value
         else:
@@ -549,7 +566,7 @@ class fracturesurgery_env_v2(gym.Env):
         #     print('yay')
         if truncated:
             print(f'truncated Max Force: {self.maximum_force}, Contact Force: {self.contact_ema}, Pos Distance: {self.pos_distance}, Angle: {self.angle}')#,{self.isHolding},{self.contact}')
-        
+            #print(f'End-effector pos: {actual_New_Position}, End-effector ori: {actual_New_Orientation}, goal pos: {self.goal_pos}, goal ori: {self.goal_ori}')
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
                 'angle': self.angle, 'Holding': self.isHolding, 
@@ -568,9 +585,9 @@ class fracturesurgery_env_v2(gym.Env):
         reward = np.float32(reward)
         #print('force: ', self.force, reward)
         #print(self.anycontact)
-        # if done:
-        #     #time.sleep(50)
-        #     print(f'foot pos: {p.getBasePositionAndOrientation(self.foot)[0]}, foot ori: {p.getBasePositionAndOrientation(self.foot)[1]}, goal pos: {self.goal_pos}, goal ori: {self.goal_ori}')
+        if done:
+            #time.sleep(50)
+            print(f'foot pos: {p.getBasePositionAndOrientation(self.foot)[0]}, foot ori: {p.getBasePositionAndOrientation(self.foot)[1]}, goal pos: {self.goal_pos}, goal ori: {self.goal_ori}')
         return self.state, reward, done, truncated, info
 
     def render(self) :
