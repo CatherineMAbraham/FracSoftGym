@@ -134,8 +134,8 @@ class fracturesurgery_env_v2(gym.Env):
         
         self.render()
 
-        if self.randomise_ligs or self.randomise_num_springs or self.randomise_start:
-            print("Randomisation enabled for ligaments, number of springs, or start position.")
+        # if self.randomise_ligs or self.randomise_num_springs or self.randomise_start:
+        #     print("Randomisation enabled for ligaments, number of springs, or start position.")
         #p.setTimeStep(1/500)
 
         ##Obs and Action Space setup
@@ -189,8 +189,8 @@ class fracturesurgery_env_v2(gym.Env):
         self.contact_ema = 0.0
 
         if self.randomise_num_springs:
-            self.number_of_springs = np.random.randint(1, 10)  # Randomly choose between 1 and 5 springs
-            print(f"Randomised number of springs: {self.number_of_springs}")
+            self.number_of_springs = np.random.randint(1, 3)  # Randomly choose between 1 and 5 springs
+            #print(f"Randomised number of springs: {self.number_of_springs}")
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
         
@@ -231,7 +231,7 @@ class fracturesurgery_env_v2(gym.Env):
         footorientation = p.getQuaternionFromEuler([90/180*np.pi,-0/180*np.pi, 0])#p.getQuaternionFromEuler([orientation[0], orientation[1], orientation[2]])
         #p.getQuaternionFromEuler([90/180*np.pi,0, 0])
         #footorientation = np.array([0.6992329955101013, 0.3331104815006256, 0.29179978370666504, 0.5612159967422485])
-        if self.patient == 198:
+        if self.patient == 198 :
                     footorientation = p.getQuaternionFromEuler([0,0, 0])
         self.foot = p.loadURDF(foot_path, basePosition=fracturestart, 
                                   baseOrientation=footorientation, 
@@ -262,15 +262,16 @@ class fracturesurgery_env_v2(gym.Env):
         #print('Foot position:', foot)
         #print('Foot orientation (quaternion):', foot_ori)
       
-        leg_orientation = p.getQuaternionFromEuler([90/180*np.pi,0, 0])
+        leg_orientation = p.getQuaternionFromEuler([0,0, 0]) if self.patient == 132 or self.patient== 198 else p.getQuaternionFromEuler([90/180*np.pi,0, 0])
         #leg_start = np.array([0.3470195700516103, -0.15000000000594865, 0.07526955827664446])#fracturestart-np.array([0.0,0.09,0])#np.array([0.35706788301467896, -0.1598062852025032, 0.07526329159736633])
         goal, leg = get_patient_goal(self, self.patient)
         
         for _ in range(10):
             p.stepSimulation()
         #time.sleep(0.1)
+        foot = p.getBasePositionAndOrientation(self.foot)[0]
+        leg_start = foot - np.array([0,0.0,0.015])
         
-       
                 ##
         p.setGravity(0, 0, -9.81)
         initial_or = p.getLinkState(self.pandaUid, 11)[1]
@@ -281,6 +282,12 @@ class fracturesurgery_env_v2(gym.Env):
             self.target_position = np.concatenate((self.goal_pos, self.goal_ori))
             #print(self.target_position)
         else:
+            # self.target_position, pos, orientation = get_goal_from_proximal_pose(self, 
+            #                                                                      self.patient,
+            #                                                                      leg_start,
+            #                                                                      leg_orientation,
+            #                                                                      foot,
+            #                                                                      foot_ori)
             self.goal_pos = goal[0]#np.array([0.31803113376479907, -0.08517002163540139, 0.1481109452402959])#goal[0]
             #goal_ori = goal[1]#p.getEulerFromQuaternion(goal[1])-np.array([3/180*np.pi,1/180*np.pi, 0/180*np.pi])
             #print('Goal position:', self.goal_pos, 'Goal orientation (quaternion):', goal_ori)   
@@ -305,6 +312,12 @@ class fracturesurgery_env_v2(gym.Env):
             leg_start = fracturestart - np.array([0,0.09,0]) 
         else:
             leg_start,leg_start_ori = transformation_matrices.get_leg_start_working(self)
+        
+        self.leg = p.loadURDF(leg_path,
+                                    basePosition =leg_start,#-[0,1,0],
+                                    baseOrientation = leg_orientation,
+                                    globalScaling = 1.0,
+                                    useFixedBase = 1)
         #leg_start = fracturestart - np.array([0,0.09,0])
        # leg_start = (0.3470195700516103, -0.13000000000594865, 0.07526955827664446)
         ## need to combine leg_orientation and leg_start_ori to get the correct orientation for the leg
@@ -313,15 +326,11 @@ class fracturesurgery_env_v2(gym.Env):
         #print('Leg start position:', leg_start)
         if self.patient == 198:
             leg_orientation = p.getQuaternionFromEuler([0,0, 0])
-        foot = p.getBasePositionAndOrientation(self.foot)[0]#p.getLinkState(self.foot, -1)[0]
+        #p.getLinkState(self.foot, -1)[0]
                 #print(foot)
         #difference = np.array([0, 0.105, 0.02])
         #leg_start=foot - difference
-        self.leg = p.loadURDF(leg_path,
-                                        basePosition =leg_start,#-[0,1,0],
-                                        baseOrientation = leg_orientation,
-                                        globalScaling = 1.0,
-                                        useFixedBase = 1)
+        
         
         dynamics.change_leg_dynamics(self)
         p.changeVisualShape(self.leg, -1, rgbaColor=[0.8, 0.8, 0.8, 1])  
@@ -435,7 +444,7 @@ class fracturesurgery_env_v2(gym.Env):
 
         # 2. Derive target end-effector pose using the safe (CBF-filtered) displacements
         new_Position, new_Orientation = utils.get_new_pose(self, dx, dy, dz, qx, qy, qz, qw, mode)
-
+        #print(action)
         # 3. Calculate Inverse Kinematics for the guarded target position
         if self.action_type == 'pos_only':
             jointPoses = p.calculateInverseKinematics(

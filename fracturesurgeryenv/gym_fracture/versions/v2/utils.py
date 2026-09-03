@@ -183,9 +183,9 @@ def is_goal_in_range(env, pos_buffer=0.001, ori_buffer=0.005):
 
     # --- 1. Position Check & Clip ---
     out_of_bounds_pos = (target_pos < goal_pos_low) | (target_pos > goal_pos_high)
-    if np.any(out_of_bounds_pos):
-        for i in np.where(out_of_bounds_pos)[0]:
-            print(f"Pos axis {i} out of range: {target_pos[i]:.6f} not in [{goal_pos_low[i]}, {goal_pos_high[i]}]")
+    # if np.any(out_of_bounds_pos):
+    #     for i in np.where(out_of_bounds_pos)[0]:
+            #print(f"Pos axis {i} out of range: {target_pos[i]:.6f} not in [{goal_pos_low[i]}, {goal_pos_high[i]}]")
 
     clipped_pos = np.clip(target_pos, buf_pos_low, buf_pos_high)
 
@@ -244,11 +244,14 @@ def getGoal(env, fracturestart, fractureorientaionDeg):
 
    
 def get_youngs_modulus_and_width(env):
-    youngs_modulus_range =np.arange(1e5, 5e6, 1e3) #1MPa to 20MPa in 1kPa increments
+    log_min = np.log10(1e5)  # 5.0 (0.1 MPa)
+    log_max = np.log10(1e7)  # 7.0 (10.0 MPa)
+
+    youngs_modulus = 10 ** env.np_random.uniform(log_min, log_max) #1MPa to 20MPa in 1kPa increments
     width_range = np.round(np.arange(0.001, 0.01, 0.001), 3)
 
     ## select random values from the ranges
-    youngs_modulus = env.np_random.choice(youngs_modulus_range) 
+    #youngs_modulus = env.np_random.choice(youngs_modulus_range) 
     width = env.np_random.choice(width_range)
     #print(f'Youngs Modulus: {youngs_modulus} Pa, Width: {width} m')
     return youngs_modulus, width
@@ -259,8 +262,10 @@ def getStarts(env):
     fractureorientaionDeg = np.degrees(np.array(fractureorientaionRad)) 
     #pin = [0.004462 ,-0.002332 , 0.046608  ]
    # pin = [0.004462 ,-0.002332 , 0.049608  ]
+    difference = [-0.04,0,0.08] if (env.patient == 126 or env.patient == 132) else [-0.04,-0.03,0.08]
+    #print(f'Patient: {env.patient}, Difference: {difference}')
     #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
-    fracturestart = fracturestart -[-0.04,-0.03,0.08]# [-0.04,0,0.08]#[-0.04,-0.03,0.08]#[-0.05,0,0]#- [-0.05,0,0]
+    fracturestart = fracturestart -difference#[-0.04,-0.03,0.08]# [-0.04,0,0.08]#[-0.04,-0.03,0.08]#[-0.05,0,0]#- [-0.05,0,0]
     #Calculated this difference from the object start position
     #difference = [-0.004493, 0.079895+0.005, 0.073322] difference between leg and foot
     #difference = [0.011489 ,-0.045611 ,-0.006535  ]
