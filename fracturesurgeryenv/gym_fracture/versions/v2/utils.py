@@ -579,15 +579,18 @@ def smooth_motion_safe(env, joint_targets, joint_current, maxforce, numsubsteps,
 
     return (env.output_force, max_step_force, force_total / numsubsteps, 
             np.mean(all_forces, axis=0), np.mean(contact_forces, axis=0), np.min(contact_distances))
-def smooth_motion(env, joint_targets, joint_current, maxforce,numsubsteps):
-    max_step_force = 0 
-    force_total = 0
-    all_forces=[]
-    contact_forces =[]
+def smooth_motion(env, joint_targets, joint_current, maxforce, numsubsteps):
+    max_step_force = 0.0 
+    force_total = 0.0
+    all_forces = []
+    contact_forces = []
     contact_distances = []
+
     for i in range(numsubsteps):
+        # 1. Target Interpolation & Simulation Step
         alpha = (i + 1) / numsubsteps
         intermediate_targets = joint_current + alpha * (joint_targets - joint_current)
+
         p.setJointMotorControlArray(
             env.pandaUid,
             jointIndices=range(9),
@@ -595,32 +598,49 @@ def smooth_motion(env, joint_targets, joint_current, maxforce,numsubsteps):
             targetPositions=intermediate_targets.tolist(),
             forces=maxforce
         )
-        
+
         if env.soft_tissue == 'spring':
-            #print('Stepping spring')
             env.band.step()
-        #print('stepping')
+
         p.stepSimulation()
-        #time.sleep(0.01)
+
         joint_current = np.array([p.getJointState(env.pandaUid, j)[0] for j in range(9)])
-        force = p.getJointState(env.foot, env.loadcell)[2]  # Joint index 1 is the fixed joint
-        all_forces.append(force)
-        force_magnitude = np.linalg.norm(force[:3])  # Magnitude of the force vector}])
-        force = force_magnitude
-        force_total += force
+
+        # 2. Extract Raw Wrench (Fx, Fy, Fz, Mx, My, Mz) & Compute Magnitude FIRST
+        raw_wrench = p.getJointState(env.foot, env.loadcell)[2]
+        all_forces.append(raw_wrench)
+        sim_force_mag = float(np.linalg.norm(raw_wrench[:3]))
+
+        # 3. Apply Perceptual Noise (Domain Randomization)
+        if getattr(env, 'randomise_sensor_noise', False):
+            jitter = env.np_random.normal(0, 0.01)
+            bias = getattr(env, 'loadcell_bias', 0.0)
+            measured_force_mag = max(0.0, sim_force_mag + bias + jitter)
+        else:
+            measured_force_mag = sim_force_mag
+
+        # 4. Track Step & Episode Peak Forces (Using Scalar Magnitudes)
+        if measured_force_mag > max_step_force:
+            max_step_force = measured_force_mag
+            if max_step_force > env.output_force:
+                env.output_force = max_step_force
+
+        force_total += measured_force_mag
+
+        # 5. Measure Inter-Fragment Contact Physics
         contact_force, contact_distance = get_contact_force(env, env.leg, env.foot)
         contact_forces.append(contact_force)
         contact_distances.append(contact_distance)
-        #forces.append(force)
-        #p.addUserDebugText(f'Force: {force:.2f} N', [0.5, 0, 0.5], textColorRGB=[1, 0, 0], textSize=1, lifeTime=0.1)
-        if force > max_step_force: ## step max force
-            max_step_force = force
-            if max_step_force > env.output_force: ##episode max force 
-                env.output_force = max_step_force
-                #print('New Max Force:', env.output_force)
-            
-    #print(contact_forces)
-    return env.output_force, max_step_force, force_total/numsubsteps, np.mean(all_forces,axis=0), np.mean(contact_forces,axis=0),np.min(contact_distances)
+
+       
+
+    # 6. Aggregate Output Metrics
+    avg_step_force = force_total / numsubsteps
+    mean_wrench = np.mean(all_forces, axis=0) if all_forces else np.zeros(6)
+    mean_contact_force = np.mean(contact_forces, axis=0) if contact_forces else 0.0
+    min_contact_distance = np.min(contact_distances) if contact_distances else 0.0
+
+    return env.output_force, max_step_force, avg_step_force, mean_wrench, mean_contact_force, min_contact_distance
 def smooth_motion_dynamic(env, joint_targets, joint_current, maxforce, 
                   min_steps=12, max_steps=24, f_start=0.15, f_max=0.20, safety_threshold=0.25):
     max_step_force = 0.0

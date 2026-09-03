@@ -47,7 +47,8 @@ class fracturesurgery_env_v2(gym.Env):
         randomise_num_springs = False,
         randomise_ligs = False,
         randomise_start = False,
-        randomise_foot_dynamics=    False,
+        randomise_foot_dynamics= False,
+        randomise_sensor_noise=False,
         patient = None,
         width = 0.005,
         test = False,
@@ -126,7 +127,8 @@ class fracturesurgery_env_v2(gym.Env):
         self.goal_gen_count = 0
         self.f_smooth = 0.0
         self.footjoint = -1
-        self.loadcell = 0
+        self.loadcell = 0 
+        self.randomise_sensor_noise = randomise_sensor_noise
         ## Rendering setup
          ## need to fix this and add a render function, keep getting a warning about it
         
@@ -375,7 +377,7 @@ class fracturesurgery_env_v2(gym.Env):
         elif self.young_modulus_type == 'None':
             self.young_modulus = self.young_modulus
             self.width = 0.005
-        print(f'number of springs: {self.number_of_springs}')
+        
         p.setPhysicsEngineParameter(numSolverIterations=100, numSubSteps=5)
         if self.soft_tissue=='soft':
             self.point_b,_ = new_band.ElasticBand._get_pose_vel(self,self.leg, -1,local_offset=[0.01,0.0,-0.01])
@@ -564,8 +566,8 @@ class fracturesurgery_env_v2(gym.Env):
         # if done:
         #    # time.sleep(100)
         #     print('yay')
-        if truncated:
-            print(f'truncated Max Force: {self.maximum_force}, Contact Force: {self.contact_ema}, Pos Distance: {self.pos_distance}, Angle: {self.angle}')#,{self.isHolding},{self.contact}')
+        # if truncated:
+        #     print(f'truncated Max Force: {self.maximum_force}, Contact Force: {self.contact_ema}, Pos Distance: {self.pos_distance}, Angle: {self.angle}')#,{self.isHolding},{self.contact}')
             #print(f'End-effector pos: {actual_New_Position}, End-effector ori: {actual_New_Orientation}, goal pos: {self.goal_pos}, goal ori: {self.goal_ori}')
         info = {'is_success': done,'truncated': truncated, 'current_step': self.current_step, 
                 'pos_distance': self.pos_distance, 
