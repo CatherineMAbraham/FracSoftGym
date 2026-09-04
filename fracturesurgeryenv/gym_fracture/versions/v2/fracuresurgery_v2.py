@@ -187,6 +187,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.anycontact = 0
         self.filtered_contact_force = 0.0
         self.contact_ema = 0.0
+        self.interlock_count = 0
         if getattr(self, 'randomise_sensor_noise', False):
     # Sample 3D bias drift once per episode for 5N scale
             self.loadcell_bias_3d = self.np_random.uniform(-0.25, 0.25, size=3)
@@ -487,9 +488,9 @@ class fracturesurgery_env_v2(gym.Env):
         # else:
         #     num_steps = 12  # Slow down if in contact to reduce force spikes
         #num_steps = utils.compute_smooth_substeps(self,self.contact_distance)
-        #num_steps = utils.compute_cbf_substeps(self.contact_distance, dd_ds=-1.0, nominal_steps=12, max_steps=50)
-        num_steps =12
-        self.output_force, max_step_force, avg_force, all_mean, contact_mean, contact_distance = utils.smooth_motion(
+        num_steps = utils.compute_cbf_substeps(self.contact_distance, dd_ds=-1.0, nominal_steps=12, max_steps=50)
+        #num_steps =12
+        self.output_force, max_step_force, avg_force, all_mean, contact_mean, contact_distance = utils.smooth_motion_safe(
             self, jointPoses, start_pos, max_joint_force, numsubsteps=num_steps
         )
         #print(f'Contact Force: {contact_mean:.4f} N, Contact Distance: {contact_distance:.4f} m')
@@ -593,7 +594,8 @@ class fracturesurgery_env_v2(gym.Env):
                 'contact_force':self.contact_ema,
                 'exploded': exploded,
                 'contact_distance':self.contact_distance,
-                'width': self.width}#,'force_mag':self.force_magnitude}#,
+                'width': self.width,
+                'interlock_count': self.interlock_count}#,'force_mag':self.force_magnitude}#,
         #print(stretch,self.output_force)
                 #'stretch':stretch,'force_mag':force_mag,'contact': self.anycontact}
         if (not self.test) or (avg_force <= 100):

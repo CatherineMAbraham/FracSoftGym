@@ -570,6 +570,7 @@ def smooth_motion_safe(env, joint_targets, joint_current, maxforce, numsubsteps,
                 targetPositions=joint_current.tolist(),
                 forces=maxforce
             )
+            env.interlock_count+=1
 
         all_forces.append(force_raw)
         contact_forces.append(contact_force)

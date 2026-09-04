@@ -49,7 +49,7 @@ class ElasticBand:
         #self.local_offsets_A= [np.array([ 0.3769989,  -0.08445022,  0.07449624]),np.array([ 0.3769989,  -0.07730737,  0.07449624])]
         #self.local_offsets_B=[np.array([ 0.3769989,  -0.12016451,  0.07449624]),np.array([ 0.3769989,  -0.12016451,  0.07949624])]
         #[np.array([ 0.02000636, -0.00083421,  0.04432721]), [np.array([ 0.01999438, -0.00067805, -0.0100396 ]),
-        base_offset_A =np.array([0,0,0]) if patient == 126 else np.array([ 0.02000484, -0.00081395,  0.03718438])
+        base_offset_A =np.array([0,0,0]) if patient == 126 or patient == 132 else np.array([ 0.02000484, -0.00081395,  0.03718438])
         base_offset_B = np.array([ 0.01999438,  0.00432195, -0.0100396 ]) 
         
         # Randomize number of ligaments positioned around the bone if enabled
