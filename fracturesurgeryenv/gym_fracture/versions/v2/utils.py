@@ -621,19 +621,24 @@ def smooth_motion(env, joint_targets, joint_current, maxforce, numsubsteps):
         
 
         # 3. Apply Perceptual Noise (Domain Randomization)
+        if env.randomise_sensor_noise:
+        # 10% bias offset relative to 5 N nominal force
+            env.loadcell_bias_3d = env.np_random.uniform(-0.5, 0.5, size=3)
+
+        # In env.step():
+        raw_wrench = np.array(p.getJointState(env.foot, env.loadcell)[2])
+        raw_force_3d = raw_wrench[:3]
+
         if getattr(env, 'randomise_sensor_noise', False):
-            jitter = env.np_random.normal(0, 0.02)
+            # Independent 3D Gaussian noise (~5% of 5 N signal)
+            jitter = env.np_random.normal(loc=0.0, scale=0.25, size=3) 
             bias = getattr(env, 'loadcell_bias_3d', np.zeros(3))
-            measured_force_mag = raw_wrench[:3] + bias + jitter
+            measured_force_3d = raw_force_3d + bias + jitter
         else:
-            measured_force_mag = raw_wrench[:3]
-        sim_force_mag = float(np.linalg.norm(measured_force_mag[:3]))
-        # 4. Track Step & Episode Peak Forces (Using Scalar Magnitudes)
-        if sim_force_mag > max_step_force:
-            max_step_force = sim_force_mag
-            if max_step_force > env.output_force:
-                env.output_force = max_step_force
-        
+            measured_force_3d = raw_force_3d
+
+        sim_force_mag = float(np.linalg.norm(measured_force_3d))
+                
         force_total += sim_force_mag
 
         # 5. Measure Inter-Fragment Contact Physics

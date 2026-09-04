@@ -196,7 +196,7 @@ class fracturesurgery_env_v2(gym.Env):
         else:
             self.loadcell_bias_3d = np.zeros(3)
         if self.randomise_num_springs:
-            self.number_of_springs = np.random.randint(1, 3)  # Randomly choose between 1 and 5 springs
+            self.number_of_springs = np.random.randint(1, 4)  # Randomly choose between 1 and 5 springs
             #print(f"Randomised number of springs: {self.number_of_springs}")
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
@@ -244,6 +244,7 @@ class fracturesurgery_env_v2(gym.Env):
                                   baseOrientation=footorientation, 
                                     useFixedBase=0,
                                      globalScaling=1)
+        
         #p.setCollisionFilterGroupMask(self.foot, 1, collisionFilterGroup=0, collisionFilterMask=0)
         dynamics.change_foot_dynamics(self)
         dynamics.change_robot_dynamics(self)
@@ -420,7 +421,7 @@ class fracturesurgery_env_v2(gym.Env):
                                          young_modulus=self.young_modulus,
                                          area=5e-6,
                                          width= self.width,
-                                         num_springs=self.number_of_springs, randomize_position=self.randomise_ligs,
+                                         num_springs=self.number_of_springs, randomize_position=self.randomise_num_springs,
                                          randomize_num_ligaments=self.randomise_num_springs, patient= self.patient
                                          )
             
@@ -428,7 +429,8 @@ class fracturesurgery_env_v2(gym.Env):
         else: 
             
             pass  
-       
+        #print all randomised variables
+        #print(f"Randomised variables: number_of_springs={self.number_of_springs}, youngs_modulus={self.young_modulus}, width={self.width}, randomise_ligs={self.randomise_ligs}, randomise_num_springs={self.randomise_num_springs}, randomise_start={self.randomise_start}, randomise_foot_dynamics={self.randomise_foot_dynamics}")
         #print(p.getClosestPoints(bodyA=self.foot, bodyB=self.leg, linkIndexA=1, linkIndexB=-1,distance=0.5 ))
         #utils.drawAABB(self,self.leg,-1)
         p.setCollisionFilterPair(self.foot,self.leg,self.footjoint,-1,1) ## Allow collision between foot and leg but not between the soft object, very unstable 
