@@ -75,7 +75,7 @@ def make_scene(env):
        
        if env.randomise_start==True:
            #print('random start')
-           random = np.random.uniform(-0.005, 0.005, size=2)
+           random = np.random.uniform(-0.001, 0.001, size=2)
            end_effector_pos = p.getLinkState(env.pandaUid, 11)[0] + np.array([random[0], random[1], 0])  # small random offset
            random_joint_positions = p.calculateInverseKinematics(env.pandaUid, 11, targetPosition=end_effector_pos, maxNumIterations=1000, residualThreshold=1e-9)
            for i in range(9):
@@ -262,7 +262,7 @@ def getStarts(env):
     fractureorientaionDeg = np.degrees(np.array(fractureorientaionRad)) 
     #pin = [0.004462 ,-0.002332 , 0.046608  ]
    # pin = [0.004462 ,-0.002332 , 0.049608  ]
-    difference = [-0.04,0,0.08] if (env.patient == 126 or env.patient == 132) else [-0.04,-0.03,0.08]
+    difference = [-0.04,0.01,0.08] if (env.patient == 126 or env.patient == 132) else [-0.04,-0.03,0.08]
     #print(f'Patient: {env.patient}, Difference: {difference}')
     #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
     fracturestart = fracturestart -difference#[-0.04,-0.03,0.08]# [-0.04,0,0.08]#[-0.04,-0.03,0.08]#[-0.05,0,0]#- [-0.05,0,0]
