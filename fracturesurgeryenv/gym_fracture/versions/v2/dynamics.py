@@ -14,7 +14,7 @@ def change_leg_dynamics(env):
  
 def change_foot_dynamics(env):
     if env.randomise_foot_dynamics:
-        mass = env.np_random.uniform(0.276 * 0.9, 0.276 * 1.1)
+        mass = env.np_random.uniform(0.276 * 0.8, 0.276 * 1.2)
         
         # Friction DR
         joint_friction = env.np_random.uniform(0.3, 1.0)
@@ -27,7 +27,8 @@ def change_foot_dynamics(env):
         damping = env.np_random.uniform(80, 120)
         restitution = env.np_random.uniform(0.0, 0.15)
     else:
-        mass = 0.276
+        # If not randomizing, use default values
+        mass = 0.0276 if env.patient ==126 or env.patient == 132 else 0.276
         sole_friction, joint_friction, spin_friction = 1.0, 0.5, 0.005
         stiffness_link1, stiffness_joint, damping = 5000, 300, 100
         restitution = 0.0

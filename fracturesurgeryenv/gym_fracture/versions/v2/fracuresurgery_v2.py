@@ -189,7 +189,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.contact_ema = 0.0
 
         if self.randomise_num_springs:
-            self.number_of_springs = np.random.randint(1, 3)  # Randomly choose between 1 and 5 springs
+            self.number_of_springs = np.random.randint(1, 5)  # Randomly choose between 1 and 5 springs
             #print(f"Randomised number of springs: {self.number_of_springs}")
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
