@@ -187,9 +187,13 @@ class fracturesurgery_env_v2(gym.Env):
         self.anycontact = 0
         self.filtered_contact_force = 0.0
         self.contact_ema = 0.0
-
+        if getattr(self, 'randomise_sensor_noise', False):
+    # Sample 3D bias drift once per episode for 5N scale
+            self.loadcell_bias_3d = self.np_random.uniform(-0.25, 0.25, size=3)
+        else:
+            self.loadcell_bias_3d = np.zeros(3)
         if self.randomise_num_springs:
-            self.number_of_springs = np.random.randint(1, 5)  # Randomly choose between 1 and 5 springs
+            self.number_of_springs = np.random.randint(1, 3)  # Randomly choose between 1 and 5 springs
             #print(f"Randomised number of springs: {self.number_of_springs}")
         #   ##This is in init? Check in test 
         p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD) ##Needed for FEM
@@ -294,6 +298,7 @@ class fracturesurgery_env_v2(gym.Env):
             self.goal_ori = goal[1]
            # self.goal_ori =np.array(p.getQuaternionFromEuler(goal_ori))#np.array([-0.06132328,-0.06193331,0.70415999,0.70467186])#np.array(p.getQuaternionFromEuler(goal_ori))#np.array([0.999857944938553, 0.0034038286589975777, -0.014537799360434847, 0.007820248299749461])#np.array(p.getQuaternionFromEuler(goal_ori))
             self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#
+            #print('Goal position:', self.goal_pos, 'Goal orientation (quaternion):', self.goal_ori)
             self.target_position = utils.is_goal_in_range(self)
             #self.target_position = np.concatenate((self.goal_pos, self.goal_ori))#np.array([ 0.32180062,-0.09246775, 0.15800003,0.9999999728200057, 0.00023313980271510995, -8.89660707914592e-08, 2.4108688676344187e-06])#2.81656109e-04, -2.81431908e-04,  7.06825125e-01,  7.07388213e-01])
             self.goal_pos = self.target_position[0:3]
@@ -301,6 +306,7 @@ class fracturesurgery_env_v2(gym.Env):
         #self.target_position = utils.is_goal_in_range(self)
         #self.goal_pos = self.target_position[0:3]
         #self.goal_ori = self.target_position[3:7]
+        #print(f"Goal position: {self.goal_pos}, Goal orientation (quaternion): {self.goal_ori}")
         goal_cube = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=self.visual_shape,
                             basePosition=self.target_position[0:3], baseOrientation=self.goal_ori)
         #time.sleep(1)
@@ -481,7 +487,7 @@ class fracturesurgery_env_v2(gym.Env):
         # else:
         #     num_steps = 12  # Slow down if in contact to reduce force spikes
         #num_steps = utils.compute_smooth_substeps(self,self.contact_distance)
-        num_steps = utils.compute_cbf_substeps(self.contact_distance, dd_ds=-1.0, nominal_steps=12, max_steps=50)
+        #num_steps = utils.compute_cbf_substeps(self.contact_distance, dd_ds=-1.0, nominal_steps=12, max_steps=50)
         num_steps =12
         self.output_force, max_step_force, avg_force, all_mean, contact_mean, contact_distance = utils.smooth_motion(
             self, jointPoses, start_pos, max_joint_force, numsubsteps=num_steps
@@ -596,9 +602,9 @@ class fracturesurgery_env_v2(gym.Env):
         reward = np.float32(reward)
         #print('force: ', self.force, reward)
         #print(self.anycontact)
-        if done:
-            #time.sleep(50)
-            print(f'foot pos: {p.getBasePositionAndOrientation(self.foot)[0]}, foot ori: {p.getBasePositionAndOrientation(self.foot)[1]}, goal pos: {self.goal_pos}, goal ori: {self.goal_ori}')
+        # if done:
+        #     #time.sleep(50)
+        #     print(f'foot pos: {p.getBasePositionAndOrientation(self.foot)[0]}, foot ori: {p.getBasePositionAndOrientation(self.foot)[1]}, goal pos: {self.goal_pos}, goal ori: {self.goal_ori}')
         return self.state, reward, done, truncated, info
 
     def render(self) :

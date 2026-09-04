@@ -74,7 +74,7 @@ def make_scene(env):
 
        
        if env.randomise_start==True:
-           print('random start')
+           #print('random start')
            random = np.random.uniform(-0.005, 0.005, size=2)
            end_effector_pos = p.getLinkState(env.pandaUid, 11)[0] + np.array([random[0], random[1], 0])  # small random offset
            random_joint_positions = p.calculateInverseKinematics(env.pandaUid, 11, targetPosition=end_effector_pos, maxNumIterations=1000, residualThreshold=1e-9)
@@ -614,23 +614,23 @@ def smooth_motion(env, joint_targets, joint_current, maxforce, numsubsteps):
         # 2. Extract Raw Wrench (Fx, Fy, Fz, Mx, My, Mz) & Compute Magnitude FIRST
         raw_wrench = p.getJointState(env.foot, env.loadcell)[2]
         all_forces.append(raw_wrench)
-        sim_force_mag = float(np.linalg.norm(raw_wrench[:3]))
+        
 
         # 3. Apply Perceptual Noise (Domain Randomization)
         if getattr(env, 'randomise_sensor_noise', False):
-            jitter = env.np_random.normal(0, 0.01)
-            bias = getattr(env, 'loadcell_bias', 0.0)
-            measured_force_mag = max(0.0, sim_force_mag + bias + jitter)
+            jitter = env.np_random.normal(0, 0.02)
+            bias = getattr(env, 'loadcell_bias_3d', np.zeros(3))
+            measured_force_mag = raw_wrench[:3] + bias + jitter
         else:
-            measured_force_mag = sim_force_mag
-
+            measured_force_mag = raw_wrench[:3]
+        sim_force_mag = float(np.linalg.norm(measured_force_mag[:3]))
         # 4. Track Step & Episode Peak Forces (Using Scalar Magnitudes)
-        if measured_force_mag > max_step_force:
-            max_step_force = measured_force_mag
+        if sim_force_mag > max_step_force:
+            max_step_force = sim_force_mag
             if max_step_force > env.output_force:
                 env.output_force = max_step_force
-
-        force_total += measured_force_mag
+        
+        force_total += sim_force_mag
 
         # 5. Measure Inter-Fragment Contact Physics
         contact_force, contact_distance = get_contact_force(env, env.leg, env.foot)
