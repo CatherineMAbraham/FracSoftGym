@@ -188,6 +188,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.contact_distance =0
         self.anycontact = 0
         self.filtered_contact_force = 0.0
+        self.filtered_force = 0.0
         self.contact_ema = 0.0
         self.interlock_count = 0
         if getattr(self, 'randomise_sensor_noise', False):
