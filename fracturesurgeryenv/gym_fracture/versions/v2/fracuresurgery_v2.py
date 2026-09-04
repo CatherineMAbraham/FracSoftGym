@@ -49,6 +49,7 @@ class fracturesurgery_env_v2(gym.Env):
         randomise_start = False,
         randomise_foot_dynamics= False,
         randomise_sensor_noise=False,
+        safe_mode = False,
         patient = None,
         width = 0.005,
         test = False,
@@ -129,6 +130,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.footjoint = -1
         self.loadcell = 0 
         self.randomise_sensor_noise = randomise_sensor_noise
+        self.safe_mode = safe_mode
         ## Rendering setup
          ## need to fix this and add a render function, keep getting a warning about it
         
@@ -488,11 +490,17 @@ class fracturesurgery_env_v2(gym.Env):
         # else:
         #     num_steps = 12  # Slow down if in contact to reduce force spikes
         #num_steps = utils.compute_smooth_substeps(self,self.contact_distance)
-        num_steps = utils.compute_cbf_substeps(self.contact_distance, dd_ds=-1.0, nominal_steps=12, max_steps=50)
-        #num_steps =12
-        self.output_force, max_step_force, avg_force, all_mean, contact_mean, contact_distance = utils.smooth_motion_safe(
-            self, jointPoses, start_pos, max_joint_force, numsubsteps=num_steps
-        )
+        #num_steps = utils.compute_cbf_substeps(self.contact_distance, dd_ds=-1.0, nominal_steps=12, max_steps=50)
+        if self.safe_mode:
+            num_steps = utils.compute_cbf_substeps(self.contact_distance, dd_ds=-1.0, nominal_steps=12, max_steps=50)
+            self.output_force, max_step_force, avg_force, all_mean, contact_mean, contact_distance = utils.smooth_motion_safe(
+                        self, jointPoses, start_pos, max_joint_force, numsubsteps=num_steps
+                    )
+        else:
+            num_steps =12
+            self.output_force, max_step_force, avg_force, all_mean, contact_mean, contact_distance = utils.smooth_motion(
+                self, jointPoses, start_pos, max_joint_force, numsubsteps=num_steps
+            )
         #print(f'Contact Force: {contact_mean:.4f} N, Contact Distance: {contact_distance:.4f} m')
         self.contact_ema = (self.alpha * contact_mean) + ((1.0 - self.alpha) * self.contact_ema)
         
