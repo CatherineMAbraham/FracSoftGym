@@ -73,28 +73,16 @@ def make_scene(env):
            p.resetJointState(env.pandaUid,i, startposition[i])
 
        
-       if env.randomise_start:
-        # 1. Extract current position AND orientation of the EE link
-        ee_state = p.getLinkState(env.pandaUid, 11)
-        current_pos, current_ori = ee_state[0], ee_state[1]
-
-        # 2. Apply Cartesian offset
-        random_offset = env.np_random.uniform(-0.001, 0.001, size=2)
-        target_pos = [current_pos[0] + random_offset[0], current_pos[1] + random_offset[1], current_pos[2]]
-
-        # 3. Solve IK WITH locked targetOrientation
-        random_joint_positions = p.calculateInverseKinematics(
-            env.pandaUid,
-            11,
-            targetPosition=target_pos,
-            targetOrientation=current_ori,  # CRITICAL: Lock orientation
-            maxNumIterations=1000,
-            residualThreshold=1e-9
-        )
-
+       if env.randomise_start==True:
+           #print('random start')
+           random = np.random.uniform(-0.001, 0.001, size=2)
+           end_effector_pos = p.getLinkState(env.pandaUid, 11)[0] + np.array([random[0], random[1], 0])  # small random offset
+           random_joint_positions = p.calculateInverseKinematics(env.pandaUid, 11, targetPosition=end_effector_pos, maxNumIterations=1000, residualThreshold=1e-9)
+           for i in range(9):
+               p.resetJointState(env.pandaUid, i, random_joint_positions[i])
         # 4. Reset joint states with zero velocity
-        for i in range(9):
-            p.resetJointState(env.pandaUid, i, random_joint_positions[i], targetVelocity=0.0)
+           for i in range(9):
+                p.resetJointState(env.pandaUid, i, random_joint_positions[i], targetVelocity=0.0)
     
            
 
@@ -277,7 +265,7 @@ def getStarts(env):
     fractureorientaionDeg = np.degrees(np.array(fractureorientaionRad)) 
     #pin = [0.004462 ,-0.002332 , 0.046608  ]
    # pin = [0.004462 ,-0.002332 , 0.049608  ]
-    difference = [-0.04,0.01,0.08] if (env.patient == 126 or env.patient == 132) else [-0.04,-0.03,0.08]
+    difference = [-0.04,-0.0,0.08] if (env.patient == 126 or env.patient == 132) else [-0.04,-0.03,0.08]
     #print(f'Patient: {env.patient}, Difference: {difference}')
     #p.addUserDebugText('P', pin, textColorRGB=[1, 0, 0], textSize=1)
     fracturestart = fracturestart -difference#[-0.04,-0.03,0.08]# [-0.04,0,0.08]#[-0.04,-0.03,0.08]#[-0.05,0,0]#- [-0.05,0,0]
