@@ -187,7 +187,7 @@ class fracturesurgery_env_v2(gym.Env):
         self.maximum_force = 0
         self.contact_distance =0
         self.anycontact = 0
-        self.filtered_contact_force = 0.0
+        #self.filtered_contact_force = 0.0
         self.filtered_force = 0.0
         self.contact_ema = 0.0
         self.interlock_count = 0
@@ -323,7 +323,8 @@ class fracturesurgery_env_v2(gym.Env):
             leg_start = fracturestart - np.array([0,0.09,0]) 
         else:
             leg_start,leg_start_ori = transformation_matrices.get_leg_start_working(self)
-        
+        #print(f"Leg start position: {leg_start}, Leg start orientation (quaternion): {leg_start_ori}")
+        #leg_start = np.array([ 0.32365263, -0.08479164,  0.05334096])
         self.leg = p.loadURDF(leg_path,
                                     basePosition =leg_start,#-[0,1,0],
                                     baseOrientation = leg_orientation,

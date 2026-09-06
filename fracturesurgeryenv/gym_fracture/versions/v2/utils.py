@@ -188,7 +188,7 @@ def is_goal_in_range(env, pos_buffer=0.001, ori_buffer=0.005):
     out_of_bounds_pos = (target_pos < goal_pos_low) | (target_pos > goal_pos_high)
     # if np.any(out_of_bounds_pos):
     #     for i in np.where(out_of_bounds_pos)[0]:
-            #print(f"Pos axis {i} out of range: {target_pos[i]:.6f} not in [{goal_pos_low[i]}, {goal_pos_high[i]}]")
+    #         print(f"Pos axis {i} out of range: {target_pos[i]:.6f} not in [{goal_pos_low[i]}, {goal_pos_high[i]}]")
 
     clipped_pos = np.clip(target_pos, buf_pos_low, buf_pos_high)
 
